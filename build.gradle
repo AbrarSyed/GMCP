@@ -1,0 +1,15 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'groovy'
+
+group = 'com.github.abrarsyed.gmcp'
+version = '.5-SNAPSHOT'
+archivesBaseName = 'GMCP'
+
+dependencies
+{
+	compile gradleApi()
+}
