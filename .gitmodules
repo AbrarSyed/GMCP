@@ -1,0 +1,3 @@
+[submodule "GMCP_scripts"]
+	path = GMCP_scripts
+	url = git@github.com:AbrarSyed/GMCP_scripts.git
