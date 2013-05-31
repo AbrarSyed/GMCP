@@ -7,9 +7,11 @@ public class GMCP implements Plugin<Project>
 {
 
 	@Override
-	public void apply(Project arg0)
+	public void apply(Project project)
 	{
-		// nothing yet.		
+		// set version stuff
+		project.ext.mcVersion = "latest";
+		project.ext.forgeVersion = "latest";
 	}
 
 }

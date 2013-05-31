@@ -9,7 +9,13 @@ group = 'com.github.abrarsyed.gmcp'
 version = '.5-SNAPSHOT'
 archivesBaseName = 'GMCP'
 
+repositories {
+	mavenCentral()
+}
+
 dependencies
 {
 	compile gradleApi()
+	compile 'org.codehaus.groovy:groovy-all:2.0.6'
+	compile project(":GMCP_scripts")
 }
