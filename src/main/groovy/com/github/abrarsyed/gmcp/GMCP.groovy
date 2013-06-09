@@ -5,23 +5,10 @@ import org.gradle.api.Project
 
 public class GMCP implements Plugin<Project>
 {
-
 	@Override
 	public void apply(Project project)
 	{
-		// set version stuff
-		project.ext.mcVersion = "latest";
-		project.ext.forgeVersion = "latest";
+		project.extensions.create("minecraft", GMCPExtension)
 	}
 
 }
-
-/*
-class GreetingPlugin implements Plugin<Project> {
-	void apply(Project project) {
-		project.task('hello') << {
-			println "Hello from the GreetingPlugin"
-		}
-	}
-}
-*/
