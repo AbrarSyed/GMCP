@@ -16,6 +16,12 @@ repositories {
 dependencies
 {
 	compile gradleApi()
-	compile 'org.codehaus.groovy:groovy-all:2.0.6'
-	compile project(":GMCP_scripts")
+	compile localGroovy()
+	compile project("GMCP_scripts")
+	
+	compile 'org.ow2.asm:asm-all:4.1'
+	compile 'com.google.guava:guava:14.0.1'
+	compile 'net.sourceforge.argo:argo:3.4'
+	compile 'net.sf.opencsv:opencsv:2.3'
+	compile 'com.github.tony19:named-regexp:0.1.9'
 }
