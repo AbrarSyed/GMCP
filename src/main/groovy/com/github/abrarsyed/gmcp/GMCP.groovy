@@ -55,6 +55,7 @@ public class GMCP implements Plugin<Project>
 		task.getOutputs().dir(project.minecraft.baseDir + "/forge")
 
 
+		// ----------------------------------------------------------------------------
 		// download necessary stuff.
 		task = project.task('getMinecraft', dependsOn: "getForge") << {
 			def root = file(project.minecraft.baseDir+"/"+Constants.DIR_MC_JARS)
@@ -66,15 +67,15 @@ public class GMCP implements Plugin<Project>
 
 			project.logger.lifecycle "Downloading Minecraft"
 			def mcver = parser.getProperty("default", "current_ver")
-			Util.download(parser.getProperty(mcver, "client_url"), file(project.minecraft.baseDir, Constants.JAR_CLIENT))
-			Util.download(parser.getProperty(mcver, "server_url"), file(project.minecraft.baseDir, Constants.JAR_SERVER))
+			Util.download(parser.getProperty(mcver, "client_url"), baseFile(Constants.JAR_CLIENT))
+			Util.download(parser.getProperty(mcver, "server_url"), baseFile(Constants.JAR_SERVER))
 
 			project.logger.lifecycle "Downloading libraries"
 			def dls = parser.getProperty("default", "libraries").split(/\s/)
 			dls.each { Util.download(baseUrl+it, new File(root, it)) }
 
 			project.logger.lifecycle "Downloading natives"
-			def nativesJar = file(project.minecraft.baseDir, "natives.jar")
+			def nativesJar = baseFile("natives.jar")
 			def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
 			Util.download(baseUrl + nativesName, nativesJar)
 
@@ -88,20 +89,41 @@ public class GMCP implements Plugin<Project>
 			file project.minecraft.baseDir+"/"+Constants.JAR_CLIENT
 			file project.minecraft.baseDir+"/"+Constants.JAR_SERVER
 		}
+
+		// ----------------------------------------------------------------------------
+		// to do the package changes
+		task = project.task('doFMLPreProcess', dependsOn: "getMinecraft") << {
+			(new PackageFixer(baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"]))).with {
+				// calls the following on the package fixer.
+				// gotta love groovy :)
+				fixSRG(baseFile(Constants.DIR_MAPPINGS, "joined.srg"), baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
+				fixExceptor(baseFile(Constants.DIR_MAPPINGS, "joined.exc"), baseFile(Constants.DIR_MAPPINGS, "packaged.exc"))
+				fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch"))
+				fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_server_ff.patch"))
+			}
+		}
+		task.getOutputs().with {
+			baseFile(Constants.DIR_MAPPINGS, "packaged.srg")
+			baseFile(Constants.DIR_MAPPINGS, "packaged.exc")
+		}
 	}
 
 	def jarTasks()
 	{
 		// merge jars task
-		def task = project.task('mergeMinecraftJars', dependsOn: "getMinecraft") << {
-			
-			def client = file(project.minecraft.baseDir, Constants.JAR_CLIENT)
-			def server = file(project.minecraft.baseDir, Constants.JAR_SERVER)
-			def merged = file(project.minecraft.baseDir, Constants.JAR_MERGED)
-			
+		def task = project.task('mergeMinecraftJars', dependsOn: "doFMLPreProcess") << {
+
+			def client = baseFile(Constants.JAR_CLIENT)
+			def server = baseFile(Constants.JAR_SERVER)
+			def merged = baseFile(Constants.JAR_MERGED)
+
 			//Constants.JAR_CLIENT, Constants.JAR_SERVER
 			String[] args = new String[3]
-			args[0] = [project.minecraft.baseDir, Constants.DIR_FML, "mcp_merge.cfg"].join "/"
+			args[0] = [
+				project.minecraft.baseDir,
+				Constants.DIR_FML,
+				"mcp_merge.cfg"
+			].join "/"
 			args[1] = client.getPath()
 			args[2] = server.getPath()
 			MCPMerger.main(args)
@@ -125,8 +147,7 @@ public class GMCP implements Plugin<Project>
 			output.close()
 		}
 		// set output
-		task.getOutputs().file file(project.minecraft.baseDir, Constants.JAR_MERGED)
-		
+		task.getOutputs().file baseFile(Constants.JAR_MERGED)
 		
 	}
 
@@ -138,6 +159,15 @@ public class GMCP implements Plugin<Project>
 	def File file(File file, String... args)
 	{
 		return project.file(new File(file, args.join("/")))
+	}
+	
+	def File baseFile(String... args)
+	{
+		def arguments = []
+		arguments += project.minecraft.baseDir
+		arguments.addAll(args)
+		
+		return file(arguments as String[])
 	}
 
 }
