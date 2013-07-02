@@ -58,14 +58,14 @@ public class GMCP implements Plugin<Project>
 
 			project.logger.lifecycle "Downloading libraries"
 			def dls = parser.getProperty("default", "libraries").split(/\s/)
-			dls.each { Util.download(baseUrl+it, project.file(root+"/"+it)) }
+			dls.each { Util.download(baseUrl+it, new File(root, it)) }
 
 			project.logger.lifecycle "Downloading natives"
 			def nativesJar = project.file(project.minecraft.baseDir+"/"+"natives.jar")
 			def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
 			Util.download(baseUrl + nativesName, nativesJar)
 
-			Util.unzip(nativesJar, project.file(root+"/"+"natives"), true)
+			Util.unzip(nativesJar, new File(root, "natives"), true)
 			nativesJar.delete()
 		}
 	}
