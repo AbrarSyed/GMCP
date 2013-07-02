@@ -1,53 +1,33 @@
 package com.github.abrarsyed.gmcp
 
+
 public final class Constants
 {
 	// root dirs
-	public static final File	DIR_TEMP			= new File("tmp")
-	public static final File    DIR_NATIVES            = new File("natives")
+	def public static final     DIR_NATIVES         = "natives"
 
 	// temp dirs
-	public static final File	DIR_LOGS			= new File(DIR_TEMP, "logs")
-	public static final File	DIR_EXTRACTED		= new File(DIR_TEMP, "extracted")
-	public static final File	DIR_CLASSES			= new File(DIR_TEMP, "classes")
-	public static final File	DIR_SOURCES			= new File(DIR_TEMP, "sources")
-	public static final File 	DIR_MC_JARS 		= new File(DIR_TEMP, "jars")
-	public static final File 	DIR_FORGE 			= new File(DIR_TEMP, "forge")
-	public static final File 	DIR_FML 			= new File(DIR_FORGE, "fml")
-	public static final File 	DIR_FORGE_PATCHES 	= new File(DIR_FORGE, "patches/minecraft")
-	public static final File 	DIR_FML_PATCHES 	= new File(DIR_FML, "patches/minecraft")
-	public static final File 	DIR_MAPPINGS 		= new File(DIR_FML, "conf")
-	public static final File 	DIR_MCP_PATCHES 	= new File(DIR_MAPPINGS, "patches")
+	def public static final 	DIR_LOGS			= "logs"
+	def public static final 	DIR_EXTRACTED		= "extracted"
+	def public static final 	DIR_CLASSES			= "classes"
+	def public static final 	DIR_SOURCES			= "sources"
+	def public static final  	DIR_MC_JARS 		= "jars"
+	def public static final  	DIR_FORGE 			= "forge"
+	def public static final  	DIR_FML 			= DIR_FORGE + "/fml"
+	def public static final  	DIR_FORGE_PATCHES 	= DIR_FORGE + "/patches/minecraft"
+	def public static final  	DIR_FML_PATCHES 	= DIR_FML + "/patches/minecraft"
+	def public static final  	DIR_MAPPINGS 		= DIR_FML + "/conf"
+	def public static final  	DIR_MCP_PATCHES 	= DIR_MAPPINGS + "/patches"
 
-	// jar files
-	public static final File	JAR_CLIENT			= new File(DIR_TEMP, "jars/Minecraft_Client.jar")
-	public static final File	JAR_SERVER			= new File(DIR_TEMP, "jars/Minecraft_Server.jar")
-	public static final File	JAR_MERGED			= new File(DIR_TEMP, "jars/Minecraft.jar")
-	public static final File	JAR_DEOBF			= new File(DIR_TEMP, "Minecraft_SS.jar")
-	public static final File	JAR_EXCEPTOR		= new File(DIR_TEMP, "Minecraft_EXC.jar")
+	// jars
+	def public static final 	JAR_CLIENT			= "jars/Minecraft_Client.jar"
+	def public static final 	JAR_SERVER			= "jars/Minecraft_Server.jar"
+	def public static final 	JAR_MERGED			= "jars/Minecraft.jar"
+	def public static final 	JAR_DEOBF			= "Minecraft_SS.jar"
+	def public static final 	JAR_EXCEPTOR		= "Minecraft_EXC.jar"
 
 	// download URLs    versions are in #_#_# form rather than #.#.#
-	public static final String 	URL_MC_JAR 			= "http://assets.minecraft.net/%s/minecraft.jar"
-	public static final String 	URL_MCSERVER_JAR 	= "http://assets.minecraft.net/%s/minecraft_server.jar"
-	public static final String 	URL_LIB_ROOT 		= "http://s3.amazonaws.com/MinecraftDownload/"
 	public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
-
-	// normal MC version form
-	public static final String 	URL_FORGE 			= "http://files.minecraftforge.net/minecraftforge/minecraftforge-src-%s-%s.zip"
-
-	// lib names
-	public static final LIBRARIES = [
-		"lwjgl.jar",
-		"lwjgl_util.jar",
-		"jinput.jar"
-	]
-
-	// natives
-	public static final NATIVES = [
-		WINDOWS:"windows_natives.jar",
-		MAC: "macosx_natives.jar",
-		LINUX: "linux_natives.jar"
-	]
 
 	// CSVs
 	public static final CSVS = [

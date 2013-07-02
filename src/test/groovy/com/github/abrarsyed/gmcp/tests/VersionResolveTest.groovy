@@ -4,7 +4,7 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
-import com.github.abrarsyed.gmcp.GMCPExtension
+import com.github.abrarsyed.gmcp.extensions.GMCPExtension;
 
 public class VersionResolveTest
 {

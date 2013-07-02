@@ -1,10 +1,13 @@
-package com.github.abrarsyed.gmcp
+package com.github.abrarsyed.gmcp.extensions
+
+import java.io.File;
 
 import org.gradle.api.Nullable
 
 import argo.jdom.JdomParser
 import argo.jdom.JsonRootNode
 
+import com.github.abrarsyed.gmcp.Constants;
 import com.github.abrarsyed.gmcp.exceptions.MalformedVersionException
 
 class GMCPExtension
@@ -13,6 +16,7 @@ class GMCPExtension
 	def String minecraftVersion
 	def String forgeVersion = "latest"
 	def forgeURL
+	def baseDir = "minecraft"
 
 	private resolved = false
 	private urlForced = false
