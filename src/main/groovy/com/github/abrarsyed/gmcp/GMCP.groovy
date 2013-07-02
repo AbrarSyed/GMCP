@@ -38,6 +38,7 @@ public class GMCP implements Plugin<Project>
 
 		// start the tasks
 		downloadTasks()
+		jarTasks()
 	}
 
 	def downloadTasks()
