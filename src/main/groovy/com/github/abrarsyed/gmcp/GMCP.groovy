@@ -2,7 +2,6 @@ package com.github.abrarsyed.gmcp
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.tasks.Copy
 
 public class GMCP implements Plugin<Project>
 {
@@ -11,10 +10,26 @@ public class GMCP implements Plugin<Project>
 	{
 		project.extensions.create("minecraft", GMCPExtension)
 
-		// Download stuff
-//		project.task('downloadStuff', type: Copy) {
-//			ant.get(project.minecraft.forgeUrl, project.buildDir, false)
-//		}
+		// ensure java is in.
+		project.apply( plugin: "java")
+
+
+		// Get Forge
+		project.task('getForge')
+		{
+			project.file(".gradle").mkdirs()
+			def forgeZip = project.file(".gradle\forge.zip")
+			def forgeFolder = project.file("forge")
+			Util.download(project.minecraft.forgeURL, project.file(".gradle\forge.zip"))
+			Util.unzip(forgeZip, forgeFolder, false)
+			forgeZip.delete()
+		}
+		
+		// download necessary stuff.
+		project.task('getOtherStuff')
+		{
+			
+		}
 
 	}
 

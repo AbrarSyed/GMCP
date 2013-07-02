@@ -13,18 +13,11 @@ class GMCPExtension
 	def String minecraftVersion
 	def String forgeVersion = "latest"
 	def forgeURL
-	@Nullable
-	private MCModInfo = null
 
 	private resolved = false
 	private urlForced = false
 
 	private static final JdomParser JDOM_PARSER = new JdomParser()
-
-	def mcmodinfo(Closure c)
-	{
-		// ????
-	}
 
 	public void setForgeVersion(String obj)
 	{
@@ -40,6 +33,12 @@ class GMCPExtension
 			obj = obj.toLowerCase()
 		minecraftVersion = obj
 		resolved = false
+	}
+
+	public void setForgeURL(String str)
+	{
+		resolved = true
+		forgeURL = str
 	}
 
 	public String getForgeVersion()

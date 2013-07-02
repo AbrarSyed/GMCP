@@ -17,7 +17,6 @@ dependencies
 {
 	compile gradleApi()
 	compile localGroovy()
-	compile project("GMCP_scripts")
 	
 	compile 'org.ow2.asm:asm-all:4.1'
 	compile 'com.google.guava:guava:14.0.1'

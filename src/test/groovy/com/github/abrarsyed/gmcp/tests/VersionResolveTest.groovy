@@ -1,4 +1,5 @@
 package com.github.abrarsyed.gmcp.tests
+
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -26,7 +27,7 @@ public class VersionResolveTest
 		ext.setMinecraftVersion("1.5.1")
 		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.1-7.7.2.682.zip", ext.getForgeURL())
 	}
-	
+
 	private boolean getResolved()
 	{
 		return ext.resolved
