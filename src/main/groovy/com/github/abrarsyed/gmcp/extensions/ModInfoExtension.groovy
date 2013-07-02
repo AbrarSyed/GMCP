@@ -4,15 +4,15 @@ class ModInfoExtension
 {
 	def modid
 	def name
-	def description
+	def description = ""
 	def version
 	def mcversion
-	def url
-	def updateUrl
+	def url = ""
+	def updateUrl = ""
 	List authors = []
-	def credits
-	def logoFile
-	List screenshots
-	def parent
-	List dependencies
+	def credits = ""
+	def logoFile = ""
+	List screenshots = []
+	def parent = ""
+	List dependencies = []
 }
