@@ -32,8 +32,8 @@ public class GMCP implements Plugin<Project>
 
 	def downloadTasks(Project project)
 	{
-		// Get Forge
-		project.task('getForge') << {
+		// Get Forge task
+		def task = project.task('getForge') << {
 			def base = project.file(project.minecraft.baseDir)
 			base.mkdirs()
 			def forgeZip = new File(base, "/forge.zip")
@@ -41,9 +41,12 @@ public class GMCP implements Plugin<Project>
 			Util.unzip(forgeZip, project.file(project.minecraft.baseDir), false)
 			forgeZip.delete()
 		}
+		// setup outputs
+		task.getOutputs().dir(project.minecraft.baseDir + "/forge")
+		
 
 		// download necessary stuff.
-		project.task('getMinecraft', dependsOn: "getForge") << {
+		task = project.task('getMinecraft', dependsOn: "getForge") << {
 			def root = project.file(project.minecraft.baseDir+"/"+Constants.DIR_MC_JARS)
 			root.mkdirs()
 
@@ -68,6 +71,14 @@ public class GMCP implements Plugin<Project>
 			Util.unzip(nativesJar, new File(root, "natives"), true)
 			nativesJar.delete()
 		}
+		// setup more outputs
+		task.getOutputs().with {
+			dir project.minecraft.baseDir+"/"+Constants.DIR_MC_JARS
+			dir project.minecraft.baseDir+"/"+Constants.DIR_MC_JARS + "/" + "natives"
+			file project.minecraft.baseDir+"/"+Constants.JAR_CLIENT
+			file project.minecraft.baseDir+"/"+Constants.JAR_SERVER
+		}
+			
 	}
 
 }
