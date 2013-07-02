@@ -13,14 +13,24 @@ repositories {
 	mavenCentral()
 }
 
+jar {
+	from { configurations.packed.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+configurations {
+	packed
+	compile.extendsFrom packed
+}
+
 dependencies
 {
 	compile gradleApi()
 	compile localGroovy()
 	
-	compile 'org.ow2.asm:asm-all:4.1'
-	compile 'com.google.guava:guava:14.0.1'
-	compile 'net.sourceforge.argo:argo:3.4'
-	compile 'net.sf.opencsv:opencsv:2.3'
-	compile 'com.github.tony19:named-regexp:0.1.9'
+	
+	packed 'org.ow2.asm:asm-all:4.1'
+	packed 'com.google.guava:guava:14.0.1'
+	packed 'net.sourceforge.argo:argo:3.4'
+	packed 'net.sf.opencsv:opencsv:2.3'
+	packed 'com.github.tony19:named-regexp:0.1.9'
 }

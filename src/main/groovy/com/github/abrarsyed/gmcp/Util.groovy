@@ -12,6 +12,7 @@ class Util
 
 	def static download(String url, File output)
 	{
+		output.createNewFile()
 		while(url)
 		{
 			new URL(url).openConnection().with

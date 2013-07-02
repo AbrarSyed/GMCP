@@ -13,17 +13,16 @@ import com.github.abrarsyed.gmcp.exceptions.MalformedVersionException
 class GMCPExtension
 {
 	@Nullable
-	def String minecraftVersion
-	def String forgeVersion = "latest"
-	def forgeURL
+	private String minecraftVersion
+	private forgeVersion = "latest"
+	def String forgeURL
 	def baseDir = "minecraft"
 
 	private resolved = false
-	private urlForced = false
 
 	private static final JdomParser JDOM_PARSER = new JdomParser()
 
-	public void setForgeVersion(String obj)
+	public void setForgeVersion(Object obj)
 	{
 		if (obj instanceof String)
 			obj = obj.toLowerCase()
@@ -69,7 +68,7 @@ class GMCPExtension
 		forgeURL
 	}
 
-	private void resolve()
+	protected void resolve()
 	{
 		String jsonText = Constants.URL_JSON_FORGE.toURL().text
 		JsonRootNode root = JDOM_PARSER.parse(jsonText)
@@ -78,7 +77,7 @@ class GMCPExtension
 		def files, temp, finished = false
 
 		// build number is defined.  ignore MC version
-		if (forgeVersion.isInteger())
+		if (forgeVersion.toString().isInteger())
 		{
 			// loop through builds array
 			for (int i = 0; i < builds.size() && !finished; i++)

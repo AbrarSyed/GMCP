@@ -1,35 +1,30 @@
 package com.github.abrarsyed.gmcp.tests
 
+import org.gradle.api.Project
+import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
-import com.github.abrarsyed.gmcp.extensions.GMCPExtension;
-
 public class VersionResolveTest
 {
-	GMCPExtension ext
+	Project project
 
 	@Before
 	public void doBefore()
 	{
-		ext = new GMCPExtension()
-		System.out.println(ext)
+		project = ProjectBuilder.builder().build()
+		project.apply plugin: "gmcp"
 	}
 
 	@Test
 	public void test()
 	{
-		ext.setForgeVersion("738")
-		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.738.zip", ext.getForgeURL())
+		project.minecraft.forgeVersion = "738"
+		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.738.zip", project.minecraft.forgeURL)
 
-		ext.setForgeVersion("latest")
-		ext.setMinecraftVersion("1.5.1")
-		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.1-7.7.2.682.zip", ext.getForgeURL())
-	}
-
-	private boolean getResolved()
-	{
-		return ext.resolved
+		project.minecraft.forgeVersion = "latest"
+		project.minecraft.minecraftVersion = "1.5.1"
+		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.1-7.7.2.682.zip", project.minecraft.forgeURL)
 	}
 }
