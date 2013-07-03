@@ -9,7 +9,7 @@ class ConfigParser
 	private final property = /\s?(.+?)\s=\s(.+)\s?/
 	HashMap<String, HashMap<String, String>> map
 
-	public ConfigParser(String file)
+	public ConfigParser(File file)
 	{
 		this.file = file
 		read()

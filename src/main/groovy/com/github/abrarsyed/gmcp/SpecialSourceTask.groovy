@@ -13,7 +13,7 @@ import org.gradle.api.tasks.TaskAction
 
 public class SpecialSourceTask extends DefaultTask
 {
-	def target
+	def input
 	def output
 	def srg
 	List ats = []
@@ -22,14 +22,21 @@ public class SpecialSourceTask extends DefaultTask
 	def stuff()
 	{
 		// load mapping
-		JarMapping mapping = new JarMapping()
+		def mapping = null
 		if (srg)
+		{
+			mapping = new JarMapping()
 			mapping.loadMappings(project.file(srg))
+		}
 
 		// load in AT
-		def accessMap = new AccessMap()
-		ats.collect() {
-			accessMap.loadAccessTransformer(project.file(it))
+		def accessMap = null;
+		if (ats)
+		{
+			accessMap = new AccessMap()
+			ats.collect() {
+				accessMap.loadAccessTransformer(project.file(it))
+			}
 		}
 		def processor = new  RemapperPreprocessor(null, mapping, accessMap)
 
@@ -45,6 +52,6 @@ public class SpecialSourceTask extends DefaultTask
 		mapping.setFallbackInheritanceProvider(inheritanceProviders)
 
 		// remap jar
-		remapper.remapJar(input, project.file(target))
+		remapper.remapJar(input, new File(output))
 	}
 }
