@@ -93,7 +93,13 @@ class Util
 				new File(outputDir, name).getParentFile().mkdirs()
 			}
 
-			new File(outputDir, name) << zipFile.getInputStream(it).bytes
+			def file = new File(outputDir, name)
+			
+			// check for existing files and deleting old ones.
+			if (file.exists() && file.isFile())
+				file.delete()
+				
+			file << zipFile.getInputStream(it).bytes
 		}
 
 		zipFile.close()

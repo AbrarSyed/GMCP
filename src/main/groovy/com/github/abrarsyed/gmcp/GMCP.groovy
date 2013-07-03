@@ -4,6 +4,14 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
+import net.md_5.specialsource.AccessMap
+import net.md_5.specialsource.Jar
+import net.md_5.specialsource.JarMapping
+import net.md_5.specialsource.JarRemapper
+import net.md_5.specialsource.RemapperPreprocessor
+import net.md_5.specialsource.provider.JarProvider
+import net.md_5.specialsource.provider.JointProvider
+
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -45,15 +53,24 @@ public class GMCP implements Plugin<Project>
 	{
 		// Get Forge task
 		def task = project.task('getForge') {
-			outputs.dir project.minecraft.baseDir
-			outputs.dir project.minecraft.baseDir+"/forge"
+			outputs.dir baseFile("forge")
+			outputs.upToDateWhen {
+				def file = baseFile("forge", "forgeversion.properties")
+				if (!file.exists())
+					return false
+				def props = new Properties()
+				props.load(file.newInputStream())
+				def version = String.format("%s.%s.%s.%s", props.get("forge.major.number"), props.get("forge.minor.number"), props.get("forge.revision.number"), props.get("forge.build.number"))
+				return project.minecraft.forgeVersion == version
+			}
 		}
 		task << {
+			
 			def base = file(project.minecraft.baseDir)
 			base.mkdirs()
-			def forgeZip = new File(temporaryDir, "/forge.zip")
+			def forgeZip = baseFile("forge.zip")
 			Util.download(project.minecraft.forgeURL, forgeZip)
-			Util.unzip(forgeZip, file(project.minecraft.baseDir), false)
+			Util.unzip(forgeZip, base, false)
 			forgeZip.delete()
 		}
 
@@ -62,32 +79,34 @@ public class GMCP implements Plugin<Project>
 		// download necessary stuff.
 		task = project.task('getMinecraft', dependsOn: "getForge") {
 			inputs.file baseFile(Constants.DIR_FML, "mc_versions.cfg")
-
 			outputs.with {
-				dir project.minecraft.baseDir+"/"+Constants.DIR_MC_JARS
-				dir project.minecraft.baseDir+"/"+Constants.DIR_MC_JARS + "/" + "natives"
-				file project.minecraft.baseDir+"/"+Constants.JAR_CLIENT
-				file project.minecraft.baseDir+"/"+Constants.JAR_SERVER
+				file baseFile(Constants.JAR_CLIENT)
+				file baseFile(Constants.JAR_SERVER)
+				file baseFile(Constants.DIR_MC_JARS, "bin", "lwjgl.jar")
+				file baseFile(Constants.DIR_MC_JARS, "bin", "lwjgl_util.jar")
+				file baseFile(Constants.DIR_MC_JARS, "bin", "jinput.jar")
+				dir baseFile(Constants.DIR_MC_JARS, "bin", "natives")
 			}
 		}
-		task.doLast {
-			def root = baseFile Constants.DIR_MC_JARS
+		task << {
+			baseFile(Constants.DIR_MC_JARS).mkdirs()
+			def root = baseFile(Constants.DIR_MC_JARS, "bin")
 			root.mkdirs()
 
 			// read config
 			ConfigParser parser = new ConfigParser(baseFile(Constants.DIR_FML, "mc_versions.cfg"))
 			def baseUrl = parser.getProperty("default", "base_url")
 
-			project.logger.lifecycle "Downloading Minecraft"
+			logger.lifecycle "Downloading Minecraft"
 			def mcver = parser.getProperty("default", "current_ver")
 			Util.download(parser.getProperty(mcver, "client_url"), baseFile(Constants.JAR_CLIENT))
 			Util.download(parser.getProperty(mcver, "server_url"), baseFile(Constants.JAR_SERVER))
 
-			project.logger.lifecycle "Downloading libraries"
+			logger.lifecycle "Downloading libraries"
 			def dls = parser.getProperty("default", "libraries").split(/\s/)
 			dls.each { Util.download(baseUrl+it, new File(root, it)) }
 
-			project.logger.lifecycle "Downloading natives"
+			logger.lifecycle "Downloading natives"
 			def nativesJar = baseFile("natives.jar")
 			def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
 			Util.download(baseUrl + nativesName, nativesJar)
@@ -98,16 +117,9 @@ public class GMCP implements Plugin<Project>
 
 		// ----------------------------------------------------------------------------
 		// to do the package changes
-		task = project.task('doFMLPreProcess', dependsOn: "getMinecraft") {
-			inputs.with {
-				dir baseFile(Constants.DIR_MAPPINGS)
-				file baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"])
-				file baseFile(Constants.DIR_MAPPINGS, "joined.srg")
-				file baseFile(Constants.DIR_MAPPINGS, "joined.exc")
-				file baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
-				file baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
+		task = project.task('doFMLPreProcess', dependsOn: "getForge") {
 
-			}
+			inputs.dir baseFile(Constants.DIR_FML, "conf")
 
 			outputs.with {
 				file baseFile(Constants.DIR_MAPPINGS, "packaged.srg")
@@ -115,11 +127,17 @@ public class GMCP implements Plugin<Project>
 				file baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
 				file baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
 			}
+
 		}
 		task << {
+			// copy files over.
+			ant.copy(todir: baseFile(Constants.DIR_MAPPINGS).getPath()) {
+				fileset(dir : baseFile(Constants.DIR_FML, "conf").getPath())
+			}
+
+			// gotta love groovy  and its .with closure :)
 			(new PackageFixer(baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"]))).with {
 				// calls the following on the package fixer.
-				// gotta love groovy :)
 				fixSRG(baseFile(Constants.DIR_MAPPINGS, "joined.srg"), baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
 				fixExceptor(baseFile(Constants.DIR_MAPPINGS, "joined.exc"), baseFile(Constants.DIR_MAPPINGS, "packaged.exc"))
 				fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch"))
@@ -131,7 +149,7 @@ public class GMCP implements Plugin<Project>
 	def jarTasks()
 	{
 		// merge jars task
-		def task = project.task('mergeMinecraftJars', dependsOn: "doFMLPreProcess") {
+		def task = project.task('mergeMinecraftJars') {
 			inputs.with {
 				file baseFile(Constants.JAR_CLIENT)
 				file baseFile(Constants.JAR_SERVER)
@@ -141,6 +159,9 @@ public class GMCP implements Plugin<Project>
 			outputs.with {
 				file baseFile(Constants.JAR_MERGED)
 			}
+
+			dependsOn "getMinecraft"
+			dependsOn "doFMLPreProcess"
 		}
 		task << {
 			def client = baseFile(Constants.JAR_CLIENT)
@@ -177,7 +198,7 @@ public class GMCP implements Plugin<Project>
 			output.close()
 		}
 
-		task = project.task('deobfuscateMinecraft', type: SpecialSourceTask, dependsOn: "mergeMinecraftJars") {
+		task = project.task("deobfuscateMinecraft", dependsOn: "mergeMinecraftJars") {
 
 			inputs.with {
 				file baseFile(Constants.JAR_MERGED)
@@ -185,48 +206,40 @@ public class GMCP implements Plugin<Project>
 				file baseFile(Constants.DIR_FML, "common/fml_at.cfg")
 				file baseFile(Constants.DIR_FORGE, "common/forge_at.cfg")
 				project.minecraft.accessTransformers.collect { file it }
-
-				outputs.with {
-					file baseFile(Constants.JAR_DEOBF)
-				}
 			}
 
-			input = baseFile(Constants.JAR_MERGED)
-			output = baseFile(Constants.JAR_DEOBF)
-			srg = baseFile(Constants.DIR_MAPPINGS, "packaged.srg")
-			ats.addAll project.minecraft.accessTransformers
-			ats += baseFile(Constants.DIR_FML, "common/fml_at.cfg")
-			ats += baseFile(Constants.DIR_FORGE, "common/forge_at.cfg")
+			outputs.with {
+				file baseFile(Constants.JAR_DEOBF)
+			}
 		}
+		task << {
+			// load mapping
+			JarMapping mapping = new JarMapping()
+			mapping.loadMappings(baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
 
-		//		task = project.task("deobfuscateMinecraft", dependsOn: "mergeMinecraftJars") << {
-		//			// load mapping
-		//			JarMapping mapping = new JarMapping()
-		//			mapping.loadMappings(baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
-		//
-		//			// load in AT
-		//			def accessMap = new AccessMap()
-		//			accessMap.loadAccessTransformer(baseFile(Constants.DIR_FML, "common/fml_at.cfg"))
-		//			accessMap.loadAccessTransformer(baseFile(Constants.DIR_FORGE, "common/forge_at.cfg"))
-		//			project.minecraft.accessTransformers.collect {
-		//				accessMap.loadAccessTransformer(project.file(Constants.DIR_FORGE, "common/forge_at.cfg"))
-		//			}
-		//			def processor = new  RemapperPreprocessor(null, mapping, accessMap)
-		//
-		//			// make remapper
-		//			JarRemapper remapper = new JarRemapper(processor, mapping)
-		//
-		//			// load jar
-		//			Jar input = Jar.init(baseFile(Constants.JAR_MERGED))
-		//
-		//			// ensure that inheritance provider is used
-		//			JointProvider inheritanceProviders = new JointProvider()
-		//			inheritanceProviders.add(new JarProvider(input))
-		//			mapping.setFallbackInheritanceProvider(inheritanceProviders)
-		//
-		//			// remap jar
-		//			remapper.remapJar(input, baseFile(Constants.JAR_DEOBF))
-		//		}
+			// load in AT
+			def accessMap = new AccessMap()
+			accessMap.loadAccessTransformer(baseFile(Constants.DIR_FML, "common/fml_at.cfg"))
+			accessMap.loadAccessTransformer(baseFile(Constants.DIR_FORGE, "common/forge_at.cfg"))
+			project.minecraft.accessTransformers.collect {
+				accessMap.loadAccessTransformer(project.file(Constants.DIR_FORGE, "common/forge_at.cfg"))
+			}
+			def processor = new  RemapperPreprocessor(null, mapping, accessMap)
+
+			// make remapper
+			JarRemapper remapper = new JarRemapper(processor, mapping)
+
+			// load jar
+			Jar input = Jar.init(baseFile(Constants.JAR_MERGED))
+
+			// ensure that inheritance provider is used
+			JointProvider inheritanceProviders = new JointProvider()
+			inheritanceProviders.add(new JarProvider(input))
+			mapping.setFallbackInheritanceProvider(inheritanceProviders)
+
+			// remap jar
+			remapper.remapJar(input, baseFile(Constants.JAR_DEOBF))
+		}
 
 	}
 

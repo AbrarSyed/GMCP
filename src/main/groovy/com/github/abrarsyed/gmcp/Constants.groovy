@@ -16,13 +16,13 @@ public final class Constants
 	def public static final  	DIR_FML 			= DIR_FORGE + "/fml"
 	def public static final  	DIR_FORGE_PATCHES 	= DIR_FORGE + "/patches/minecraft"
 	def public static final  	DIR_FML_PATCHES 	= DIR_FML + "/patches/minecraft"
-	def public static final  	DIR_MAPPINGS 		= DIR_FML + "/conf"
+	def public static final  	DIR_MAPPINGS 		= "mappings"
 	def public static final  	DIR_MCP_PATCHES 	= DIR_MAPPINGS + "/patches"
 
 	// jars
-	def public static final 	JAR_CLIENT			= "jars/Minecraft_Client.jar"
-	def public static final 	JAR_SERVER			= "jars/Minecraft_Server.jar"
-	def public static final 	JAR_MERGED			= "jars/Minecraft.jar"
+	def public static final 	JAR_CLIENT			= DIR_MC_JARS + "/Minecraft_Client.jar"
+	def public static final 	JAR_SERVER			= DIR_MC_JARS + "/Minecraft_Server.jar"
+	def public static final 	JAR_MERGED			= DIR_MC_JARS + "/Minecraft.jar"
 	def public static final 	JAR_DEOBF			= "Minecraft_SS.jar"
 	def public static final 	JAR_EXCEPTOR		= "Minecraft_EXC.jar"
 
