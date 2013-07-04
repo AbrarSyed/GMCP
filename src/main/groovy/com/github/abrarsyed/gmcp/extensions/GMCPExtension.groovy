@@ -17,6 +17,7 @@ class GMCPExtension
 	private forgeVersion = "latest"
 	def String forgeURL
 	def baseDir = "minecraft"
+    def jarDir = "minecraft/jars"
 	def accessTransformers = []
 
 	private resolved = false
