@@ -22,6 +22,7 @@ import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
 import com.google.common.io.Files
 
 import cpw.mods.fml.common.asm.transformers.MCPMerger
+import de.fernflower.main.decompiler.ConsoleDecompiler
 
 public class GMCP implements Plugin<Project>
 {
@@ -57,7 +58,7 @@ public class GMCP implements Plugin<Project>
         def task = project.task('getForge') {
             description = "Downloads the correct version of Forge"
             group = "minecraft"
-            outputs.dir { baseFile("forge") }
+            outputs.dir { baseFile(Constants.DIR_FORGE) }
             outputs.upToDateWhen {
                 def file = baseFile("forge", "forgeversion.properties")
                 if (!file.exists())
@@ -272,12 +273,70 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // decompile
-        //		task = project.task("decompileMinecraft", dependsOn: "doJarPreProcess") {
-        //			inputs.file {baseFile(Constants.JAR_EXC)}
-        //		}
-        //		task << {
-        //
-        //		}
+        task = project.task("decompileMinecraft", dependsOn: "doJarPreProcess") {
+            inputs.file {baseFile(Constants.JAR_PROC)}
+        }
+        task << {
+            // unzip
+            def unzippedDir = file(temporaryDir, "unzipped")
+            def decompiledDir = file(temporaryDir, "decompiled")
+            def recDir = file(project.minecraft.srcDir, Constants.DIR_SRC_RESOURCES)
+            def srcDir = file(project.minecraft.srcDir, Constants.DIR_SRC_SOURCES)
+
+            project.mkdir(unzippedDir)
+            Util.unzip(baseFile(Constants.JAR_PROC), unzippedDir, true)
+
+            // decompile.
+            project.mkdir(decompiledDir)
+            // JarBouncer.fernFlower(Constants.DIR_CLASSES.getPath(), Constants.DIR_SOURCES.getPath())
+            String[] args = new String[7]
+            args[0] = "-din=0"
+            args[1] = "-rbr=0"
+            args[2] = "-dgs=1"
+            args[3] = "-asc=1"
+            args[4] = "-log=ERROR"
+            args[5] = unzippedDir.getPath()
+            args[6] = decompiledDir.getPath()
+
+            try
+            {
+                PrintStream stream = System.out
+                System.setOut(new PrintStream(new File(Constants.DIR_LOGS, "FF.log")))
+
+                ConsoleDecompiler.main(args)
+                // -din=0 -rbr=0 -dgs=1 -asc=1 -log=WARN {indir} {outdir}
+
+                System.setOut(stream)
+            }
+            catch (Exception e)
+            {
+                project.logger.error "Fernflower failed"
+                e.printStackTrace()
+            }
+
+
+            def tree = project.fileTree(decompiledDir)
+
+            // copy resources
+            project.mkdir(recDir)
+            project.copy {
+                exclude "*.java"
+                exclude "**/*.java"
+                exclude "*.class"
+                exclude "**/*.class"
+                exclude "META-INF"
+                from fileTree(unzippedDir)
+                into recDir
+            }
+
+            // copy classes
+            project.mkdir(srcDir)
+            project.copy {
+                exclude "META-INF"
+                from (fileTree(unzippedDir)) { include "net/minecraft/**/*.java" }
+                into srcDir
+            }
+        }
 
     }
 
