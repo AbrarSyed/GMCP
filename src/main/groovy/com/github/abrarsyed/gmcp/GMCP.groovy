@@ -301,7 +301,9 @@ public class GMCP implements Plugin<Project>
             try
             {
                 PrintStream stream = System.out
-                System.setOut(new PrintStream(new File(Constants.DIR_LOGS, "FF.log")))
+                def log = baseFile(Constants.DIR_LOGS, "FF.log")
+                project.file log
+                System.setOut(new PrintStream(log))
 
                 ConsoleDecompiler.main(args)
                 // -din=0 -rbr=0 -dgs=1 -asc=1 -log=WARN {indir} {outdir}
@@ -325,7 +327,7 @@ public class GMCP implements Plugin<Project>
                 exclude "*.class"
                 exclude "**/*.class"
                 exclude "META-INF"
-                from fileTree(unzippedDir)
+                from tree
                 into recDir
             }
 
@@ -333,7 +335,7 @@ public class GMCP implements Plugin<Project>
             project.mkdir(srcDir)
             project.copy {
                 exclude "META-INF"
-                from (fileTree(unzippedDir)) { include "net/minecraft/**/*.java" }
+                from (tree) { include "net/minecraft/**/*.java" }
                 into srcDir
             }
         }
