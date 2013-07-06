@@ -20,6 +20,7 @@ public class VersionResolveTest
 	@Test
 	public void test()
 	{
+        project.minecraft.minecraftVersion = "1.5.2" 
 		project.minecraft.forgeVersion = "738"
 		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.738.zip", project.minecraft.forgeURL)
 

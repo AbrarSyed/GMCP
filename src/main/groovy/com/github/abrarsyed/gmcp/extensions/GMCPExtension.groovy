@@ -3,6 +3,7 @@ package com.github.abrarsyed.gmcp.extensions
 import org.gradle.api.Nullable
 
 import argo.jdom.JdomParser
+import argo.jdom.JsonNode
 import argo.jdom.JsonRootNode
 
 import com.github.abrarsyed.gmcp.Constants
@@ -31,7 +32,7 @@ class GMCPExtension
     public GMCPExtension(GMCP project)
     {
         this.plugin = project
-        cacheFile = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE)
+        cacheFile = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE2)
     }
 
     public void setForgeVersion(Object obj)
@@ -122,7 +123,7 @@ class GMCPExtension
         // check cache, not there or needs refreshing? refresh cache.
         if (!cacheFile.exists() || refreshCache)
         {
-            text = Constants.URL_JSON_FORGE.toURL().text
+            text = Constants.URL_JSON_FORGE2.toURL().text
             cacheFile.parentFile.mkdirs()
             cacheFile.write(text)
         }
@@ -133,96 +134,88 @@ class GMCPExtension
         // load JSON
         JsonRootNode root = JDOM_PARSER.parse(text)
 
-        def builds = root.getArrayNode("builds")
-        def files, temp, finished = false
+        def url = root.getStringValue("webpath")
+        def JsonNode fileObj
+        def JsonNode versionObj
 
-        // build number is defined.  ignore MC version
-        if (forgeVersion.toString().isInteger())
+        if (root.isNode("promos", forgeVersion))
         {
-            // loop through builds array
-            for (int i = 0; i < builds.size() && !finished; i++)
+            versionObj = fileObj = root.getNode("promos", forgeVersion, "files", "src")
+        }
+        // MC version is set?
+        else if (minecraftVersion)
+        {
+            if (forgeVersion.toString().isInteger())
             {
-                // check for build number match
-                if (builds[i].getNumberValue("build") == forgeVersion)
+                versionObj = root.getNode("mcversion", minecraftVersion, forgeVersion)
+                def list = root.getArrayNode("mcversion", minecraftVersion, forgeVersion, "files")
+                for (build in list)
                 {
-                    files = builds[i].getArrayNode("files")
-                    // loop through files to find src download
-                    for (int j = 0; j < files.size() && !finished; j++)
+                    if (build.getStringValue("type") == "src")
                     {
-                        temp = files[j]
-                        if (temp.getStringValue("buildtype") == "src")
+                        fileObj = build
+                        break
+
+                    }
+                }
+            }
+            else if (forgeVersion.toString().toLowerCase() == "latest")
+            {
+                // ohey, its in the promos.
+                if (root.isNode("promos", "latest-$minecraftVersion"))
+                {
+                    // get it from the promo...
+                    versionObj = fileObj = root.getArrayNode("promos", "latest-$minecraftVersion", "files", "src")
+                }
+                else
+                {
+                    // list of builds
+                    def builds = root.getNode("mcversion", minecraftVersion)
+
+                    // find biggest buildNum
+                    def bigBuild = 0
+                    builds.fieldList.each {
+                        def num = it.getName().text.toInteger()
+                        if (num > bigBuild)
+                            bigBuild = num
+                    }
+
+                    // save it to the FileObj
+                    versionObj = root.getNode("mcversion", minecraftVersion, bigBuild)
+                    for (build in root.getArrayNode("mcversion", minecraftVersion, bigBuild, "files"))
+                    {
+                        if (build.getStringValue("type") == "src")
                         {
-                            // find and get properties from it.
-                            forgeVersion = builds[i].getStringValue("version")
-                            minecraftVersion = temp.getStringValue("mcver")
-                            forgeURL = temp.getStringValue("url")
-                            finished = true
+                            fileObj = build
+                            break
+    
                         }
                     }
                 }
             }
-        }
-        else if (forgeVersion instanceof String)
-        {
-            def string = (forgeVersion as String).trim().toLowerCase()
-
-            if (string == "latest")
+            else if (forgeVersion.toString() ==~ /\d+\.\d+\.\d+\.\d+/)
             {
-                // loop through builds array
-                for (int i = 0; i < builds.size() && !finished; i++)
+                if (minecraftVersion)
                 {
-                    // loop through files array
-                    files = builds[i].getArrayNode("files")
-                    for (int j = 0; j < files.size() && !finished; j++)
+                    // list of builds
+                    def builds = root.getNode("mcversion", minecraftVersion)
+
+                    // find biggest buildNum
+                    for (build in builds.getElements())
                     {
-                        temp = files[j]
-                        if (minecraftVersion) // is MC version set?
+                        if (build.getStringValue("version") == forgeVersion)
                         {
-                            // if so, check the MC version of this file
-                            if (temp.getStringValue("mcver") == minecraftVersion)
+                            // found the version, now the file.
+                            for (build2 in build.getArrayNode("files"))
                             {
-                                // IT MATCHES! grab this info and leave.
-                                // must be src build to get the url though...
-                                if (temp.getStringValue("buildtype") == "src")
+                                if (build2.getStringValue("type") == "src")
                                 {
-                                    forgeVersion = builds[i].getStringValue("version")
-                                    minecraftVersion = temp.getStringValue("mcver")
-                                    forgeURL = temp.getStringValue("url")
-                                    finished = true
+                                    fileObj = build2
+                                    break
+
                                 }
                             }
-                            else
-                            // break out of this build.
                             break
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // doesn't match forge version.
-                if (!(forgeVersion ==~ /\d+\.\d+\.\d+\.\d+/))
-                    throw new MalformedVersionException()
-
-                // loop through builds array
-                for (int i = 0; i < builds.size() && !finished; i++)
-                {
-                    // check for build number match
-                    if (builds[i].isNumberValue("version") == forgeVersion)
-                    {
-                        files = builds[i].getArrayNode("files")
-                        // loop through files to find src download
-                        for (int j = 0; j < files.size() && !finished; j++)
-                        {
-                            temp = files[j]
-                            if (temp.getStringValue("buildtype") == "src")
-                            {
-                                // find and get properties from it.
-                                forgeVersion = builds[i].getStringValue("version")
-                                minecraftVersion = temp.getStringValue("mcver")
-                                forgeURL = temp.getStringValue("url")
-                                finished = true
-                            }
                         }
                     }
                 }
@@ -230,7 +223,7 @@ class GMCPExtension
         }
 
         // couldnt find the version?? wut??
-        if (!finished || !forgeURL || !minecraftVersion || !forgeVersion)
+        if (!fileObj)
         {
             // cache has already been refreshed??
             if (refreshCache)
@@ -239,8 +232,14 @@ class GMCPExtension
             else
                 resolveVersion(true)
         }
+        // worked.
         else
+        {
+            forgeVersion = versionObj.getStringValue("version")
+            minecraftVersion = versionObj.getStringValue("version")
+            forgeURL = url + "/" + fileObj.getStringValue("filename")
             resolvedVersion = true
+        }
     }
 
     private void resolveSrcDir()

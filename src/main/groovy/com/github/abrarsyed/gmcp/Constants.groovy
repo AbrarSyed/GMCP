@@ -26,8 +26,10 @@ public final class Constants
     def public static final 	JAR_JAR_SERVER			= "minecraft_server.jar"
 
     // download URLs    versions are in #_#_# form rather than #.#.#
-    public static final String	URL_JSON_FORGE 		    = "http://files.minecraftforge.net/minecraftforge/json2"
-    public static final String  URL_JSON_FORGE_CACHE    = "cache/forge.json"
+    public static final String	URL_JSON_FORGE 		    = "http://files.minecraftforge.net/minecraftforge/json"
+    public static final String  URL_JSON_FORGE2          = "http://files.minecraftforge.net/minecraftforge/json2"
+    public static final String  URL_JSON_FORGE_CACHE    = "caches/gmcp/forge.json"
+    public static final String  URL_JSON_FORGE_CACHE2    = "caches/gmcp/forge2.json"
 
     // CSVs
     public static final CSVS = [
