@@ -37,7 +37,7 @@ public class GMCP implements Plugin<Project>
         this.project = project
 
         // make extensions and set variables
-        project.extensions.create("minecraft", GMCPExtension)
+        project.extensions.create("minecraft", GMCPExtension, this)
         //ext = project.minecraft
         project.minecraft.extensions.create("mcmodinfo", ModInfoExtension)
 

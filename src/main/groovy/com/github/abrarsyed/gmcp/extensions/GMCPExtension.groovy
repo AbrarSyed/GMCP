@@ -6,6 +6,7 @@ import argo.jdom.JdomParser
 import argo.jdom.JsonRootNode
 
 import com.github.abrarsyed.gmcp.Constants
+import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.exceptions.MalformedVersionException
 
 class GMCPExtension
@@ -23,7 +24,15 @@ class GMCPExtension
     private resolvedJarDir = false
     private resolvedSrcDir = false
 
+    private final GMCP plugin
+    private final File cacheFile
     private static final JdomParser JDOM_PARSER = new JdomParser()
+
+    public GMCPExtension(GMCP project)
+    {
+        this.plugin = project
+        cacheFile = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE)
+    }
 
     public void setForgeVersion(Object obj)
     {
@@ -37,7 +46,7 @@ class GMCPExtension
     public String getForgeVersion()
     {
         if (!resolvedVersion)
-            resolveVersion()
+            resolveVersion(false)
 
         forgeVersion
     }
@@ -53,7 +62,7 @@ class GMCPExtension
     public String getMinecraftVersion()
     {
         if (!resolvedVersion)
-            resolveVersion()
+            resolveVersion(false)
 
         minecraftVersion
     }
@@ -67,7 +76,7 @@ class GMCPExtension
     public String getForgeURL()
     {
         if (!resolvedVersion)
-            resolveVersion()
+            resolveVersion(false)
 
         forgeURL
     }
@@ -106,10 +115,23 @@ class GMCPExtension
         jarDir = obj
     }
 
-    protected void resolveVersion()
+    protected void resolveVersion(boolean refreshCache)
     {
-        String jsonText = Constants.URL_JSON_FORGE.toURL().text
-        JsonRootNode root = JDOM_PARSER.parse(jsonText)
+        String text
+
+        // check cache, not there or needs refreshing? refresh cache.
+        if (!cacheFile.exists() || refreshCache)
+        {
+            text = Constants.URL_JSON_FORGE.toURL().text
+            cacheFile.parentFile.mkdirs()
+            cacheFile.write(text)
+        }
+        else
+            text = cacheFile.text
+
+
+        // load JSON
+        JsonRootNode root = JDOM_PARSER.parse(text)
 
         def builds = root.getArrayNode("builds")
         def files, temp, finished = false
@@ -208,10 +230,17 @@ class GMCPExtension
         }
 
         // couldnt find the version?? wut??
-        if (!finished)
-            throw new MalformedVersionException()
-
-        resolvedVersion = true
+        if (!finished || !forgeURL || !minecraftVersion || !forgeVersion)
+        {
+            // cache has already been refreshed??
+            if (refreshCache)
+                throw new MalformedVersionException()
+            // try again with refreshed cache.
+            else
+                resolveVersion(true)
+        }
+        else
+            resolvedVersion = true
     }
 
     private void resolveSrcDir()
