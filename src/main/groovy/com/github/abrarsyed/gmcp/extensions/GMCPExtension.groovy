@@ -10,247 +10,321 @@ import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.exceptions.MalformedVersionException
 
-class GMCPExtension
-{
-    @Nullable
-    private String minecraftVersion
-    private forgeVersion = "latest"
-    def String forgeURL
-    def baseDir = "minecraft"
-    def jarDir
-    def srcDir
-    def accessTransformers = []
+class GMCPExtension {
+	@Nullable
+	private String minecraftVersion
+	private forgeVersion = "latest"
+	def String forgeURL
+	def baseDir = "minecraft"
+	def jarDir
+	def srcDir
+	def accessTransformers = []
 
-    private resolvedVersion = false
-    private resolvedJarDir = false
-    private resolvedSrcDir = false
+	private resolvedVersion = false
+	private resolvedJarDir = false
+	private resolvedSrcDir = false
 
-    private final GMCP plugin
-    private final File cacheFile
-    private static final JdomParser JDOM_PARSER = new JdomParser()
+	private final GMCP plugin
+	private final File cacheFile
+	private final File cacheFile2
+	private static final JdomParser JDOM_PARSER = new JdomParser()
 
-    public GMCPExtension(GMCP project)
-    {
-        this.plugin = project
-        cacheFile = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE2)
-    }
+	public GMCPExtension(GMCP project) {
+		this.plugin = project
+		cacheFile = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE)
+		cacheFile2 = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE2)
+		
+		cacheFile.getParentFile().mkdirs()
+	}
 
-    public void setForgeVersion(Object obj)
-    {
-        if (obj instanceof String)
-            obj = obj.toLowerCase()
-        forgeVersion = obj
-        resolvedVersion = false
-    }
+	public void setForgeVersion(Object obj) {
+		if (obj instanceof String)
+			obj = obj.toLowerCase()
+		forgeVersion = obj
+		resolvedVersion = false
+	}
 
+	public String getForgeVersion() {
+		if (!resolvedVersion)
+			resolveVersion(false)
 
-    public String getForgeVersion()
-    {
-        if (!resolvedVersion)
-            resolveVersion(false)
+		forgeVersion
+	}
 
-        forgeVersion
-    }
+	public void setMinecraftVersion(String obj) {
+		if (obj instanceof String)
+			obj = obj.toLowerCase()
+		minecraftVersion = obj
+		resolvedVersion = false
+	}
 
-    public void setMinecraftVersion(String obj)
-    {
-        if (obj instanceof String)
-            obj = obj.toLowerCase()
-        minecraftVersion = obj
-        resolvedVersion = false
-    }
+	public String getMinecraftVersion() {
+		if (!resolvedVersion)
+			resolveVersion(false)
 
-    public String getMinecraftVersion()
-    {
-        if (!resolvedVersion)
-            resolveVersion(false)
+		minecraftVersion
+	}
 
-        minecraftVersion
-    }
+	public void setForgeURL(String str) {
+		resolvedVersion = true
+		forgeURL = str
+	}
 
-    public void setForgeURL(String str)
-    {
-        resolvedVersion = true
-        forgeURL = str
-    }
+	public String getForgeURL() {
+		if (!resolvedVersion)
+			resolveVersion(false)
 
-    public String getForgeURL()
-    {
-        if (!resolvedVersion)
-            resolveVersion(false)
+		forgeURL
+	}
 
-        forgeURL
-    }
+	public void setbaseDir(String obj) {
+		resolvedSrcDir = false
+		resolvedJarDir = false
+	}
 
-    public void setbaseDir(String obj)
-    {
-        resolvedSrcDir = false
-        resolvedJarDir = false
-    }
+	public String getSrcDir() {
+		if (!resolvedSrcDir)
+			resolveSrcDir()
 
-    public String getSrcDir()
-    {
-        if (!resolvedSrcDir)
-            resolveSrcDir()
+		srcDir
+	}
 
-        srcDir
-    }
+	public String setSrcDir(String obj) {
+		resolvedSrcDir = true
+		srcDir = obj
+	}
 
-    public String setSrcDir(String obj)
-    {
-        resolvedSrcDir = true
-        srcDir = obj
-    }
+	public String getJarDir() {
+		if (!resolvedJarDir)
+			resolveJarDir()
 
-    public String getJarDir()
-    {
-        if (!resolvedJarDir)
-            resolveJarDir()
+		jarDir
+	}
 
-        jarDir
-    }
+	public String setJarDir(String obj) {
+		resolvedJarDir = true
+		jarDir = obj
+	}
 
-    public String setJarDir(String obj)
-    {
-        resolvedJarDir = true
-        jarDir = obj
-    }
+	protected void resolveVersion(boolean refreshCache) {
+		String json1
+		String json2
 
-    protected void resolveVersion(boolean refreshCache)
-    {
-        String text
+		// check JSON1 cache
+		if (!cacheFile.exists() || refreshCache)
+		{
+			json1 = Constants.URL_JSON_FORGE.toURL().text
+			cacheFile.write(json1)
+		}
+		else
+			json1 = cacheFile.text
 
-        // check cache, not there or needs refreshing? refresh cache.
-        if (!cacheFile.exists() || refreshCache)
-        {
-            text = Constants.URL_JSON_FORGE2.toURL().text
-            cacheFile.parentFile.mkdirs()
-            cacheFile.write(text)
-        }
-        else
-            text = cacheFile.text
+		// check JSON2 cache
+		if (!cacheFile2.exists() || refreshCache)
+		{
+			json2 = Constants.URL_JSON_FORGE2.toURL().text
+			cacheFile2.write(json2)
+		}
+		else
+			json2 = cacheFile2.text
 
 
-        // load JSON
-        JsonRootNode root = JDOM_PARSER.parse(text)
+		// load JSON
+		JsonRootNode root1 = JDOM_PARSER.parse(json1)
+		JsonRootNode root2 = JDOM_PARSER.parse(json2)
 
-        def url = root.getStringValue("webpath")
-        def JsonNode fileObj
-        def JsonNode versionObj
+		def url = root2.getStringValue("webpath")
+		def isJSON1
+		def JsonNode fileObj
+		def JsonNode versionObj
 
-        if (root.isNode("promos", forgeVersion))
-        {
-            versionObj = fileObj = root.getNode("promos", forgeVersion, "files", "src")
-        }
-        // MC version is set?
-        else if (minecraftVersion)
-        {
-            if (forgeVersion.toString().isInteger())
-            {
-                versionObj = root.getNode("mcversion", minecraftVersion, forgeVersion)
-                def list = root.getArrayNode("mcversion", minecraftVersion, forgeVersion, "files")
-                for (build in list)
-                {
-                    if (build.getStringValue("type") == "src")
-                    {
-                        fileObj = build
-                        break
+		// latest or reccomended
+		if (forgeVersion.toString().startsWith("latest") || forgeVersion.toString().startsWith("recomended"))
+		{
+			if (minecraftVersion)
+			{
+				// check JSON2 promotions, and ensure MC version.
+				if (root2.isNode("promos", forgeVersion) && root2.getStringValue("promos", forgeVersion, "files", "src", "mcversion") == minecraftVersion)
+				{
+					// minecraftVersion and promotion match.
+					isJSON1 = false
+					fileObj = versionObj = root2.getNode("promos", forgeVersion, "files", "src")
+				}
+				// grab the latest of that CM version from JSON 1
+				else
+				{
+					def builds = root1.getArrayNode("builds")
 
-                    }
-                }
-            }
-            else if (forgeVersion.toString().toLowerCase() == "latest")
-            {
-                // ohey, its in the promos.
-                if (root.isNode("promos", "latest-$minecraftVersion"))
-                {
-                    // get it from the promo...
-                    versionObj = fileObj = root.getArrayNode("promos", "latest-$minecraftVersion", "files", "src")
-                }
-                else
-                {
-                    // list of builds
-                    def builds = root.getNode("mcversion", minecraftVersion)
+					for (build in builds)
+					{
+						// biggest build will be the first we come accross
+						def files = build.getArrayNode("files")
+						if (files[0].getStringValue("mcver") == minecraftVersion)
+						{
+							for (file in files)
+							{
+								if (file.getStringValue("buildtype") == "src")
+								{
+									isJSON1 = true
+									versionObj = fileObj = file
+									// break out of iterrration, found the file we want.
+									break;
+								}
+							}
+							// break out of itteration
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				// check JSON2 promotions
+				if (root2.isNode("promos", forgeVersion))
+				{
+					isJSON1 = false
+					fileObj = versionObj = root2.getNode("promos", forgeVersion, "files", "src")
+				}
+			}
+		}
+		else if (minecraftVersion)
+		{
+			// build number or version number
+			if (forgeVersion.toString().isInteger())
+			{
+				// buildNum AND mcversion, check JSON2
+				versionObj = root2.getNode("mcversion", minecraftVersion, forgeVersion)
+				def list = root2.getArrayNode("mcversion", minecraftVersion, forgeVersion, "files")
+				for (build in list)
+				{
+					if (build.getStringValue("type") == "src")
+					{
+						isJSON1 = false
+						fileObj = build
+						break
+					}
+				}
 
-                    // find biggest buildNum
-                    def bigBuild = 0
-                    builds.fieldList.each {
-                        def num = it.getName().text.toInteger()
-                        if (num > bigBuild)
-                            bigBuild = num
-                    }
+				//				if (!versionObj || !fileObj)
+				//					throw new MalformedVersionException("Forge "+forgeVersion+" found for Minecraft "+minecraftVersion)
+			}
+			else if (forgeVersion.toString() ==~ /\d+\.\d+\.\d+\.\d+/)
+			{
+				// buildnum AND forge version
 
-                    // save it to the FileObj
-                    versionObj = root.getNode("mcversion", minecraftVersion, bigBuild)
-                    for (build in root.getArrayNode("mcversion", minecraftVersion, bigBuild, "files"))
-                    {
-                        if (build.getStringValue("type") == "src")
-                        {
-                            fileObj = build
-                            break
-    
-                        }
-                    }
-                }
-            }
-            else if (forgeVersion.toString() ==~ /\d+\.\d+\.\d+\.\d+/)
-            {
-                if (minecraftVersion)
-                {
-                    // list of builds
-                    def builds = root.getNode("mcversion", minecraftVersion)
+				// list of builds
+				def builds = root2.getNode("mcversion", minecraftVersion)
 
-                    // find biggest buildNum
-                    for (build in builds.getElements())
-                    {
-                        if (build.getStringValue("version") == forgeVersion)
-                        {
-                            // found the version, now the file.
-                            for (build2 in build.getArrayNode("files"))
-                            {
-                                if (build2.getStringValue("type") == "src")
-                                {
-                                    fileObj = build2
-                                    break
+				// find biggest buildNum
+				for (build in builds.getElements())
+				{
+					if (build.getStringValue("version") == forgeVersion)
+					{
+						// found the version, now the file.
+						for (build2 in build.getArrayNode("files"))
+						{
+							if (build2.getStringValue("type") == "src")
+							{
+								isJSON1 = false
+								fileObj = build2
+								break
+							}
+						}
+						versionObj = build
+						break
+					}
+				}
+				//
+				//				if (!versionObj || !fileObj)
+				//					throw new MalformedVersionException("Forge "+forgeVersion+" found for Minecraft "+minecraftVersion)
 
-                                }
-                            }
-                            break
-                        }
-                    }
-                }
-            }
-        }
+			}
+		}
+		else
+		{
+			if (forgeVersion.toString().isInteger())
+			{
+				def list = root1.getArrayNode("builds")
 
-        // couldnt find the version?? wut??
-        if (!fileObj)
-        {
-            // cache has already been refreshed??
-            if (refreshCache)
-                throw new MalformedVersionException()
-            // try again with refreshed cache.
-            else
-                resolveVersion(true)
-        }
-        // worked.
-        else
-        {
-            forgeVersion = versionObj.getStringValue("version")
-            minecraftVersion = versionObj.getStringValue("version")
-            forgeURL = url + "/" + fileObj.getStringValue("filename")
-            resolvedVersion = true
-        }
-    }
+				for (build in list)
+				{
+					if (build.getNumberValue("build") == forgeVersion)
+					{
+						for (file in build.getArrayNode("files"))
+						{
+							if (file.getStringValue("type") == "src")
+							{
+								isJSON1 = true
+								versionObj = fileObj = file
+							}
+						}
 
-    private void resolveSrcDir()
-    {
-        if (!srcDir)
-            srcDir = baseDir + "/src"
-    }
+						break
+					}
+				}
+			}
+			else if (forgeVersion.toString() ==~ /\d+\.\d+\.\d+\.\d+/)
+			{
+				def list = root1.getArrayNode("builds")
 
-    private void resolveJarDir()
-    {
-        if (!jarDir)
-            jarDir = baseDir + "/jars"
-    }
+				for (build in list)
+				{
+					if (build.getNumberValue("version") == forgeVersion)
+					{
+						for (file in build.getArrayNode("files"))
+						{
+							if (file.getStringValue("type") == "src")
+							{
+								isJSON1 = true
+								versionObj = fileObj = file
+							}
+						}
+
+						break
+					}
+				}
+			}
+		}
+
+		// couldnt find the version?? wut??
+		if (!fileObj || !fileObj)
+		{
+			// cache has already been refreshed??
+			if (refreshCache)
+				throw new MalformedVersionException()
+			// try again with refreshed cache.
+			else
+				resolveVersion(true)
+		}
+		// worked.
+		else
+		{
+			if (isJSON1)
+			{
+				forgeVersion = fileObj.getStringValue("jobbuildver")
+				minecraftVersion = fileObj.getStringValue("mcver")
+				forgeURL = fileObj.getStringValue("url")
+			}
+			else
+			{
+				forgeVersion = versionObj.getStringValue("version")
+				minecraftVersion = versionObj.getStringValue("version")
+				forgeURL = root2.getStringValue("webpath") + "/" + fileObj.getStringValue("filename")
+			}
+
+			resolvedVersion = true
+		}
+	}
+
+	private void resolveSrcDir()
+	{
+		if (!srcDir)
+			srcDir = baseDir + "/src"
+	}
+
+	private void resolveJarDir()
+	{
+		if (!jarDir)
+			jarDir = baseDir + "/jars"
+	}
 }
