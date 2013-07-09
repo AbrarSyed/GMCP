@@ -20,12 +20,15 @@ public class VersionResolveTest
 	@Test
 	public void test()
 	{
-        project.minecraft.minecraftVersion = "1.5.2" 
 		project.minecraft.forgeVersion = "738"
 		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.738.zip", project.minecraft.forgeURL)
 
 		project.minecraft.forgeVersion = "latest"
 		project.minecraft.minecraftVersion = "1.5.1"
 		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.1-7.7.2.682.zip", project.minecraft.forgeURL)
+        
+        project.minecraft.forgeVersion = "recommended-1.5.2"
+        project.minecraft.minecraftVersion = null
+        Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.737.zip", project.minecraft.forgeURL)
 	}
 }

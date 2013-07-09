@@ -139,7 +139,7 @@ class GMCPExtension {
 		def JsonNode versionObj
 
 		// latest or reccomended
-		if (forgeVersion.toString().startsWith("latest") || forgeVersion.toString().startsWith("recomended"))
+		if (forgeVersion.toString().startsWith("latest") || forgeVersion.toString().startsWith("recommended"))
 		{
 			if (minecraftVersion)
 			{
@@ -252,7 +252,7 @@ class GMCPExtension {
 					{
 						for (file in build.getArrayNode("files"))
 						{
-							if (file.getStringValue("type") == "src")
+							if (file.getStringValue("buildtype") == "src")
 							{
 								isJSON1 = true
 								versionObj = fileObj = file
@@ -273,7 +273,7 @@ class GMCPExtension {
 					{
 						for (file in build.getArrayNode("files"))
 						{
-							if (file.getStringValue("type") == "src")
+							if (file.getStringValue("buildtype") == "src")
 							{
 								isJSON1 = true
 								versionObj = fileObj = file
@@ -287,11 +287,17 @@ class GMCPExtension {
 		}
 
 		// couldnt find the version?? wut??
-		if (!fileObj || !fileObj)
+		if (!fileObj || !versionObj)
 		{
 			// cache has already been refreshed??
 			if (refreshCache)
-				throw new MalformedVersionException()
+            {
+                def str = ""
+                if (minecraftVersion)
+                    str = " for Minecraft "+minecraftVersion
+				
+                throw new MalformedVersionException("No Forge \""+forgeVersion+"\" found"+str)
+            }
 			// try again with refreshed cache.
 			else
 				resolveVersion(true)
