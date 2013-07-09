@@ -75,7 +75,10 @@ public class GMCP implements Plugin<Project>
             base.mkdirs()
             def forgeZip = baseFile("forge.zip")
             Util.download(project.minecraft.forgeURL, forgeZip)
-            Util.unzip(forgeZip, base, false)
+            project.copy {
+                from project.fileTree(forgeZip)
+                into base
+            }
             forgeZip.delete()
         }
 
@@ -115,7 +118,10 @@ public class GMCP implements Plugin<Project>
             def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
             Util.download(baseUrl + nativesName, nativesJar)
 
-            Util.unzip(nativesJar, file(root, "natives"), true)
+            project.copy {
+                from project.fileTree(nativesJar)
+                into file(root, "natives")
+            }
             nativesJar.delete()
         }
 
@@ -135,8 +141,9 @@ public class GMCP implements Plugin<Project>
         }
         task << {
             // copy files over.
-            ant.copy(todir: baseFile(Constants.DIR_MAPPINGS).getPath()) {
-                fileset(dir : baseFile(Constants.DIR_FML, "conf").getPath())
+            project.copy {
+                from baseFile(Constants.DIR_FML, "conf")
+                into baseFile(Constants.DIR_MAPPINGS)
             }
 
             // gotta love groovy  and its .with closure :)
@@ -283,8 +290,13 @@ public class GMCP implements Plugin<Project>
             def recDir = file(project.minecraft.srcDir, Constants.DIR_SRC_RESOURCES)
             def srcDir = file(project.minecraft.srcDir, Constants.DIR_SRC_SOURCES)
 
-            project.mkdir(unzippedDir)
-            Util.unzip(baseFile(Constants.JAR_PROC), unzippedDir, true)
+            project.mkdirs(unzippedDir)
+            project.copy {
+                from project.fileTree(baseFile(Constants.JAR_PROC))
+                into unzippedDir
+                exclude "**/*/META-INF*"
+                exclude "META-INF"
+            }
 
             // decompile.
             project.mkdir(decompiledDir)

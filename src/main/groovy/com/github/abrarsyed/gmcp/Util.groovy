@@ -47,64 +47,6 @@ class Util
 			null
 	}
 
-	def static getSha1(String file)
-	{
-		int KB = 1024
-		int MB = 1024*KB
-
-		File f = new File(file)
-
-		def messageDigest = MessageDigest.getInstance("SHA1")
-
-		long start = System.currentTimeMillis()
-
-		f.eachByte(MB)
-		{ byte[] buf, int bytesRead ->
-			messageDigest.update(buf, 0, bytesRead)
-		}
-
-		def sha1Hex = new BigInteger(1, messageDigest.digest()).toString(16).padLeft( 40, '0' )
-		long delta = System.currentTimeMillis()-start
-	}
-
-	/**
-	 *
-	 * @param input      File object of input zip
-	 * @param outputDir  File obecjt of output directory
-	 * @param stripMeta  Strip the MetaINF or not..
-	 */
-	def static void unzip(File input, File outputDir, boolean stripMeta)
-	{
-		def zipFile = new ZipFile(input)
-
-		outputDir.mkdirs()
-
-		zipFile.entries().each
-		{
-			def name = ((ZipEntry)it).name
-
-			if (name.endsWith("/") || (stripMeta && name.contains("META-INF")))
-			{
-				return
-			}
-
-			if (name.contains("/"))
-			{
-				new File(outputDir, name).getParentFile().mkdirs()
-			}
-
-			def file = new File(outputDir, name)
-			
-			// check for existing files and deleting old ones.
-			if (file.exists() && file.isFile())
-				file.delete()
-				
-			file << zipFile.getInputStream(it).bytes
-		}
-
-		zipFile.close()
-	}
-
 	public static createOrCleanDir(File file)
 	{
 		
