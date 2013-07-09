@@ -19,6 +19,7 @@ import org.gradle.api.Project
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
+import com.github.abrarsyed.gmcp.source.FFPatcher
 import com.google.common.io.Files
 
 import cpw.mods.fml.common.asm.transformers.MCPMerger
@@ -50,6 +51,7 @@ public class GMCP implements Plugin<Project>
         // start the tasks
         downloadTasks()
         jarTasks()
+        sourceTasks()
     }
 
     def downloadTasks()
@@ -76,7 +78,7 @@ public class GMCP implements Plugin<Project>
             def forgeZip = baseFile("forge.zip")
             Util.download(project.minecraft.forgeURL, forgeZip)
             project.copy {
-                from project.fileTree(forgeZip)
+                from project.zipTree(forgeZip)
                 into base
             }
             forgeZip.delete()
@@ -119,7 +121,7 @@ public class GMCP implements Plugin<Project>
             Util.download(baseUrl + nativesName, nativesJar)
 
             project.copy {
-                from project.fileTree(nativesJar)
+                from project.zipTree(nativesJar)
                 into file(root, "natives")
             }
             nativesJar.delete()
@@ -155,6 +157,16 @@ public class GMCP implements Plugin<Project>
                 fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_server_ff.patch"))
             }
         }
+        
+        // ----------------------------------------------------------------------------
+        // any other things I need to downlaod from github or otherwise...
+        task = project.task('getMiscExec') {
+            outputs.dir baseFile("execs")
+        }
+        task << {
+            
+        }
+        // TODO: EXTRACT ASTYLE NATIVES, IF USED
     }
 
     def jarTasks()
@@ -282,17 +294,18 @@ public class GMCP implements Plugin<Project>
         // decompile
         task = project.task("decompileMinecraft", dependsOn: "doJarPreProcess") {
             inputs.file {baseFile(Constants.JAR_PROC)}
+            outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
         }
         task << {
             // unzip
             def unzippedDir = file(temporaryDir, "unzipped")
             def decompiledDir = file(temporaryDir, "decompiled")
-            def recDir = file(project.minecraft.srcDir, Constants.DIR_SRC_RESOURCES)
-            def srcDir = file(project.minecraft.srcDir, Constants.DIR_SRC_SOURCES)
+            def recDir = srcFile(Constants.DIR_SRC_RESOURCES)
+            def srcDir = srcFile(Constants.DIR_SRC_SOURCES)
 
-            project.mkdirs(unzippedDir)
+            project.mkdir(unzippedDir)
             project.copy {
-                from project.fileTree(baseFile(Constants.JAR_PROC))
+                from project.zipTree(baseFile(Constants.JAR_PROC))
                 into unzippedDir
                 exclude "**/*/META-INF*"
                 exclude "META-INF"
@@ -342,6 +355,10 @@ public class GMCP implements Plugin<Project>
                 from tree
                 into recDir
             }
+            recDir.eachDirRecurse {
+                if (it.exists())
+                    it.delete()
+            }
 
             // copy classes
             project.mkdir(srcDir)
@@ -352,6 +369,27 @@ public class GMCP implements Plugin<Project>
             }
         }
 
+    }
+
+    def sourceTasks()
+    {
+        def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
+            inputs.with {
+                dir {srcFile(Constants.DIR_SRC_SOURCES)}
+                Constants.CSVs.each {
+                    file {baseFile(Constants.DIR_MAPPINGS, it)}
+                }
+                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+                dir {baseFile(Constants.DIR_MCP_PATCHES)}
+            }
+            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+        }
+
+        logger.info "Applying FernFlower fixes"
+        FFPatcher.processDir(srcFile(Constants.DIR_SRC_SOURCES))
+        
+        logger.info "applying MCP patches"
+        // %s -p1 -u -i {patchfile} -d {srcdir}
     }
 
     def File file(String... args)
@@ -382,4 +420,12 @@ public class GMCP implements Plugin<Project>
         return file(arguments as String[])
     }
 
+    def File srcFile(String... args)
+    {
+        def arguments = []
+        arguments += project.minecraft.srcDir
+        arguments.addAll(args)
+
+        return file(arguments as String[])
+    }
 }

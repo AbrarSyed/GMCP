@@ -8,6 +8,7 @@ public final class Constants
 
     // temp dirs
     def public static final 	DIR_LOGS			= "logs"
+    def public static final     DIR_EXECS           = "execs"
     def public static final 	DIR_SRC_SOURCES		= "sources"
     def public static final     DIR_SRC_RESOURCES   = "resources"
     def public static final  	DIR_FORGE 			= "forge"
