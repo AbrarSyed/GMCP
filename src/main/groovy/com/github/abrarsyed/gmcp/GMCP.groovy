@@ -157,14 +157,15 @@ public class GMCP implements Plugin<Project>
                 fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_server_ff.patch"))
             }
         }
-        
+
         // ----------------------------------------------------------------------------
         // any other things I need to downlaod from github or otherwise...
         task = project.task('getMiscExec') {
-            outputs.dir baseFile("execs")
+            outputs.dir baseFile(Constants.DIR_EXECS)
         }
         task << {
-            
+            baseFile(Constants.DIR_EXECS).mkdirs()
+            Util.download(Constants.URL_WINDOWS_PATCH, baseFile(Constants.EXEC_WIN_PATCH))
         }
         // TODO: EXTRACT ASTYLE NATIVES, IF USED
     }
@@ -295,6 +296,7 @@ public class GMCP implements Plugin<Project>
         task = project.task("decompileMinecraft", dependsOn: "doJarPreProcess") {
             inputs.file {baseFile(Constants.JAR_PROC)}
             outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
+            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
         }
         task << {
             // unzip
@@ -303,6 +305,7 @@ public class GMCP implements Plugin<Project>
             def recDir = srcFile(Constants.DIR_SRC_RESOURCES)
             def srcDir = srcFile(Constants.DIR_SRC_SOURCES)
 
+            logger.info "Unpacking jar"
             project.mkdir(unzippedDir)
             project.copy {
                 from project.zipTree(baseFile(Constants.JAR_PROC))
@@ -323,6 +326,7 @@ public class GMCP implements Plugin<Project>
             args[5] = unzippedDir.getPath()
             args[6] = decompiledDir.getPath()
 
+            logger.info "Applying fernflower"
             try
             {
                 PrintStream stream = System.out
@@ -341,8 +345,17 @@ public class GMCP implements Plugin<Project>
                 e.printStackTrace()
             }
 
+            logger.info "Copying classes"
 
             def tree = project.fileTree(decompiledDir)
+
+            // copy classes
+            project.mkdir(srcDir)
+            project.copy {
+                exclude "META-INF"
+                from (tree) { include "net/minecraft/**/*.java" }
+                into srcDir
+            }
 
             // copy resources
             project.mkdir(recDir)
@@ -352,20 +365,14 @@ public class GMCP implements Plugin<Project>
                 exclude "*.class"
                 exclude "**/*.class"
                 exclude "META-INF"
+                exclude "**/org/**"
+                exclude "**/paulscode/**"
+                exclude "**/cpw/**"
+                exclude "**/argo/**"
+                exclude "**/net/**"
+                exclude "**/com/**"
                 from tree
                 into recDir
-            }
-            recDir.eachDirRecurse {
-                if (it.exists())
-                    it.delete()
-            }
-
-            // copy classes
-            project.mkdir(srcDir)
-            project.copy {
-                exclude "META-INF"
-                from (tree) { include "net/minecraft/**/*.java" }
-                into srcDir
             }
         }
 
@@ -376,20 +383,56 @@ public class GMCP implements Plugin<Project>
         def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
             inputs.with {
                 dir {srcFile(Constants.DIR_SRC_SOURCES)}
-                Constants.CSVs.each {
+                Constants.CSVS.each {
                     file {baseFile(Constants.DIR_MAPPINGS, it)}
                 }
                 file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
                 dir {baseFile(Constants.DIR_MCP_PATCHES)}
             }
             outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
-        }
 
-        logger.info "Applying FernFlower fixes"
-        FFPatcher.processDir(srcFile(Constants.DIR_SRC_SOURCES))
-        
-        logger.info "applying MCP patches"
-        // %s -p1 -u -i {patchfile} -d {srcdir}
+            dependsOn "getMiscExec"
+        }
+        task << {
+            logger.info "Applying FernFlower fixes"
+            FFPatcher.processDir(srcFile(Constants.DIR_SRC_SOURCES))
+
+            logger.info "applying MCP patches"
+            srcFile("minecraft_patched").mkdirs()
+            def result = project.exec {
+                if (os == Constants.OperatingSystem.WINDOWS)
+                    executable = baseFile(Constants.EXEC_WIN_PATCH).getPath()
+                else
+                    executable = "patch"
+
+                def log = baseFile(Constants.DIR_LOGS, "MCPPatches.log")
+                project.file log
+                def stream = log.newOutputStream()
+                standardOutput = stream
+                errorOutput = stream
+                
+                workingDir = project.projectDir
+
+                args = [
+                    "-p1",
+                    "-u",
+                    "-i",
+                    '../../'+Constants.DIR_MCP_PATCHES+"/minecraft_ff.patch",
+                    "-d",
+                    srcFile(Constants.DIR_SRC_SOURCES).getPath()
+                ]
+                
+                //%s -p1 -u -i {patchfile} -d {srcdir}
+            }
+            
+            (new File("applypatch.exe")).delete()
+            
+            result.rethrowFailure()
+            result.assertNormalExitValue()
+        }
+        task << {
+
+        }
     }
 
     def File file(String... args)

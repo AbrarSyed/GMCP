@@ -31,8 +31,8 @@ class GMCPExtension {
 
 	public GMCPExtension(GMCP project) {
 		this.plugin = project
-		cacheFile = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE)
-		cacheFile2 = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.URL_JSON_FORGE_CACHE2)
+		cacheFile = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.CACHE_JSON_FORGE)
+		cacheFile2 = plugin.file(plugin.project.gradle.gradleUserHomeDir, Constants.CACHE_JSON_FORGE2)
 		
 		cacheFile.getParentFile().mkdirs()
 	}
