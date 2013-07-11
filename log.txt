@@ -1,0 +1,96 @@
+:dependencies
+
+------------------------------------------------------------
+Root project
+------------------------------------------------------------
+
+archives - Configuration for archive artifacts.
+No dependencies
+
+compile - Compile classpath for source set 'main'.
++--- net.sourceforge.argo:argo:3.4
++--- com.github.tony19:named-regexp:0.1.9
++--- net.md-5:SpecialSource:1.5
+|    +--- org.ow2.asm:asm-all:4.1
+|    +--- net.sf.jopt-simple:jopt-simple:4.4
+|    +--- com.google.guava:guava:14.0.1
+|    \--- net.sf.opencsv:opencsv:2.3
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.equinox.common:3.6.0.v20110523
++--- org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544
+\--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800
+
+default - Configuration for default artifacts.
++--- net.sourceforge.argo:argo:3.4
++--- com.github.tony19:named-regexp:0.1.9
++--- net.md-5:SpecialSource:1.5
+|    +--- org.ow2.asm:asm-all:4.1
+|    +--- net.sf.jopt-simple:jopt-simple:4.4
+|    +--- com.google.guava:guava:14.0.1
+|    \--- net.sf.opencsv:opencsv:2.3
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.equinox.common:3.6.0.v20110523
++--- org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800
+\--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.runtime:3.7.0.v20110110
+
+groovy - The Groovy libraries to be used for this Groovy project. (Deprecated)
+No dependencies
+
+packed
++--- net.sourceforge.argo:argo:3.4
++--- com.github.tony19:named-regexp:0.1.9
++--- net.md-5:SpecialSource:1.5
+|    +--- org.ow2.asm:asm-all:4.1
+|    +--- net.sf.jopt-simple:jopt-simple:4.4  >> gotit
+|    +--- com.google.guava:guava:14.0.1  >> in gradle API
+|    \--- net.sf.opencsv:opencsv:2.3
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.equinox.common:3.6.0.v20110523
++--- org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544
+\--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800
+
+runtime - Runtime classpath for source set 'main'.
++--- net.sourceforge.argo:argo:3.4
++--- com.github.tony19:named-regexp:0.1.9
++--- net.md-5:SpecialSource:1.5
+|    +--- org.ow2.asm:asm-all:4.1
+|    +--- net.sf.jopt-simple:jopt-simple:4.4
+|    +--- com.google.guava:guava:14.0.1
+|    \--- net.sf.opencsv:opencsv:2.3
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.equinox.common:3.6.0.v20110523
++--- org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800
+\--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.runtime:3.7.0.v20110110
+
+testCompile - Compile classpath for source set 'test'.
++--- net.sourceforge.argo:argo:3.4
++--- com.github.tony19:named-regexp:0.1.9
++--- net.md-5:SpecialSource:1.5
+|    +--- org.ow2.asm:asm-all:4.1
+|    +--- net.sf.jopt-simple:jopt-simple:4.4
+|    +--- com.google.guava:guava:14.0.1
+|    \--- net.sf.opencsv:opencsv:2.3
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.equinox.common:3.6.0.v20110523
++--- org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544
+\--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800
+
+testRuntime - Runtime classpath for source set 'test'.
++--- net.sourceforge.argo:argo:3.4
++--- com.github.tony19:named-regexp:0.1.9
++--- net.md-5:SpecialSource:1.5
+|    +--- org.ow2.asm:asm-all:4.1
+|    +--- net.sf.jopt-simple:jopt-simple:4.4
+|    +--- com.google.guava:guava:14.0.1
+|    \--- net.sf.opencsv:opencsv:2.3
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.equinox.common:3.6.0.v20110523
++--- org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544
++--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800
+\--- org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.runtime:3.7.0.v20110110
+
+BUILD SUCCESSFUL
+
+Total time: 4.667 secs

@@ -3,29 +3,18 @@ package com.github.abrarsyed.gmcp.source
 
 public class MCPCleanup
 {
-	def static cleanDir(File dir)
-	{
-		dir.eachFileRecurse
-		{
-			if (it.isFile())
-				cleanFile(it)
-		}
-	}
+    private static String cleanFile(String text)
+    {
+        text = stripComments(text)
 
-	private static void cleanFile(File file)
-	{
-		def text = file.text
+        text = fixImports(text)
 
-		text = stripComments(text)
+        text = cleanup(text)
+        
+        text = GLConstantFixer.fixOGL(text)
 
-		text = fixImports(text)
-
-		text = cleanup(text)
-		
-		text = GLConstantFixer.fixOGL(text)
-
-		file.write(text)
-	}
+        text
+    }
 
 	private static final REGEXP_COMMENTS = [
 		comments: /(?ms)\/\/.*?$|\/\*.*?\*\/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"/,
@@ -58,7 +47,9 @@ public class MCPCleanup
 
 		'import': /(?m)^import (?:([\w.]*?)\.)?(?:[\w]+);\n/, // package and class.
 
-		newlines: /(?m)^\n{2,}/, // remove repeated blank lines   ?? JDT?
+		//newlines: /(?m)^\n{2,}/, // remove repeated blank lines   ?? JDT?
+        
+        ifstarts: /(?m)(^(?![\s{}]*$).+(?:\r\n|\r|\n))((?:[ \t]+)if.*)/,  // add new line before IF statements
 
 		// close up blanks in code like:
 		// {
@@ -163,13 +154,14 @@ public class MCPCleanup
 		text = text.replaceAll(REGEXP_CLEANUP['header'], "")
 		text = text.replaceAll(REGEXP_CLEANUP['footer'], "")
 		text = text.replaceAll(REGEXP_CLEANUP['trailing'], "")
-		text = text.replaceAll(REGEXP_CLEANUP['newlines'], "\n")
+		//text = text.replaceAll(REGEXP_CLEANUP['newlines'], "\n")
+        text = text.replaceAll(REGEXP_CLEANUP['ifstarts'], '$1\n$2')
 		text = text.replaceAll(REGEXP_CLEANUP['blockstarts'], "")
 		text = text.replaceAll(REGEXP_CLEANUP['blockends'], "")
 		text = text.replaceAll(REGEXP_CLEANUP['gl'], "")
 		text = text.replaceAll(REGEXP_CLEANUP['maxD'], "Double.MAX_VALUE")
 
-		// unicode?    CONTITIONAL
+		// unicode chars
 		text.findAll(REGEXP_CLEANUP['unicode']) { match, val ->
 			def value = Integer.parseInt(val, 16)
 			// work around the replace('\u00a7', '$') call in MinecraftServer and a couple of '\u0000'
@@ -177,8 +169,8 @@ public class MCPCleanup
 				text = text.replace(match, ''+value)
 		}
 
-		// charval?    true
-		text = text.replaceAll(REGEXP_CLEANUP['charval'], '\1')   // TESTING NEEDED
+		// charval.. its stupid.
+		text = text.replaceAll(REGEXP_CLEANUP['charval'], '$1')   // TESTING NEEDED
 
 		//		 pi?   true
 		text = text.replaceAll(REGEXP_CLEANUP['piD'], 'Math.PI')

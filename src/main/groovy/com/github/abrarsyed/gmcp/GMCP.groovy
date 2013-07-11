@@ -13,6 +13,10 @@ import net.md_5.specialsource.RemapperPreprocessor
 import net.md_5.specialsource.provider.JarProvider
 import net.md_5.specialsource.provider.JointProvider
 
+import org.eclipse.jdt.core.ToolFactory
+import org.eclipse.jdt.core.formatter.CodeFormatter
+import org.eclipse.jface.text.Document
+import org.eclipse.text.edits.TextEdit
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -20,6 +24,8 @@ import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
 import com.github.abrarsyed.gmcp.source.FFPatcher
+import com.github.abrarsyed.gmcp.source.MCPCleanup
+import com.github.abrarsyed.gmcp.tasks.PatchTask
 import com.google.common.io.Files
 
 import cpw.mods.fml.common.asm.transformers.MCPMerger
@@ -28,8 +34,8 @@ import de.fernflower.main.decompiler.ConsoleDecompiler
 public class GMCP implements Plugin<Project>
 {
     //public GMCPExtension ext
-    public OperatingSystem os
-    private Project project
+    public static OperatingSystem os = Util.getOS()
+    public static Project project
 
     @Override
     public void apply(Project project)
@@ -45,9 +51,6 @@ public class GMCP implements Plugin<Project>
         // ensure java is in.
         project.apply( plugin: "java")
 
-        // get os
-        os = Util.getOS()
-
         // start the tasks
         downloadTasks()
         jarTasks()
@@ -60,9 +63,9 @@ public class GMCP implements Plugin<Project>
         def task = project.task('getForge') {
             description = "Downloads the correct version of Forge"
             group = "minecraft"
-            outputs.dir { baseFile(Constants.DIR_FORGE) }
+            outputs.dir { Util.baseFile(Constants.DIR_FORGE) }
             outputs.upToDateWhen {
-                def file = baseFile("forge", "forgeversion.properties")
+                def file = Util.baseFile("forge", "forgeversion.properties")
                 if (!file.exists())
                     return false
                 def props = new Properties()
@@ -73,15 +76,14 @@ public class GMCP implements Plugin<Project>
         }
         task << {
 
-            def base = file(project.minecraft.baseDir)
+            def base = Util.file(project.minecraft.baseDir)
             base.mkdirs()
-            def forgeZip = baseFile("forge.zip")
+            def forgeZip = Util.file(temporaryDir, "forge.zip")
             Util.download(project.minecraft.forgeURL, forgeZip)
             project.copy {
                 from project.zipTree(forgeZip)
                 into base
             }
-            forgeZip.delete()
         }
 
 
@@ -90,41 +92,40 @@ public class GMCP implements Plugin<Project>
         task = project.task('getMinecraft', dependsOn: "getForge") {
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
-            inputs.file { baseFile(Constants.DIR_FML, "mc_versions.cfg") }
+            inputs.file { Util.baseFile(Constants.DIR_FML, "mc_versions.cfg") }
             outputs.with {
-                file { jarFile(Constants.JAR_JAR_CLIENT) }
-                file { jarFile(Constants.JAR_JAR_SERVER) }
-                file { jarFile("bin", "lwjgl.jar") }
-                file { jarFile("bin", "lwjgl_util.jar") }
-                file { jarFile("bin", "jinput.jar") }
-                dir { jarFile("bin", "natives") }
+                file { Util.jarFile(Constants.JAR_JAR_CLIENT) }
+                file { Util.jarFile(Constants.JAR_JAR_SERVER) }
+                file { Util.jarFile("bin", "lwjgl.jar") }
+                file { Util.jarFile("bin", "lwjgl_util.jar") }
+                file { Util.jarFile("bin", "jinput.jar") }
+                dir { Util.jarFile("bin", "natives") }
             }
         }
         task << {
             new File(project.minecraft.jarDir).mkdirs()
-            def root = jarFile(Constants.DIR_JAR_BIN)
+            def root = Util.jarFile(Constants.DIR_JAR_BIN)
             root.mkdirs()
 
             // read config
-            ConfigParser parser = new ConfigParser(baseFile(Constants.DIR_FML, "mc_versions.cfg"))
+            ConfigParser parser = new ConfigParser(Util.baseFile(Constants.DIR_FML, "mc_versions.cfg"))
             def baseUrl = parser.getProperty("default", "base_url")
 
             def mcver = parser.getProperty("default", "current_ver")
-            Util.download(parser.getProperty(mcver, "client_url"), jarFile(Constants.JAR_JAR_CLIENT))
-            Util.download(parser.getProperty(mcver, "server_url"), jarFile(Constants.JAR_JAR_SERVER))
+            Util.download(parser.getProperty(mcver, "client_url"), Util.jarFile(Constants.JAR_JAR_CLIENT))
+            Util.download(parser.getProperty(mcver, "server_url"), Util.jarFile(Constants.JAR_JAR_SERVER))
 
             def dls = parser.getProperty("default", "libraries").split(/\s/)
             dls.each { Util.download(baseUrl+it, new File(root, it)) }
 
-            def nativesJar = baseFile("natives.jar")
+            def nativesJar = Util.file(temporaryDir, "natives.jar")
             def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
             Util.download(baseUrl + nativesName, nativesJar)
 
             project.copy {
                 from project.zipTree(nativesJar)
-                into file(root, "natives")
+                into Util.file(root, "natives")
             }
-            nativesJar.delete()
         }
 
         // ----------------------------------------------------------------------------
@@ -132,45 +133,45 @@ public class GMCP implements Plugin<Project>
         task = project.task('doFMLMappingPreProcess', dependsOn: "getForge") {
             description = "Copies and updates the mappings and configs with the new package structure"
             group = "minecraft"
-            inputs.dir { baseFile(Constants.DIR_FML, "conf") }
+            inputs.dir { Util.baseFile(Constants.DIR_FML, "conf") }
 
             outputs.with {
-                file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
-                file  { baseFile(Constants.DIR_MAPPINGS, "packaged.exc") }
-                file { baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch") }
+                file { Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
+                file  { Util.baseFile(Constants.DIR_MAPPINGS, "packaged.exc") }
+                file { Util.baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch") }
             }
 
         }
         task << {
             // copy files over.
             project.copy {
-                from baseFile(Constants.DIR_FML, "conf")
-                into baseFile(Constants.DIR_MAPPINGS)
+                from Util.baseFile(Constants.DIR_FML, "conf")
+                into Util.baseFile(Constants.DIR_MAPPINGS)
             }
 
             // gotta love groovy  and its .with closure :)
-            (new PackageFixer(baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"]))).with {
+            (new PackageFixer(Util.baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"]))).with {
                 // calls the following on the package fixer.
-                fixSRG(baseFile(Constants.DIR_MAPPINGS, "joined.srg"), baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
-                fixExceptor(baseFile(Constants.DIR_MAPPINGS, "joined.exc"), baseFile(Constants.DIR_MAPPINGS, "packaged.exc"))
-                fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch"))
-                fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_server_ff.patch"))
+                fixSRG(Util.baseFile(Constants.DIR_MAPPINGS, "joined.srg"), Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
+                fixExceptor(Util.baseFile(Constants.DIR_MAPPINGS, "joined.exc"), Util.baseFile(Constants.DIR_MAPPINGS, "packaged.exc"))
+                fixPatch(Util.baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch"))
+                fixPatch(Util.baseFile(Constants.DIR_MCP_PATCHES, "minecraft_server_ff.patch"))
             }
         }
 
         // ----------------------------------------------------------------------------
         // any other things I need to downlaod from github or otherwise...
         task = project.task('extractMisc') {
-            outputs.dir baseFile(Constants.DIR_MISC)
+            outputs.dir Util.baseFile(Constants.DIR_MISC)
         }
         task << {
-            baseFile(Constants.DIR_MISC).mkdirs()
-            
+            Util.baseFile(Constants.DIR_MISC).mkdirs()
+
             InputStream stream = this.getClass().classLoader.getResourceAsStream(Constants.REC_FORMAT_CFG)
-            baseFile(Constants.CFG_FORMAT) << stream.getBytes()
-            
+            Util.baseFile(Constants.CFG_FORMAT) << stream.getBytes()
+
             stream = this.getClass().classLoader.getResourceAsStream(Constants.REC_PATCH_EXEC)
-            baseFile(Constants.EXEC_WIN_PATCH) << stream.getBytes()
+            Util.baseFile(Constants.EXEC_WIN_PATCH) << stream.getBytes()
         }
     }
 
@@ -182,28 +183,28 @@ public class GMCP implements Plugin<Project>
             description = "Deobfuscates Minecraft, and applies the Exceptor"
             group = "minecraft"
             inputs.with {
-                file { jarFile(Constants.JAR_JAR_CLIENT) }
-                file { jarFile(Constants.JAR_JAR_SERVER) }
-                file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
-                file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
-                file { baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
-                file { baseFile(Constants.DIR_FORGE, "common/forge_at.cfg") }
+                file { Util.jarFile(Constants.JAR_JAR_CLIENT) }
+                file { Util.jarFile(Constants.JAR_JAR_SERVER) }
+                file { Util.baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
+                file { Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
+                file { Util.baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
+                file { Util.baseFile(Constants.DIR_FORGE, "common/forge_at.cfg") }
                 project.minecraft.accessTransformers.collect { String str -> file {str} }
             }
 
             outputs.with {
-                file { baseFile(Constants.JAR_PROC) }
+                file { Util.baseFile(Constants.JAR_PROC) }
             }
         }
         task.dependsOn("getMinecraft", "doFMLMappingPreProcess")
         // merge jars
         task << {
-            def server = file(temporaryDir, "server.jar")
-            def merged = file(temporaryDir, "merged.jar")
-            def mergeTemp = file(temporaryDir, "merged.jar.tmp")
+            def server = Util.file(temporaryDir, "server.jar")
+            def merged = Util.file(temporaryDir, "merged.jar")
+            def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
-            Files.copy(jarFile(Constants.JAR_JAR_CLIENT), mergeTemp)
-            Files.copy(jarFile(Constants.JAR_JAR_CLIENT), server)
+            Files.copy(Util.jarFile(Constants.JAR_JAR_CLIENT), mergeTemp)
+            Files.copy(Util.jarFile(Constants.JAR_JAR_CLIENT), server)
 
             logger.lifecycle "Merging jars"
 
@@ -238,19 +239,19 @@ public class GMCP implements Plugin<Project>
         }
         // deobfuscate---------------------------
         task << {
-            def merged = file(temporaryDir, "merged.jar")
-            def deobf = file(temporaryDir, "deobf.jar")
+            def merged = Util.file(temporaryDir, "merged.jar")
+            def deobf = Util.file(temporaryDir, "deobf.jar")
 
             logger.lifecycle "DeObfuscating jar"
 
             // load mapping
             JarMapping mapping = new JarMapping()
-            mapping.loadMappings(baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
+            mapping.loadMappings(Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
 
             // load in AT
             def accessMap = new AccessMap()
-            accessMap.loadAccessTransformer(baseFile(Constants.DIR_FML, "common/fml_at.cfg"))
-            accessMap.loadAccessTransformer(baseFile(Constants.DIR_FORGE, "common/forge_at.cfg"))
+            accessMap.loadAccessTransformer(Util.baseFile(Constants.DIR_FML, "common/fml_at.cfg"))
+            accessMap.loadAccessTransformer(Util.baseFile(Constants.DIR_FORGE, "common/forge_at.cfg"))
             project.minecraft.accessTransformers.collect {
                 accessMap.loadAccessTransformer(project.file(Constants.DIR_FORGE, "common/forge_at.cfg"))
             }
@@ -275,12 +276,12 @@ public class GMCP implements Plugin<Project>
 
             logger.lifecycle "Applying Exceptor to jar"
 
-            baseFile(Constants.DIR_LOGS).mkdirs()
+            Util.baseFile(Constants.DIR_LOGS).mkdirs()
             String[] args = new String[4]
-            args[0] = file(temporaryDir, "deobf.jar").getPath()
-            args[1] = baseFile(Constants.JAR_PROC).getPath()
-            args[2] = baseFile(Constants.DIR_MAPPINGS, "packaged.exc")
-            args[3] = baseFile(Constants.DIR_LOGS, "MCInjector.log").getPath()
+            args[0] = Util.file(temporaryDir, "deobf.jar").getPath()
+            args[1] = Util.baseFile(Constants.JAR_PROC).getPath()
+            args[2] = Util.baseFile(Constants.DIR_MAPPINGS, "packaged.exc")
+            args[3] = Util.baseFile(Constants.DIR_LOGS, "MCInjector.log").getPath()
 
             try
             {
@@ -299,27 +300,27 @@ public class GMCP implements Plugin<Project>
         // decompile
         task = project.task("decompileMinecraft", dependsOn: "doJarPreProcess") {
             inputs.with {
-                file {baseFile(Constants.JAR_PROC)}
-                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
-                dir {baseFile(Constants.DIR_MCP_PATCHES)}
+                file {Util.baseFile(Constants.JAR_PROC)}
+                file {Util.baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+                dir {Util.baseFile(Constants.DIR_MCP_PATCHES)}
             }
 
-            outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
-            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+            outputs.dir {Util.srcFile(Constants.DIR_SRC_RESOURCES)}
+            outputs.dir {Util.srcFile(Constants.DIR_SRC_SOURCES)}
 
             dependsOn "extractMisc"
         }
         task << {
             // unzip
-            def unzippedDir = file(temporaryDir, "unzipped")
-            def decompiledDir = file(temporaryDir, "decompiled")
-            def recDir = srcFile(Constants.DIR_SRC_RESOURCES)
-            def srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+            def unzippedDir = Util.file(temporaryDir, "unzipped")
+            def decompiledDir = Util.file(temporaryDir, "decompiled")
+            def recDir = Util.srcFile(Constants.DIR_SRC_RESOURCES)
+            def srcDir = Util.srcFile(Constants.DIR_SRC_SOURCES)
 
             logger.info "Unpacking jar"
             project.mkdir(unzippedDir)
             project.copy {
-                from project.zipTree(baseFile(Constants.JAR_PROC))
+                from project.zipTree(Util.baseFile(Constants.JAR_PROC))
                 into unzippedDir
                 exclude "**/*/META-INF*"
                 exclude "META-INF"
@@ -341,7 +342,7 @@ public class GMCP implements Plugin<Project>
             try
             {
                 PrintStream stream = System.out
-                def log = baseFile(Constants.DIR_LOGS, "FF.log")
+                def log = Util.baseFile(Constants.DIR_LOGS, "FF.log")
                 project.file log
                 System.setOut(new PrintStream(log))
 
@@ -383,24 +384,23 @@ public class GMCP implements Plugin<Project>
         }
         task << {
             logger.info "Applying FernFlower fixes"
-            FFPatcher.processDir(srcFile(Constants.DIR_SRC_SOURCES))
+            FFPatcher.processDir(Util.srcFile(Constants.DIR_SRC_SOURCES))
 
             // copy patch, and fix lines
-            def text = baseFile(Constants.DIR_MCP_PATCHES, "/minecraft_ff.patch").text
+            def text = Util.baseFile(Constants.DIR_MCP_PATCHES, "/minecraft_ff.patch").text
             text = text.replaceAll("(\r\n|\r|\n)", System.getProperty("line.separator"))
             text = text.replaceAll(/(\r\n|\r|\n)/, System.getProperty("line.separator"))
-            def patch = file(temporaryDir, "patch")
+            def patch = Util.file(temporaryDir, "patch")
             patch.write(text)
 
             logger.info "applying MCP patches"
-            srcFile("minecraft_patched").mkdirs()
             def result = project.exec {
                 if (os == Constants.OperatingSystem.WINDOWS)
-                    executable = baseFile(Constants.EXEC_WIN_PATCH).getPath()
+                    executable = Util.baseFile(Constants.EXEC_WIN_PATCH).getPath()
                 else
                     executable = "patch"
 
-                def log = baseFile(Constants.DIR_LOGS, "MCPPatches.log")
+                def log = Util.baseFile(Constants.DIR_LOGS, "MCPPatches.log")
                 project.file log
                 def stream = log.newOutputStream()
                 standardOutput = stream
@@ -414,7 +414,7 @@ public class GMCP implements Plugin<Project>
                     "-i",
                     '"'+patch.getAbsolutePath()+'"',
                     "-d",
-                    '"'+srcFile(Constants.DIR_SRC_SOURCES).getPath()+'"'
+                    '"'+Util.srcFile(Constants.DIR_SRC_SOURCES).getPath()+'"'
                 ]
             }
         }
@@ -425,57 +425,62 @@ public class GMCP implements Plugin<Project>
     {
         def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
             inputs.with {
-                dir {srcFile(Constants.DIR_SRC_SOURCES)}
+                dir {Util.srcFile(Constants.DIR_SRC_SOURCES)}
                 Constants.CSVS.each {
-                    file {baseFile(Constants.DIR_MAPPINGS, it)}
+                    file {Util.baseFile(Constants.DIR_MAPPINGS, it)}
                 }
-                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
-                dir {baseFile(Constants.DIR_FML_PATCHES)}
-                dir {baseFile(Constants.DIR_FORGE_PATCHES)}
+                file {Util.baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+                dir {Util.baseFile(Constants.DIR_FML_PATCHES)}
+                dir {Util.baseFile(Constants.DIR_FORGE_PATCHES)}
             }
-            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
-            
+            outputs.dir {Util.srcFile(Constants.DIR_SRC_SOURCES)}
+
             dependsOn "extractMisc"
         }
+        // do random source stuff
         task << {
-            
+            def srcDir = Util.srcFile(Constants.DIR_SRC_SOURCES)
+
+            // set up formatter
+            def config = [:]
+
+            Util.baseFile(Constants.CFG_FORMAT).eachLine {
+                if (it == null || it.isEmpty())
+                    return
+
+                def split = it.split("=")
+                config[split[0].trim()] = split[1].trim()
+            }
+
+            CodeFormatter formatter = ToolFactory.createCodeFormatter(config)
+
+            srcDir.eachFileRecurse {
+                // lose the folders already.
+                if (it.isDirectory())
+                    return
+
+                def text = it.text
+
+                // pre-formatting cleanup
+                text = MCPCleanup.cleanFile(text)
+
+                // format
+                TextEdit te = formatter.format(CodeFormatter.K_COMPILATION_UNIT, text, 0, text.length(), 0, null)
+                Document doc = new Document(text)
+                te?.apply(doc)
+                text = doc.get()
+
+                // post-format fixes for empty methods
+                text = text.replaceAll(/(?m)(^\s+(?:\w+ )+\w+\([\w\d ,]*?\))(?:\r\n|\r|\n)^\s*\{\s*\}/, '$1 {}')
+                
+                // write text
+                it.write(text)
+            }
         }
-    }
 
-    def File file(String... args)
-    {
-        return new File(args.join("/"))
-    }
-
-    def File file(File file, String... args)
-    {
-        return new File(file, args.join("/"))
-    }
-
-    def File baseFile(String... args)
-    {
-        def arguments = []
-        arguments += project.minecraft.baseDir
-        arguments.addAll(args)
-
-        return file(arguments as String[])
-    }
-
-    def File jarFile(String... args)
-    {
-        def arguments = []
-        arguments += project.minecraft.jarDir
-        arguments.addAll(args)
-
-        return file(arguments as String[])
-    }
-
-    def File srcFile(String... args)
-    {
-        def arguments = []
-        arguments += project.minecraft.srcDir
-        arguments.addAll(args)
-
-        return file(arguments as String[])
+        task = project.task("doFMLPatches", type:PatchTask, dependsOn: "processMCSources") {
+            patchDir = Util.baseFile(Constants.DIR_FML_PATCHES)
+            srcDir = Util.srcFile(Constants.DIR_SRC_SOURCES)
+        }
     }
 }

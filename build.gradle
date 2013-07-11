@@ -1,4 +1,3 @@
-import org.apache.tools.ant.filters.ReplaceTokens
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -9,29 +8,51 @@ group = 'com.github.abrarsyed.gmcp'
 version = '.5-SNAPSHOT'
 archivesBaseName = 'GMCP'
 
-repositories {
-	mavenCentral()
+repositories
+{ mavenCentral() }
+
+jar
+{
+    // packs a bunch of stuff into my jar.
+    // everything marked as packed
+    from {
+        configurations.packed.collect {
+            it.isDirectory() ? it : zipTree(it).matching {
+                exclude "META-INF", "META-INF/**", "*META-INF*", "meta-inf"
+                exclude "**.jar", "**/*.jar", "*.jar"
+                exclude "plugin.properties"
+                exclude "plugin.xml"
+                exclude "about.html"
+                exclude ".api_description"
+            }
+        }
+    }
 }
 
-jar {
-	from { configurations.packed.collect { it.isDirectory() ? it : zipTree(it) } }
-}
-
-configurations {
-	packed
-	compile.extendsFrom packed
+configurations
+{
+    packed
+    compile.extendsFrom packed
 }
 
 dependencies
 {
-	compile gradleApi()
-	compile localGroovy()
-	
-	packed fileTree(dir: 'lib', include: '*.jar')
-	
-	packed 'com.google.guava:guava:14.0.1'
-	packed 'net.sourceforge.argo:argo:3.4'
-	packed 'net.sf.opencsv:opencsv:2.3'
-	packed 'com.github.tony19:named-regexp:0.1.9'
-	packed 'net.md-5:SpecialSource:1.5'
+    compile gradleApi()
+    compile localGroovy()
+    
+    // all of these marked as packed.
+
+    packed fileTree(dir: 'lib', include: '*.jar')
+
+    packed 'net.sourceforge.argo:argo:3.4'
+    //packed 'net.sf.opencsv:opencsv:2.3'
+    packed 'com.github.tony19:named-regexp:0.1.9'
+    packed 'net.md-5:SpecialSource:1.5'
+
+    // JDT for the formatter
+    packed "org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712"
+    runtime "org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.runtime:3.7.0.v20110110"
+    packed "org.jibx.config.3rdparty.org.eclipse:org.eclipse.equinox.common:3.6.0.v20110523"
+    packed "org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544"
+    packed "org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800"
 }
