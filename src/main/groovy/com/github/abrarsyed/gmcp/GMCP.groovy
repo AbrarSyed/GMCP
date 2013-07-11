@@ -160,14 +160,18 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // any other things I need to downlaod from github or otherwise...
-        task = project.task('getMiscExec') {
-            outputs.dir baseFile(Constants.DIR_EXECS)
+        task = project.task('extractMisc') {
+            outputs.dir baseFile(Constants.DIR_MISC)
         }
         task << {
-            baseFile(Constants.DIR_EXECS).mkdirs()
-            Util.download(Constants.URL_WINDOWS_PATCH, baseFile(Constants.EXEC_WIN_PATCH))
+            baseFile(Constants.DIR_MISC).mkdirs()
+            
+            InputStream stream = this.getClass().classLoader.getResourceAsStream(Constants.REC_FORMAT_CFG)
+            baseFile(Constants.CFG_FORMAT) << stream.getBytes()
+            
+            stream = this.getClass().classLoader.getResourceAsStream(Constants.REC_PATCH_EXEC)
+            baseFile(Constants.EXEC_WIN_PATCH) << stream.getBytes()
         }
-        // TODO: EXTRACT ASTYLE NATIVES, IF USED
     }
 
     def jarTasks()
@@ -303,7 +307,7 @@ public class GMCP implements Plugin<Project>
             outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
             outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
 
-            dependsOn "getMiscExec"
+            dependsOn "extractMisc"
         }
         task << {
             // unzip
@@ -430,8 +434,8 @@ public class GMCP implements Plugin<Project>
                 dir {baseFile(Constants.DIR_FORGE_PATCHES)}
             }
             outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
-
-            dependsOn "getMiscExec"
+            
+            dependsOn "extractMisc"
         }
         task << {
             
