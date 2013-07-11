@@ -88,6 +88,7 @@ class FFPatcher
 		text = text.replaceAll(REG["trailing"], "")
 
 		text = text.replaceAll(/(\r\n|\r|\n)/, "\n")
+        text = text.replaceAll("(\r\n|\r|\n)", "\n")
 
 		file.write(text)
 	}

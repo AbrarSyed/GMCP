@@ -294,9 +294,16 @@ public class GMCP implements Plugin<Project>
         // ----------------------------------------------------------------------------
         // decompile
         task = project.task("decompileMinecraft", dependsOn: "doJarPreProcess") {
-            inputs.file {baseFile(Constants.JAR_PROC)}
+            inputs.with {
+                file {baseFile(Constants.JAR_PROC)}
+                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+                dir {baseFile(Constants.DIR_MCP_PATCHES)}
+            }
+
             outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
             outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+
+            dependsOn "getMiscExec"
         }
         task << {
             // unzip
@@ -365,37 +372,21 @@ public class GMCP implements Plugin<Project>
                 exclude "*.class"
                 exclude "**/*.class"
                 exclude "META-INF"
-                exclude "**/org/**"
-                exclude "**/paulscode/**"
-                exclude "**/cpw/**"
-                exclude "**/argo/**"
-                exclude "**/net/**"
-                exclude "**/com/**"
                 from tree
                 into recDir
+                includeEmptyDirs = false
             }
-        }
-
-    }
-
-    def sourceTasks()
-    {
-        def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
-            inputs.with {
-                dir {srcFile(Constants.DIR_SRC_SOURCES)}
-                Constants.CSVS.each {
-                    file {baseFile(Constants.DIR_MAPPINGS, it)}
-                }
-                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
-                dir {baseFile(Constants.DIR_MCP_PATCHES)}
-            }
-            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
-
-            dependsOn "getMiscExec"
         }
         task << {
             logger.info "Applying FernFlower fixes"
             FFPatcher.processDir(srcFile(Constants.DIR_SRC_SOURCES))
+
+            // copy patch, and fix lines
+            def text = baseFile(Constants.DIR_MCP_PATCHES, "/minecraft_ff.patch").text
+            text = text.replaceAll("(\r\n|\r|\n)", System.getProperty("line.separator"))
+            text = text.replaceAll(/(\r\n|\r|\n)/, System.getProperty("line.separator"))
+            def patch = file(temporaryDir, "patch")
+            patch.write(text)
 
             logger.info "applying MCP patches"
             srcFile("minecraft_patched").mkdirs()
@@ -410,28 +401,40 @@ public class GMCP implements Plugin<Project>
                 def stream = log.newOutputStream()
                 standardOutput = stream
                 errorOutput = stream
-                
-                workingDir = project.projectDir
+
+                ignoreExitValue = true
 
                 args = [
                     "-p1",
                     "-u",
                     "-i",
-                    '../../'+Constants.DIR_MCP_PATCHES+"/minecraft_ff.patch",
+                    '"'+patch.getAbsolutePath()+'"',
                     "-d",
-                    srcFile(Constants.DIR_SRC_SOURCES).getPath()
+                    '"'+srcFile(Constants.DIR_SRC_SOURCES).getPath()+'"'
                 ]
-                
-                //%s -p1 -u -i {patchfile} -d {srcdir}
             }
-            
-            (new File("applypatch.exe")).delete()
-            
-            result.rethrowFailure()
-            result.assertNormalExitValue()
+        }
+
+    }
+
+    def sourceTasks()
+    {
+        def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
+            inputs.with {
+                dir {srcFile(Constants.DIR_SRC_SOURCES)}
+                Constants.CSVS.each {
+                    file {baseFile(Constants.DIR_MAPPINGS, it)}
+                }
+                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+                dir {baseFile(Constants.DIR_FML_PATCHES)}
+                dir {baseFile(Constants.DIR_FORGE_PATCHES)}
+            }
+            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+
+            dependsOn "getMiscExec"
         }
         task << {
-
+            
         }
     }
 
