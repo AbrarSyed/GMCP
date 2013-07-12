@@ -19,12 +19,12 @@ class FFPatcher
         list : /, /,
 
         // modifiers, type, name, implements, body, end
-        enum_class: /(?m)^((?:(?:/ + MODIFIERS + /) )*)(enum) ([\w$]+)(?: implements ([\w$.]+(?:, [\w$.]+)*))? \{\n((?:.*?\n)*?)(\}\n+)/,
+        enum_class: /(?m)^((?:(?:/ + MODIFIERS + /) )*)(enum) ([\w$]+)(?: implements ([\w$.]+(?:, [\w$.]+)*))? \{(?:\r\n|\r|\n)((?:.*(?:\r\n|\n|\r))*?)(\})/,
 
         // name, body, end
-        enum_entries: /(?m)^ {3}([\w$]+)\("(?=name)", [0-9]+(?:, (.*?))?\)((?:;|,)\n+)/,
+        enum_entries: /(?m)^ +([\w$]+)\("(?:[\w$]+)", [0-9]+(?:, (.*?))?\)((?:;|,)(?:\r\n|\n|\r)+)/,
 
-        empty_super: /(?m)^ +super\(\);\n/,
+        empty_super: /(?m)^ +super\(\);(\r\n|\n|\r)/,
 
         // strip trailing 0 from doubles and floats to fix decompile differences on OSX
         // 0.0010D => 0.001D
@@ -34,9 +34,9 @@ class FFPatcher
 
     static final Map<String, String> REG_FORMAT = [
         // modifiers, params, throws, empty, body, end
-        constructor : /(?m)^ {3}(?<modifiers>(?:(?:/ + MODIFIERS + /) )*)%s\((?<parameters>.*?)\)(?: throws (?<throws>[\w$.]+(?:, [\w$.]+)*))? \{(?:(?<empty>\}\n+)|(?:(?<body>\n(?:.*?\n)*?)(?<end> {3}\}\n+)))/,
+        constructor : /(?m)^ +(?<modifiers>(?:(?:/ + MODIFIERS + /) )*)%s\((?<parameters>.*?)\)(?: throws (?<throws>[\w$.]+(?:, [\w$.]+)*))? \{(?:(?<empty>\}(?:\r\n|\r|\n)+)|(?:(?<body>(?:\r\n|\r|\n)(?:.*?(?:\r\n|\r|\n))*?)(?<end> {3}\}(?:\r\n|\r|\n)+)))/,
 
-        enumVals: "(?m)^ {3}// \\\$FF: synthetic field\n {3}private static final %s\\[\\] [\\w\$]+ = new %s\\[\\]\\{.*?\\};\n",
+        enumVals: /(?m)^ +\/\/ [$]FF: synthetic field(\r\n|\n|\r) +private static final %s\[\] [\w\$]+ = new %s\[\]\{.*?\};(\r\n|\n|\r)/,
     ]
 
     def static processDir(File dir)
@@ -54,8 +54,6 @@ class FFPatcher
         def classname = file.getName().split(/\./)[0]
         def text = file.text
 
-        //        def _process_file(src_file):
-        // ** buf = text
 
         text = text.replaceAll(REG["trailing"], "")
 
@@ -95,16 +93,24 @@ class FFPatcher
 
     def static processEnum(classname, classtype, List modifiers, List interfaces, String body, end)
     {
-        body = body.replaceAll("enum_entries")
-                // name, body, end
-        { match, matchName, matchBody, matchEnd ->
+
+        body = body.replaceAll(REG["enum_entries"])
+        { list ->
+            // 0 = all
+            // 1 = name
+            // 2 = matchBody
+            // 3 = end
+
+            // defaults, if matchBody isnt there
             def entryBody = ''
-            if (matchBody)
+
+            // if the body IS there
+            if (list[2])
             {
-                entryBody = "($matchBody)"
+                entryBody = list[2]
             }
 
-            body = body.replace(match, '   ' + matchName + entryBody + matchEnd)
+            return '   ' + list[1] + "(" + entryBody + ")" + list[3]
         }
 
         def valuesRegex = String.format(REG_FORMAT['enumVals'], classname, classname)
@@ -127,7 +133,7 @@ class FFPatcher
             def params = []
             if (match.group('parameters'))
             {
-                params = match.group('parameters').split(REG['list'])
+                params = match.group('parameters').split(REG['list']) as List
             }
 
             def exc = []
@@ -156,7 +162,7 @@ class FFPatcher
 
         if (!modifiers.isEmpty())
         {
-            out += modifiers.join(' ')+ ' '
+            out += modifiers.join(' ')
         }
 
         out += classtype + ' ' + classname
@@ -176,9 +182,9 @@ class FFPatcher
         if (params.size() >= 2)
         {
             // special case?
-            if (params.get(0).startsWith('String ') && params.get(1).startsWith('int '))
+            if (params[0].startsWith('String ') && params[1].startsWith('int '))
             {
-                params = params.subList(2, params.size()-1)
+                params = params.subList(2, params.size())
 
                 // empty constructor
                 if (Strings.isNullOrEmpty(methodBody) && params.isEmpty())
@@ -197,22 +203,22 @@ class FFPatcher
             throw new RuntimeException("not enough parameters in enum")
         }
 
-        // reuild constructor
+        // rebuild constructor
 
         def out = '   '
         if (mods)
         {
-            out += ' '+mods.join(" ")+' '
+            out += mods.join(' ')+' '
         }
 
-        out += classname + '(${params.join(", ")})'
+        out += classname + "(${params.join(', ')})"
 
         if (exc)
         {
-            out += ' throws ${exc.join(", ")}'
+            out += " throws ${exc.join(', ')}"
         }
 
-        out += ' {${methodBody}${methodEnd}'
+        out += " {" + methodBody + methodEnd
 
         return out
     }
