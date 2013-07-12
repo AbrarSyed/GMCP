@@ -23,8 +23,47 @@ class PatchTask extends DefaultTask
 
     private final File tempPatch = new File(temporaryDir, "temp.patch")
 
+    //    @TaskAction
+    //    def doLibPatches()
+    //    {
+    //        Map<File, Patch> patchMap = [:]
+    //        def newFile, patch
+    //
+    //        // recurse through files
+    //        patchDir.eachFileRecurse {
+    //            // if its a patch
+    //            if (it.isFile() && it.path.endsWith(".patch"))
+    //            {
+    //                newFile = new File(srcDir, Util.getRelative(patchDir, it).replace(/.patch/, ""))
+    //                patch = DiffUtils.parseUnifiedDiff(it.text.readLines())
+    //                patchMap.put(newFile, patch)
+    //            }
+    //        }
+    //
+    //        def counter = 0, success = 0
+    //        patchMap.each
+    //        { file, delta ->
+    //            try
+    //            {
+    //                def lines = file.text.readLines()
+    //                lines = delta.applyTo(lines)
+    //                file.write(lines.join("\n"))
+    //                success++
+    //            }
+    //            catch(Exception e)
+    //            {
+    //                logger.error "error patching "+file+"   skipping."
+    //                if (counter <= 1)
+    //                    e.printStackTrace()
+    //            }
+    //            counter++
+    //        }
+    //
+    //        logger.lifecycle success + " out of " + counter + " succeeded"
+    //    }
+
     @TaskAction
-    def doPatches()
+    def doBinaryPatches()
     {
         def command, arguments
 
@@ -45,6 +84,13 @@ class PatchTask extends DefaultTask
         logger.lifecycle "COMMAND : "+command
         logger.lifecycle "ARGS: "+arguments.join(" ")
 
+        def log = Util.baseFile(Constants.DIR_LOGS, "FMLPatches.log")
+        if (log.exists())
+            log.delete()
+
+        // make it new, delete was to clear data.
+        project.file log
+
         patchDir.eachFileRecurse
         {
             if (it.isDirectory())
@@ -57,11 +103,11 @@ class PatchTask extends DefaultTask
                 executable = command
                 args = arguments
 
-                def log = Util.baseFile(Constants.DIR_LOGS, "FMLPatches.log")
-                project.file log
-                def stream = log.newOutputStream()
+                def stream = new FileOutputStream(log, true)
                 standardOutput = stream
                 errorOutput = stream
+                
+                ignoreExitValue = true
             }
         }
     }

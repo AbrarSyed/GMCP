@@ -7,10 +7,8 @@ class FMLCleanup
 	def static final before = /(?m)((case|default).+\r?\n)\r?\n/ // Fixes newline after case before case body
 	def static final after = /(?m)\r?\n(\r?\n[ \t]+(case|default))/ // Fixes newline after case body before new case
 
-	public static void updateFile(File f)
+	public static String updateFile(String text)
 	{
-		def text = f.text
-
 		text.findAll(before) { match, group, words->
 			text = text.replace(match, group)
 		}
@@ -23,7 +21,7 @@ class FMLCleanup
 
 		text = text.replace("\r", "")
 
-		f.write(text)
+        return text
 	}
 
 	// FML RENAMMING STUFF
