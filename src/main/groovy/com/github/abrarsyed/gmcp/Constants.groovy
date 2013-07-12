@@ -27,7 +27,7 @@ public final class Constants
     static final String         EXEC_WIN_PATCH      = DIR_MISC + "/applydiff.exe"
     public static final String  CFG_FORMAT          = DIR_MISC + "/formatter.cfg"
 
-    // download URLs    versions are in #_#_# form rather than #.#.#
+    // download URLs
     public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
     public static final String  URL_JSON_FORGE2     = "http://files.minecraftforge.net/minecraftforge/json2"
 
@@ -36,7 +36,7 @@ public final class Constants
     public static final String  CACHE_JSON_FORGE2   = "caches/gmcp/forge2.json"
 
     // in-jar resource paths
-    public static final String  REC_FORMAT_CFG      =  "misc/formatter.cfg"
+    public static final String  REC_FORMAT_CFG      = "misc/formatter.cfg"
     public static final String  REC_PATCH_EXEC      = "misc/applydiff.exe"
 
     // CSVs

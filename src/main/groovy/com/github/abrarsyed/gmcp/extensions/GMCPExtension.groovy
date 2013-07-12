@@ -32,8 +32,8 @@ class GMCPExtension
 
     public GMCPExtension(GMCP project)
     {
-        cacheFile = Util.file(project.project.gradle.gradleUserHomeDir, Constants.CACHE_JSON_FORGE)
-        cacheFile2 = Util.file(project.project.gradle.gradleUserHomeDir, Constants.CACHE_JSON_FORGE2)
+        cacheFile = Util.file(System.getProperty("user.home"), Constants.CACHE_JSON_FORGE)
+        cacheFile2 = Util.file(System.getProperty("user.home"), Constants.CACHE_JSON_FORGE2)
 
         cacheFile.getParentFile().mkdirs()
     }
