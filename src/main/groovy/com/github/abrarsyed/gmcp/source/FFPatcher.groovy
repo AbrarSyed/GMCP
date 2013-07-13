@@ -208,7 +208,7 @@ class FFPatcher
         def out = '   '
         if (mods)
         {
-            out += mods.join(' ')+' '
+            out += mods.join(' ')
         }
 
         out += classname + "(${params.join(', ')})"
