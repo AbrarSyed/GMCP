@@ -57,3 +57,8 @@ dependencies
     packed "org.eclipse.tycho:org.eclipse.jdt.core:3.8.1.v20120125-1544"
     packed "org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800"
 }
+
+// wrapper
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.6'
+}
