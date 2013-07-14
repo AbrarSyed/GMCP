@@ -473,11 +473,19 @@ public class GMCP implements Plugin<Project>
                 te?.apply(doc)
                 text = doc.get()
 
-                // post-format fixes for empty methods
-                text = text.replaceAll(/(?m)(^\s+(?:\w+ )+\w+\([\w\d ,]*?\))(?:\r\n|\r|\n)^\s*\{\s*\}/, '$1 {}')
-
                 // do FML fixes...
-                FMLCleanup.updateFile(text)
+                text = FMLCleanup.updateFile(text)
+                
+                // post-format fixes for empty methods
+                text = text.replaceAll(/(?m)(^\s+(?:\w+ )+\w+\([\w\d ,]*?\))(?:\r\n|\r|\n)\s*\{\s*\}/, '$1 {}')
+                
+                // ensure line endings
+                text = text.replaceAll("(\r\n|\n|\r)", System.getProperty("line.separator"))
+                text = text.replaceAll(/(\r\n|\n|\r)/, System.getProperty("line.separator"))
+                
+                // remove newline at the end of file
+                text = text.replaceAll('(\r\n|\n|\r)$', "")
+                text = text.replaceAll(/(\r\n|\n|\r)$/, "")
                 
                 // write text
                 it.write(text)
@@ -487,6 +495,13 @@ public class GMCP implements Plugin<Project>
         task = project.task("doFMLPatches", type:PatchTask, dependsOn: "processMCSources") {
             patchDir = baseFile(Constants.DIR_FML_PATCHES)
             srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+            logFile = baseFile(Constants.DIR_LOGS, "FMLPatches.log")
+        }
+        
+        task = project.task("doForgePatches", type:PatchTask, dependsOn: "doFMLPatches") {
+            patchDir = baseFile(Constants.DIR_FORGE_PATCHES)
+            srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+            logFile = baseFile(Constants.DIR_LOGS, "ForgePatches.log")
         }
     }
 }
