@@ -38,6 +38,9 @@ public final class Constants
     // in-jar resource paths
     public static final String  REC_FORMAT_CFG      = "misc/formatter.cfg"
     public static final String  REC_PATCH_EXEC      = "misc/applydiff.exe"
+    
+    // util
+    public static final String NEWLINE = System.getProperty("line.separator")
 
     // CSVs
     public static final CSVS = [

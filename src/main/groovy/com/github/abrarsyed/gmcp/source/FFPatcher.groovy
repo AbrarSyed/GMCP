@@ -1,5 +1,6 @@
 package com.github.abrarsyed.gmcp.source
 
+import com.github.abrarsyed.gmcp.Constants
 import com.google.code.regexp.Matcher
 import com.google.code.regexp.Pattern
 import com.google.common.base.Strings
@@ -83,10 +84,10 @@ class FFPatcher
 
         text = text.replaceAll(REG["empty_super"], "")
         text = text.replaceAll(REG["trailingzero"], "")
-        text = text.replaceAll(REG["newlines"], "\n")
+        text = text.replaceAll(REG["newlines"], Constants.NEWLINE)
 
-        text = text.replaceAll(/(\r\n|\r|\n)/, "\n")
-        text = text.replaceAll("(\r\n|\r|\n)", "\n")
+        text = text.replaceAll(/(\r\n|\r|\n)/, Constants.NEWLINE)
+        text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE)
 
         file.write(text)
     }

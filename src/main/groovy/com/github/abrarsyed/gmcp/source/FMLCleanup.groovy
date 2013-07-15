@@ -2,6 +2,8 @@ package com.github.abrarsyed.gmcp.source
 
 import java.util.regex.Pattern
 
+import com.github.abrarsyed.gmcp.Constants
+
 class FMLCleanup
 {
     def static final before = /(?m)((case|default).+(?:\r\n|\r|\n))(?:\r\n|\r|\n)/ // Fixes newline after case before case body
@@ -16,9 +18,6 @@ class FMLCleanup
         text = text.replaceAll(after) { match, group, words->
             return group
         }
-        
-        text = text.replaceAll(/\r/, '')
-        text = text.replaceAll('\r', '')
 
         text = renameClass(text)
 
@@ -29,10 +28,13 @@ class FMLCleanup
 
     private static final Pattern METHOD_REG = ~/^ {4}(\w+\s+\S.*\(.*|static)$/
     private static final Pattern CATCH_REG = ~/catch \((.*)\)$/
-    private static final Pattern NOID1 = ~/\(.*\(/
-    private static final Pattern NOID2 = ~/\((.+)\)/
-    private static final Pattern THROWERS = ~/(}|\);|throws .+?;)$/
+    private static final Pattern NESTED_PERINTH = ~/\(.*\(/
+    private static final Pattern METHOD_PARAMS = ~/\((.+)\)/
+    private static final Pattern METHOD_DEC_END = ~/(}|\);|throws .+?;)$/
     private static final Pattern METHOD_END = ~/^ {4}\}$/
+    private static final String  NEWLINE = Constants.NEWLINE
+
+    private static final COMPARATOR = [ compare: {a,b->  a == b? 0: a.size()<b.size()? -1: 1 } ] as Comparator
 
 
     private static String renameClass(String text)
@@ -45,74 +47,86 @@ class FMLCleanup
         def methodVars = []
         def skip = false
 
-        lines.each {
+        for (line in lines)
+        {
             // if re.search(METHOD_REG, line) and not re.search('=', line) and not re.search(r'\(.*\(', line):
-            if (METHOD_REG.matcher(it) && !it.contains("=") && !NOID1.matcher(it))
+            if (METHOD_REG.matcher(line) && !line.contains("=") && !NESTED_PERINTH.matcher(line))
             {
                 // if re.search(r'\(.+\)', line):
-                def match = NOID2.matcher(it)
+                def match = METHOD_PARAMS.matcher(line)
                 if (match)
                 {
+                    // method_variables += [s.strip() for s in re.search(r'\((.+)\)', line).group(1).split(',')]
                     def group = match.group(1)
                     methodVars.addAll(group.split(',').collect {it.trim()})
                 }
-                // method_variables += [s.strip() for s in re.search(r'\((.+)\)', line).group(1).split(',')]
 
-                method += it + System.getProperty("line.separator")
+                method += line + NEWLINE
                 // method += line
 
                 // single line method ?
                 skip = true
 
                 // if not re.search(r'(}|\);|throws .+?;)$', line):
-                if (!THROWERS.matcher(it))
+                if (!METHOD_DEC_END.matcher(line))
                     insideMethod = true
             }
-            else if (METHOD_END.matcher(it))
+
+            //elif re.search(r'^ {%s}}$' % indent, line):
+            else if (METHOD_END.matcher(line))
+            {
+                //inside_method = False
                 insideMethod = false
+            }
 
             if (insideMethod)
             {
                 if (skip)
                 {
                     skip = false
-                    return
+                    continue
                 }
 
-                method += it + System.getProperty("line.separator")
+                method += line + NEWLINE
 
-                def m = CATCH_REG.matcher(it)
+                def m = CATCH_REG.matcher(line)
+
                 if (m)
+                {
                     methodVars += m.group(1)
+                }
                 else
                 {
-                    it.findAll(/[\w$][\w\[\]]+ var\d+/){ match ->
-                        if (match.startsWith("return") || match.startsWith("throw"))
-                            return
-                        methodVars += match
+                    line.findAll(/(?i)[a-z_$][a-z0-9_\[\]]+ var\d+/) { match ->
+                        if (!match.startsWith("return") && !match.startsWith("throw"))
+                            methodVars += match
                     }
                 }
             }
             else
             {
+
                 if (method)
                 {
                     def namer = new FMLCleanup()
                     def todo = [:]
+
+                    //todo = map(lambda x: [x, namer.get_name(x.split(' ')[0], x)], method_variables)
                     methodVars.each {
-                        todo.putAt(it, namer.getName(it.split(" ")[0], it))
+                        todo[it] = namer.getName(it.split(" ")[0], it)
                     }
 
-                    def replace = [:]
+                    def replace = new TreeMap(COMPARATOR)
+
                     todo.each{ key, val ->
-                        if (!key.contains(" "))
-                            return
-                        else
+                        if (key.contains(" "))
                             replace[key.split(' ')[1]] = val
                     }
 
-                    replace.sort().reverseEach { key, val ->
+                    // closure changes the sort, to sort by the return value of the closure.
+                    replace.reverseEach { key, val ->
                         // don't rename already renamed stuff
+                        // only rename stuff with var##
                         if (key ==~ /var\d+/)
                             method = method.replace(key, val)
                     }
@@ -127,14 +141,14 @@ class FMLCleanup
                 if (skip)
                 {
                     skip = false
-                    return
+                    continue
                 }
 
-                output += it + System.getProperty("line.separator")
+                output += line + NEWLINE
             }
         }
 
-        return output.substring(0, output.length()-1)
+        return output
     }
 
     def last, remap
@@ -165,7 +179,8 @@ class FMLCleanup
 
     private String getName(String type, String var)
     {
-        def index
+
+        def index = null
 
         if (last.containsKey(type))
             index = type
@@ -180,14 +195,16 @@ class FMLCleanup
                 type = type.replaceAll(/\[\]\[\]/, "[]")
 
             def name = type.toLowerCase()
+            def skip = 1
 
             if (type =~ /\[/)
             {
+                skip = 1
                 name = "a"+name
                 name = name.replace('[', '').replace(']', '').replace('...', '')
             }
 
-            last[type] = [0, 1, [name]]
+            last[type] = [0, skip, [name]]
             index = type
         }
 
@@ -200,15 +217,18 @@ class FMLCleanup
         def id = last[index][0]
         def skip_zero = last[index][1]
         def data = last[index][2]
-        last[index][0]++
+        last[index][0] += 1
 
         def amount = data.size()
 
         if (amount == 1)
+        {
+            //return data[0] + ('' if ((not id) and skip_zero) else ('%d' % id))
             return data[0] + ( !id && skip_zero ? '' : id)
+        }
         else
         {
-            def num = (int)id/amount
+            def num = (int)id/(int)amount
             return data[id % amount] + ( !num && skip_zero ? '' : num)
         }
     }

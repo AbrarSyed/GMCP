@@ -1,12 +1,14 @@
 package com.github.abrarsyed.gmcp.source
 
+import com.github.abrarsyed.gmcp.Constants
+
 
 public class MCPCleanup
 {
     private static String cleanFile(String text)
     {
         text = stripComments(text)
-
+        
         text = fixImports(text)
 
         text = cleanup(text)
@@ -33,7 +35,7 @@ public class MCPCleanup
         }
 
         text = text.replaceAll(REGEXP_COMMENTS["trailing"], "")
-        text = text.replaceAll(REGEXP_COMMENTS["newlines"], System.getProperty("line.separator"))
+        text = text.replaceAll(REGEXP_COMMENTS["newlines"], Constants.NEWLINE)
 
         return text
     }
@@ -156,8 +158,8 @@ public class MCPCleanup
         text = text.replaceAll(REGEXP_CLEANUP['header'], "")
         text = text.replaceAll(REGEXP_CLEANUP['footer'], "")
         text = text.replaceAll(REGEXP_CLEANUP['trailing'], "")
-        text = text.replaceAll(REGEXP_CLEANUP['newlines'], System.getProperty("line.separator"))
-        text = text.replaceAll(REGEXP_CLEANUP['ifstarts'], '$1'+System.getProperty("line.separator")+'$2')
+        text = text.replaceAll(REGEXP_CLEANUP['newlines'], Constants.NEWLINE)
+        text = text.replaceAll(REGEXP_CLEANUP['ifstarts'], '$1'+Constants.NEWLINE+'$2')
         text = text.replaceAll(REGEXP_CLEANUP['blockstarts'], "")
         text = text.replaceAll(REGEXP_CLEANUP['blockends'], "")
         text = text.replaceAll(REGEXP_CLEANUP['gl'], "")
@@ -210,13 +212,13 @@ public class MCPCleanup
         if (match)
         {
             // it had better have a package....
-            def pack = match[0][1]
+            def pack = match.group(1)
 
             text = text.replaceAll(REGEXP_CLEANUP['import']) { full, found ->
-                if (found == pack)
-                    return ""
-                else
+                if (found != pack)
                     return full
+                else
+                    return ""
             }
         }
 

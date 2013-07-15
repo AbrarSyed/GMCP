@@ -391,8 +391,8 @@ public class GMCP implements Plugin<Project>
 
             // copy patch, and fix lines
             def text = baseFile(Constants.DIR_MCP_PATCHES, "/minecraft_ff.patch").text
-            text = text.replaceAll("(\r\n|\r|\n)", System.getProperty("line.separator"))
-            text = text.replaceAll(/(\r\n|\r|\n)/, System.getProperty("line.separator"))
+            text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE)
+            text = text.replaceAll(/(\r\n|\r|\n)/, Constants.NEWLINE)
             def patch = Util.file(temporaryDir, "patch")
             patch.write(text)
 
@@ -427,15 +427,7 @@ public class GMCP implements Plugin<Project>
     def sourceTasks()
     {
         def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
-            inputs.with {
-                dir {srcFile(Constants.DIR_SRC_SOURCES)}
-                Constants.CSVS.each {
-                    file {baseFile(Constants.DIR_MAPPINGS, it)}
-                }
-                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
-                dir {baseFile(Constants.DIR_FML_PATCHES)}
-                dir {baseFile(Constants.DIR_FORGE_PATCHES)}
-            }
+            inputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
             outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
 
             dependsOn "extractMisc"
@@ -472,20 +464,26 @@ public class GMCP implements Plugin<Project>
                 Document doc = new Document(text)
                 te?.apply(doc)
                 text = doc.get()
-
-                // do FML fixes...
-                text = FMLCleanup.updateFile(text)
                 
                 // post-format fixes for empty methods
                 text = text.replaceAll(/(?m)(^\s+(?:\w+ )+\w+\([\w\d ,]*?\))(?:\r\n|\r|\n)\s*\{\s*\}/, '$1 {}')
                 
+                // post-format fix for spaces in 2d arrays
+                text = text.replaceAll(/\[\]\[\] \{ \{/, "[][] {{")
+                text = text.replaceAll(/(\{)(-)/, '$1 $2')
+                text = text.replaceAll(/(\w+)\.\.\./, '$1 ...')
+                
+
+                // do FML fixes...
+                text = FMLCleanup.updateFile(text)
+                
                 // ensure line endings
-                text = text.replaceAll("(\r\n|\n|\r)", System.getProperty("line.separator"))
-                text = text.replaceAll(/(\r\n|\n|\r)/, System.getProperty("line.separator"))
+                text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)
+                text = text.replaceAll(/(\r\n|\n|\r)/, Constants.NEWLINE)
                 
                 // remove newline at the end of file
-                text = text.replaceAll('(\r\n|\n|\r)$', "")
-                text = text.replaceAll(/(\r\n|\n|\r)$/, "")
+                //text = text.replaceAll('(\r\n|\n|\r)$', "")
+                //text = text.replaceAll(/(\r\n|\n|\r)$/, "")
                 
                 // write text
                 it.write(text)
