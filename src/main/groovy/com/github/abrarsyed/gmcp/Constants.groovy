@@ -26,6 +26,7 @@ public final class Constants
     // misc and executeables
     static final String         EXEC_WIN_PATCH      = DIR_MISC + "/applydiff.exe"
     public static final String  CFG_FORMAT          = DIR_MISC + "/formatter.cfg"
+    public static final String  EXEC_ASTYLE         = DIR_MISC + "/astyle"
 
     // download URLs
     public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
@@ -38,6 +39,7 @@ public final class Constants
     // in-jar resource paths
     public static final String  REC_FORMAT_CFG      = "misc/formatter.cfg"
     public static final String  REC_PATCH_EXEC      = "misc/applydiff.exe"
+    public static final String  REC_ASTYLE_EXEC     = "misc/astyle/astyle_%s"
     
     // util
     public static final String NEWLINE = System.getProperty("line.separator")

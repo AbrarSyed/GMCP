@@ -17,10 +17,6 @@ import net.md_5.specialsource.RemapperPreprocessor
 import net.md_5.specialsource.provider.JarProvider
 import net.md_5.specialsource.provider.JointProvider
 
-import org.eclipse.jdt.core.ToolFactory
-import org.eclipse.jdt.core.formatter.CodeFormatter
-import org.eclipse.jface.text.Document
-import org.eclipse.text.edits.TextEdit
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -177,6 +173,18 @@ public class GMCP implements Plugin<Project>
 
             stream = this.getClass().classLoader.getResourceAsStream(Constants.REC_PATCH_EXEC)
             baseFile(Constants.EXEC_WIN_PATCH) << stream.getBytes()
+
+            // extract astyle
+            def astyleIn = String.format(Constants.REC_ASTYLE_EXEC, os.toString().toLowerCase())
+            def astyleOut = Constants.EXEC_ASTYLE
+            if (os == OperatingSystem.WINDOWS)
+            {
+                astyleIn += ".exe"
+                astyleOut += ".exe"
+            }
+
+            stream = this.getClass().classLoader.getResourceAsStream(astyleIn)
+            baseFile(astyleOut) << stream.getBytes()
         }
     }
 
@@ -421,35 +429,8 @@ public class GMCP implements Plugin<Project>
                 ]
             }
         }
-
-    }
-
-    def sourceTasks()
-    {
-        def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
-            inputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
-            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
-
-            dependsOn "extractMisc"
-        }
-        // do random source stuff
         task << {
-            def srcDir = srcFile(Constants.DIR_SRC_SOURCES)
-
-            // set up formatter
-            def config = [:]
-
-            baseFile(Constants.CFG_FORMAT).eachLine {
-                if (it == null || it.isEmpty())
-                    return
-
-                def split = it.split("=")
-                config[split[0].trim()] = split[1].trim()
-            }
-
-            CodeFormatter formatter = ToolFactory.createCodeFormatter(config)
-
-            srcDir.eachFileRecurse {
+            srcFile(Constants.DIR_SRC_SOURCES).eachFileRecurse {
                 // lose the folders already.
                 if (it.isDirectory())
                     return
@@ -459,47 +440,93 @@ public class GMCP implements Plugin<Project>
                 // pre-formatting cleanup
                 text = MCPCleanup.cleanFile(text)
 
-                // format
-                TextEdit te = formatter.format(CodeFormatter.K_COMPILATION_UNIT, text, 0, text.length(), 0, null)
-                Document doc = new Document(text)
-                te?.apply(doc)
-                text = doc.get()
-                
-                // post-format fixes for empty methods
-                text = text.replaceAll(/(?m)(^\s+(?:\w+ )+\w+\([\w\d ,]*?\))(?:\r\n|\r|\n)\s*\{\s*\}/, '$1 {}')
-                
-                // post-format fix for spaces in 2d arrays
-                text = text.replaceAll(/\[\]\[\] \{ \{/, "[][] {{")
-                text = text.replaceAll(/(\{)(-)/, '$1 $2')
-                text = text.replaceAll(/(\w+)\.\.\./, '$1 ...')
-                
-
-                // do FML fixes...
-                text = FMLCleanup.updateFile(text)
-                
-                // ensure line endings
-                text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)
-                text = text.replaceAll(/(\r\n|\n|\r)/, Constants.NEWLINE)
-                
-                // remove newline at the end of file
-                //text = text.replaceAll('(\r\n|\n|\r)$', "")
-                //text = text.replaceAll(/(\r\n|\n|\r)$/, "")
-                
                 // write text
                 it.write(text)
             }
         }
 
+    }
+
+    def sourceTasks()
+    {
+        // ----------------------------------------------------------------------------
+        // Process MC sources, format and stuff
+        def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
+            inputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+            inputs.file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+
+            dependsOn "extractMisc"
+        }
+        // do random source stuff
+        task << {
+            def srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+
+            // run astyle
+            project.exec {
+                def exec
+                switch(os)
+                {
+                    case OperatingSystem.LINUX:
+                        exec = "astyle"
+                        break
+                    case OperatingSystem.MAC:
+                        exec = baseFile(Constants.EXEC_ASTYLE).getPath()
+                        break
+                    case OperatingSystem.WINDOWS:
+                        exec = baseFile(Constants.EXEC_ASTYLE + ".exe").getPath()
+                        
+                }
+
+                // %s --suffix=none --quiet --options={conffile} {classes}
+                commandLine = [
+                    exec,
+                    "--suffix=none",
+                    "--quiet",
+                    "--options="+baseFile(Constants.DIR_MAPPINGS, "astyle.cfg").getPath(),
+                    "--recursive",
+                    srcDir.getPath()+File.separator+'*.java"'
+                ]
+            }
+
+            srcDir.eachFileRecurse {
+                // lose the folders already.
+                if (it.isDirectory())
+                    return
+
+                def text = it.text
+
+                // do FML fixes...
+                text = FMLCleanup.updateFile(text)
+
+                // ensure line endings
+                text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)
+                text = text.replaceAll(/(\r\n|\n|\r)/, Constants.NEWLINE)
+
+                // write text
+                it.write(text)
+            }
+        }
+        
+        // ----------------------------------------------------------------------------
+        // apply the renamer.
+        // todo: apply the renamer.
+        
+        
+        // ----------------------------------------------------------------------------
+        // do forge and FML patches
         task = project.task("doFMLPatches", type:PatchTask, dependsOn: "processMCSources") {
             patchDir = baseFile(Constants.DIR_FML_PATCHES)
             srcDir = srcFile(Constants.DIR_SRC_SOURCES)
             logFile = baseFile(Constants.DIR_LOGS, "FMLPatches.log")
         }
-        
+
         task = project.task("doForgePatches", type:PatchTask, dependsOn: "doFMLPatches") {
             patchDir = baseFile(Constants.DIR_FORGE_PATCHES)
             srcDir = srcFile(Constants.DIR_SRC_SOURCES)
             logFile = baseFile(Constants.DIR_LOGS, "ForgePatches.log")
+            
+            dependsOn "renameSources"
         }
     }
 }
