@@ -1,5 +1,7 @@
 package com.github.abrarsyed.gmcp.tasks
 
+import groovy.io.FileType
+
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.OutputDirectory
@@ -32,7 +34,7 @@ class PatchTask extends DefaultTask
     //        def newFile, patch
     //
     //        // recurse through files
-    //        patchDir.eachFileRecurse {
+    //        patchDir.eachFileRecurse(FileType.FILES) {
     //            // if its a patch
     //            if (it.isFile() && it.path.endsWith(".patch"))
     //            {
@@ -93,15 +95,11 @@ class PatchTask extends DefaultTask
             project.file logFile
         }
 
-        patchDir.eachFileRecurse
+        patchDir.eachFileRecurse(FileType.FILES)
         {
-            if (it.isDirectory())
-                return
-
-
             fixPatch(it)
 
-            project.exec {
+            def result = project.exec {
                 executable = command
                 args = arguments
 
@@ -114,6 +112,12 @@ class PatchTask extends DefaultTask
 
                 ignoreExitValue = true
             }
+
+//            if (result.getExitValue() != 0)
+//            {
+//                throw new RuntimeException("Gnu patch failed! See log file: "+logFile)
+//            }
+
         }
     }
 

@@ -3,6 +3,7 @@ package com.github.abrarsyed.gmcp
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.srcFile
+import groovy.io.FileType
 
 import java.lang.reflect.Method
 import java.util.zip.ZipEntry
@@ -26,6 +27,7 @@ import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
 import com.github.abrarsyed.gmcp.source.FFPatcher
 import com.github.abrarsyed.gmcp.source.FMLCleanup
 import com.github.abrarsyed.gmcp.source.MCPCleanup
+import com.github.abrarsyed.gmcp.source.SourceRemapper
 import com.github.abrarsyed.gmcp.tasks.PatchTask
 import com.google.common.io.Files
 
@@ -430,10 +432,7 @@ public class GMCP implements Plugin<Project>
             }
         }
         task << {
-            srcFile(Constants.DIR_SRC_SOURCES).eachFileRecurse {
-                // lose the folders already.
-                if (it.isDirectory())
-                    return
+            srcFile(Constants.DIR_SRC_SOURCES).eachFileRecurse(FileType.FILES) {
 
                 def text = it.text
 
@@ -475,7 +474,7 @@ public class GMCP implements Plugin<Project>
                         break
                     case OperatingSystem.WINDOWS:
                         exec = baseFile(Constants.EXEC_ASTYLE + ".exe").getPath()
-                        
+
                 }
 
                 // %s --suffix=none --quiet --options={conffile} {classes}
@@ -489,11 +488,7 @@ public class GMCP implements Plugin<Project>
                 ]
             }
 
-            srcDir.eachFileRecurse {
-                // lose the folders already.
-                if (it.isDirectory())
-                    return
-
+            srcDir.eachFileRecurse(FileType.FILES) {
                 def text = it.text
 
                 // do FML fixes...
@@ -507,25 +502,41 @@ public class GMCP implements Plugin<Project>
                 it.write(text)
             }
         }
-        
+
         // ----------------------------------------------------------------------------
         // apply the renamer.
-        // todo: apply the renamer.
-        
-        
+        task = project.task("renameSources", dependsOn: "decompileMinecraft") {
+            inputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+        }
+        task << {
+            def files = Constants.CSVS.collectEntries { key, value ->
+                [
+                    key,
+                    baseFile(Constants.DIR_MAPPINGS, value)
+                ]
+            }
+            def remapper = new SourceRemapper(files)
+
+            srcFile(Constants.DIR_SRC_SOURCES).eachFileRecurse(FileType.FILES) {
+                remapper.remapFile(it)
+            }
+
+        }
+
         // ----------------------------------------------------------------------------
         // do forge and FML patches
-        task = project.task("doFMLPatches", type:PatchTask, dependsOn: "processMCSources") {
+        task = project.task("doFMLPatches", type: PatchTask, dependsOn: "processMCSources") {
             patchDir = baseFile(Constants.DIR_FML_PATCHES)
             srcDir = srcFile(Constants.DIR_SRC_SOURCES)
             logFile = baseFile(Constants.DIR_LOGS, "FMLPatches.log")
         }
 
-        task = project.task("doForgePatches", type:PatchTask, dependsOn: "doFMLPatches") {
+        task = project.task("doForgePatches", type: PatchTask, dependsOn: "doFMLPatches") {
             patchDir = baseFile(Constants.DIR_FORGE_PATCHES)
             srcDir = srcFile(Constants.DIR_SRC_SOURCES)
             logFile = baseFile(Constants.DIR_LOGS, "ForgePatches.log")
-            
+
             dependsOn "renameSources"
         }
     }
