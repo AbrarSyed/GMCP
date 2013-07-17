@@ -108,10 +108,10 @@ class FFPatcher
             // if the body IS there
             if (list[2])
             {
-                entryBody = list[2]
+                entryBody = '('+list[2]+')'
             }
 
-            return '   ' + list[1] + "(" + entryBody + ")" + list[3]
+            return '   ' + list[1] + entryBody + list[3]
         }
 
         def valuesRegex = String.format(REG_FORMAT['enumVals'], classname, classname)

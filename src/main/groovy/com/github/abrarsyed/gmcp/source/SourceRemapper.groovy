@@ -117,7 +117,7 @@ class SourceRemapper
         for (character in text.toCharArray())
         {
             // its a wordBreaking character.
-            if (character == ' ' as char || character == ',' as char)
+            if (character == ' ' as char || character == ',' as char || character == '-' as char )
             {
                 // add the character to the word
                 word.append(character)

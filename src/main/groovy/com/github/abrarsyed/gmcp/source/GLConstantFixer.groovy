@@ -1287,30 +1287,32 @@ class GLConstantFixer
 
     private static String annotateConstants(String text)
     {
-        text.findAll(CALL_REGEX) { fullCall, pack, method ->
 
-            def fullCallTemp = fullCall
+        text = text.replaceAll(CALL_REGEX) { fullCall, pack, method ->
 
-            fullCall.findAll(CONSTANT_REGEX) { fullMatch ->
+            // expand constant
+            fullCall = fullCall.replaceAll(CONSTANT_REGEX) { fullMatch ->
 
                 def constant = fullMatch as int
 
-                CONSTANTS.each { group ->
-
+                for (group in CONSTANTS)
+                {
                     if (group[0].containsKey(pack) && group[0][pack].contains(method))
                     {
-                        group[1].each { constpkg, constVal ->
-
-                            if (constVal.containsKey(constant))
+                        for (entry in group[1])
+                        {
+                            if (entry.getValue().containsKey(constant))
                             {
-                                fullCallTemp = fullCallTemp.replace(fullMatch, constpkg+"."+constVal[constant])
+                                return entry.getKey()+"."+entry.getValue()[constant]
                             }
                         }
                     }
                 }
+                
+                return fullMatch
             }
 
-            text = text.replace(fullCall, fullCallTemp)
+            return fullCall
         }
 
         return text

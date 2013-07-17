@@ -87,7 +87,7 @@ public class PackageFixer
 			if (temp[0])
 			{
 				def excs = temp[0].split(",")
-				excs.collect { repackageClass(it) }
+				excs = excs.collect { repackageClass(it) }
 
 				if (temp.size() < 2)
 					temp.add("")
