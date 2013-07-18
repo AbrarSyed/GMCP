@@ -50,7 +50,7 @@ public final class Constants
             'org.bouncycastle:bcprov-ext-jdk15on:1.48',
             'com.google.guava:guava:14.0',
             'org.scala-lang:scala-library:2.10.0'
-        ]
+        ] as List
     
     // util
     public static final String NEWLINE = System.getProperty("line.separator")

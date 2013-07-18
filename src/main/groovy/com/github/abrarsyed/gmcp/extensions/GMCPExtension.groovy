@@ -329,21 +329,25 @@ class GMCPExtension
             else
             {
                 forgeVersion = versionObj.getStringValue("version")
-                minecraftVersion = versionObj.getStringValue("version")
+                minecraftVersion = versionObj.getStringValue("mcversion")
                 forgeURL = root2.getStringValue("webpath") + "/" + fileObj.getStringValue("filename")
             }
 
             // check for 1.5.2 or lower.
-            def match = minecraftVersion =~ /(\d).(\d)(.\d)?/
+            def match = minecraftVersion =~ /(\d)\.(\d)(\.\d)?/
+            match.find()
+
+            println "MATCH IS "+match
             def major = match.group(1) as int
             def minor = match.group(2) as int
-            
+
             if (major > 1)
                 is152Minus = false
             else if (minor > 5)
                 is152Minus = false
             else
                 is152Minus = true
+            println "VERSION IS "+minecraftVersion+"   is152Minus "+is152Minus
 
             resolvedVersion = true
         }

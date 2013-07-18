@@ -21,6 +21,9 @@ import net.md_5.specialsource.provider.JointProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+import au.com.bytecode.opencsv.CSVParser
+import au.com.bytecode.opencsv.CSVReader
+
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
@@ -58,14 +61,15 @@ public class GMCP implements Plugin<Project>
         project.apply( plugin: "eclipse")
 
         // manage dependancy configurations
-        doConfigurationStuff()
         configureSourceSet()
+        doConfigurationStuff()
         configureJarCreation()
 
         // start the tasks
         downloadTasks()
         jarTasks()
         sourceTasks()
+        buildTasks()
     }
 
     def doConfigurationStuff()
@@ -76,60 +80,59 @@ public class GMCP implements Plugin<Project>
                 visible = false
                 description = "GMCP internal configuration. Don't use!"
             }
-            
+
             provided {
                 transitive = true
                 visible = true
                 description = "Compile time, but not runtime"
             }
 
-            sourceSets.minecraft.compileClasspath += gmcp
-            sourceSets.main.compileClasspath += gmcp
-            sourceSets.test.compileClasspath += gmcp
+            project.sourceSets.minecraft.compileClasspath += gmcp
+            project.sourceSets.main.compileClasspath += gmcp
+            project.sourceSets.test.compileClasspath += gmcp
             project.idea.module.scopes.COMPILE.plus += gmcp
             project.eclipse.classpath.plusConfigurations += gmcp
-            
-            sourceSets.minecraft.compileClasspath += provided
-            sourceSets.main.compileClasspath += provided
-            sourceSets.test.compileClasspath += provided
+
+            project.sourceSets.minecraft.compileClasspath += provided
+            project.sourceSets.main.compileClasspath += provided
+            project.sourceSets.test.compileClasspath += provided
             project.idea.module.scopes.PROVIDED.plus += provided
             project.eclipse.classpath.plusConfigurations += provided
         }
-        
-        project.dependencies {
-            add gmcp, fileTree(dir:jarFile('bin'), include:'*.jar')
-            add gmcp, file(jarFile(Constants.JAR_JAR_SERVER))
-            
-            add gmcp, { return project.minecraft.is152Minus ? Constants.DEP_152_MINUS : dependancies }
-        }
     }
-    
+
     def configureSourceSet()
     {
         project.sourceSets{
             minecraft {
                 java {
-                    srcDir srcFile(Constants.DIR_SRC_FML), srcFile(Constants.DIR_SRC_FORGE), srcFile(Constants.DIR_SRC_MINECRAFT)
+                    srcDirs {
+                        [
+                            srcFile(Constants.DIR_SRC_FML),
+                            srcFile(Constants.DIR_SRC_FORGE),
+                            srcFile(Constants.DIR_SRC_MINECRAFT)
+                        ]
+                    }
                 }
                 resources {
-                    srcDir srcFile(Constants.DIR_SRC_RESOURCES)
+                    srcDir {srcFile(Constants.DIR_SRC_RESOURCES)}
                 }
             }
         }
     }
-    
-    
+
+
 
     def configureJarCreation()
     {
         project.tasks.jar {
             exclude 'net/minecraft/**', 'net/minecraftforge/**', 'cpw/mods/fml/**'
-            exclude project.fileTree(srcFile(Constants.DIR_SRC_RESOURCES))
+            exclude { project.fileTree(srcFile(Constants.DIR_SRC_RESOURCES)) }
             exclude {it.file in configurations.gmcp.files}
             exclude {it.file in project.fileTree(srcFile(Constants.DIR_SRC_RESOURCES))}
         }
     }
-    
+
     def downloadTasks()
     {
         // Get Forge task
@@ -230,6 +233,28 @@ public class GMCP implements Plugin<Project>
                 fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch"))
                 fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_server_ff.patch"))
             }
+        }
+        task << {
+            // generate robf SRG
+
+            def reader = new CSVReader(baseFile(Constants.DIR_MAPPINGS, Constants.CSVs['methods']), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false)
+            def methods = [:]
+            reader.readAll().each
+            {
+                methods[it[0]] = [name: it[1]]
+            }
+
+            reader = new CSVReader(baseFile(Constants.DIR_MAPPINGS, Constants.CSVs['fields']), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false)
+            def fields = [:]
+            reader.readAll().each
+            {
+                fields[it[0]] = [name: it[1]]
+            }
+
+            def text = baseFile(Constants.DIR_MAPPINGS, "packaged.srg").text
+
+            methods.each { key, val -> text = text.replace(key, val) }
+            fields.each { key, val -> text = text.replace(key, val) }
         }
 
         // ----------------------------------------------------------------------------
@@ -607,5 +632,10 @@ public class GMCP implements Plugin<Project>
 
             dependsOn "renameSources"
         }
+    }
+
+    def buildTasks()
+    {
+
     }
 }

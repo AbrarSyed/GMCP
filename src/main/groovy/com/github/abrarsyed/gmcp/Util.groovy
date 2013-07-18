@@ -66,12 +66,12 @@ class Util
 
     def static File file(String... args)
     {
-        return new File(args.join("/"))
+        return new File(args.join('/'))
     }
 
     def static File file(File file, String... args)
     {
-        return new File(file, args.join("/"))
+        return new File(file, args.join('/'))
     }
 
     def static File baseFile(String... args)
