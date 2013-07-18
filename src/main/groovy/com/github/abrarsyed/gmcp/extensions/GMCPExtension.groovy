@@ -22,6 +22,8 @@ class GMCPExtension
     def srcDir
     def accessTransformers = []
 
+    public static boolean is152Minus
+
     private resolvedVersion = false
     private resolvedJarDir = false
     private resolvedSrcDir = false
@@ -330,6 +332,18 @@ class GMCPExtension
                 minecraftVersion = versionObj.getStringValue("version")
                 forgeURL = root2.getStringValue("webpath") + "/" + fileObj.getStringValue("filename")
             }
+
+            // check for 1.5.2 or lower.
+            def match = minecraftVersion =~ /(\d).(\d)(.\d)?/
+            def major = match.group(1) as int
+            def minor = match.group(2) as int
+            
+            if (major > 1)
+                is152Minus = false
+            else if (minor > 5)
+                is152Minus = false
+            else
+                is152Minus = true
 
             resolvedVersion = true
         }

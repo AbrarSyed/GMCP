@@ -39,6 +39,7 @@ public class GMCP implements Plugin<Project>
     //public GMCPExtension ext
     public static OperatingSystem os = Util.getOS()
     public static Project project
+    public static dependancies
 
     @Override
     public void apply(Project project)
@@ -53,6 +54,13 @@ public class GMCP implements Plugin<Project>
 
         // ensure java is in.
         project.apply( plugin: "java")
+        project.apply( plugin: "idea")
+        project.apply( plugin: "eclipse")
+
+        // manage dependancy configurations
+        doConfigurationStuff()
+        configureSourceSet()
+        configureJarCreation()
 
         // start the tasks
         downloadTasks()
@@ -60,6 +68,68 @@ public class GMCP implements Plugin<Project>
         sourceTasks()
     }
 
+    def doConfigurationStuff()
+    {
+        project.configurations {
+            gmcp {
+                transitive = true
+                visible = false
+                description = "GMCP internal configuration. Don't use!"
+            }
+            
+            provided {
+                transitive = true
+                visible = true
+                description = "Compile time, but not runtime"
+            }
+
+            sourceSets.minecraft.compileClasspath += gmcp
+            sourceSets.main.compileClasspath += gmcp
+            sourceSets.test.compileClasspath += gmcp
+            project.idea.module.scopes.COMPILE.plus += gmcp
+            project.eclipse.classpath.plusConfigurations += gmcp
+            
+            sourceSets.minecraft.compileClasspath += provided
+            sourceSets.main.compileClasspath += provided
+            sourceSets.test.compileClasspath += provided
+            project.idea.module.scopes.PROVIDED.plus += provided
+            project.eclipse.classpath.plusConfigurations += provided
+        }
+        
+        project.dependencies {
+            add gmcp, fileTree(dir:jarFile('bin'), include:'*.jar')
+            add gmcp, file(jarFile(Constants.JAR_JAR_SERVER))
+            
+            add gmcp, { return project.minecraft.is152Minus ? Constants.DEP_152_MINUS : dependancies }
+        }
+    }
+    
+    def configureSourceSet()
+    {
+        project.sourceSets{
+            minecraft {
+                java {
+                    srcDir srcFile(Constants.DIR_SRC_FML), srcFile(Constants.DIR_SRC_FORGE), srcFile(Constants.DIR_SRC_MINECRAFT)
+                }
+                resources {
+                    srcDir srcFile(Constants.DIR_SRC_RESOURCES)
+                }
+            }
+        }
+    }
+    
+    
+
+    def configureJarCreation()
+    {
+        project.tasks.jar {
+            exclude 'net/minecraft/**', 'net/minecraftforge/**', 'cpw/mods/fml/**'
+            exclude project.fileTree(srcFile(Constants.DIR_SRC_RESOURCES))
+            exclude {it.file in configurations.gmcp.files}
+            exclude {it.file in project.fileTree(srcFile(Constants.DIR_SRC_RESOURCES))}
+        }
+    }
+    
     def downloadTasks()
     {
         // Get Forge task
@@ -319,7 +389,7 @@ public class GMCP implements Plugin<Project>
             }
 
             outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
-            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+            outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
 
             dependsOn "extractMisc"
         }
@@ -328,7 +398,7 @@ public class GMCP implements Plugin<Project>
             def unzippedDir = Util.file(temporaryDir, "unzipped")
             def decompiledDir = Util.file(temporaryDir, "decompiled")
             def recDir = srcFile(Constants.DIR_SRC_RESOURCES)
-            def srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+            def srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
 
             logger.info "Unpacking jar"
             project.mkdir(unzippedDir)
@@ -397,7 +467,7 @@ public class GMCP implements Plugin<Project>
         }
         task << {
             logger.info "Applying FernFlower fixes"
-            FFPatcher.processDir(srcFile(Constants.DIR_SRC_SOURCES))
+            FFPatcher.processDir(srcFile(Constants.DIR_SRC_MINECRAFT))
 
             // copy patch, and fix lines
             def text = baseFile(Constants.DIR_MCP_PATCHES, "/minecraft_ff.patch").text
@@ -427,12 +497,12 @@ public class GMCP implements Plugin<Project>
                     "-i",
                     '"'+patch.getAbsolutePath()+'"',
                     "-d",
-                    '"'+srcFile(Constants.DIR_SRC_SOURCES).getPath()+'"'
+                    '"'+srcFile(Constants.DIR_SRC_MINECRAFT).getPath()+'"'
                 ]
             }
         }
         task << {
-            srcFile(Constants.DIR_SRC_SOURCES).eachFileRecurse(FileType.FILES) {
+            srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
 
                 def text = it.text
 
@@ -451,15 +521,15 @@ public class GMCP implements Plugin<Project>
         // ----------------------------------------------------------------------------
         // Process MC sources, format and stuff
         def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
-            inputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+            inputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
             inputs.file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
-            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+            outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
 
             dependsOn "extractMisc"
         }
         // do random source stuff
         task << {
-            def srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+            def srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
 
             // run astyle
             project.exec {
@@ -506,8 +576,8 @@ public class GMCP implements Plugin<Project>
         // ----------------------------------------------------------------------------
         // apply the renamer.
         task = project.task("renameSources", dependsOn: "decompileMinecraft") {
-            inputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
-            outputs.dir {srcFile(Constants.DIR_SRC_SOURCES)}
+            inputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
+            outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
         }
         task << {
             def files = Constants.CSVS.collectEntries { key, value ->
@@ -518,9 +588,7 @@ public class GMCP implements Plugin<Project>
             }
             def remapper = new SourceRemapper(files)
 
-            srcFile(Constants.DIR_SRC_SOURCES).eachFileRecurse(FileType.FILES) {
-                remapper.remapFile(it)
-            }
+            srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) { remapper.remapFile(it) }
 
         }
 
@@ -528,13 +596,13 @@ public class GMCP implements Plugin<Project>
         // do forge and FML patches
         task = project.task("doFMLPatches", type: PatchTask, dependsOn: "processMCSources") {
             patchDir = baseFile(Constants.DIR_FML_PATCHES)
-            srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+            srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
             logFile = baseFile(Constants.DIR_LOGS, "FMLPatches.log")
         }
 
         task = project.task("doForgePatches", type: PatchTask, dependsOn: "doFMLPatches") {
             patchDir = baseFile(Constants.DIR_FORGE_PATCHES)
-            srcDir = srcFile(Constants.DIR_SRC_SOURCES)
+            srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
             logFile = baseFile(Constants.DIR_LOGS, "ForgePatches.log")
 
             dependsOn "renameSources"

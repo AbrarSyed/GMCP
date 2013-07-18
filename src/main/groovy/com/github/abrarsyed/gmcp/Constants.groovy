@@ -6,7 +6,9 @@ public final class Constants
     // temp dirs
     static final String 	DIR_LOGS			    = "logs"
     static final String     DIR_MISC                = "misc"
-    static final String 	DIR_SRC_SOURCES		    = "sources"
+    static final String     DIR_SRC_FORGE           = "Forge"
+    static final String     DIR_SRC_FML             = "FML"
+    static final String 	DIR_SRC_MINECRAFT	    = "Minecraft"
     static final String     DIR_SRC_RESOURCES       = "resources"
     static final String  	DIR_FORGE 			    = "forge"
     static final String  	DIR_FML 			    = DIR_FORGE + "/fml"
@@ -40,6 +42,15 @@ public final class Constants
     public static final String  REC_FORMAT_CFG      = "misc/formatter.cfg"
     public static final String  REC_PATCH_EXEC      = "misc/applydiff.exe"
     public static final String  REC_ASTYLE_EXEC     = "misc/astyle/astyle_%s"
+    
+    // random, 1.5.2-minus dependancies
+    public static final List<String> DEP_152_MINUS = [
+            'net.sourceforge.argo:argo:3.2',
+            'org.ow2.asm:asm:4.0',
+            'org.bouncycastle:bcprov-ext-jdk15on:1.48',
+            'com.google.guava:guava:14.0',
+            'org.scala-lang:scala-library:2.10.0'
+        ]
     
     // util
     public static final String NEWLINE = System.getProperty("line.separator")
