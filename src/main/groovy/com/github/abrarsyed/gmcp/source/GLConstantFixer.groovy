@@ -1275,10 +1275,11 @@ class GLConstantFixer
 
         text = annotateConstants(text)
 
-        PACKAGES.each {
-            if (text.contains(it+"."))
+        for (pack in PACKAGES)
+        {
+            if (text.contains(pack+"."))
             {
-                text = updateImports(text, 'org.lwjgl.opengl.' + it)
+                text = updateImports(text, 'org.lwjgl.opengl.' + pack)
             }
         }
 
@@ -1291,25 +1292,32 @@ class GLConstantFixer
         text = text.replaceAll(CALL_REGEX) { fullCall, pack, method ->
 
             // expand constant
-            fullCall = fullCall.replaceAll(CONSTANT_REGEX) { fullMatch ->
-
+            fullCall = fullCall.replaceAll(CONSTANT_REGEX)
+            { fullMatch ->
                 def constant = fullMatch as int
 
+                def answer
+                
+                // for group in _CONSTANTS:
                 for (group in CONSTANTS)
                 {
+                    // if   package in group[0]   and   method in group[0][package]:
                     if (group[0].containsKey(pack) && group[0][pack].contains(method))
                     {
-                        for (entry in group[1])
+                        //for constpkg, const in group[1].items():
+                        for (entry in group[1]) // key = constPKG   value = const
                         {
+                            //   if constant in const:
                             if (entry.getValue().containsKey(constant))
                             {
-                                return entry.getKey()+"."+entry.getValue()[constant]
+                                // return '%s.%s' % (constpkg, const[constant])
+                                answer = entry.getKey()+"."+entry.getValue()[constant]
                             }
                         }
                     }
                 }
-                
-                return fullMatch
+                // return full_match
+                return answer ?: fullMatch
             }
 
             return fullCall
