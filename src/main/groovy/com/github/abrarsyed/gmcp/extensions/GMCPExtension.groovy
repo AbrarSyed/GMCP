@@ -337,7 +337,6 @@ class GMCPExtension
             def match = minecraftVersion =~ /(\d)\.(\d)(\.\d)?/
             match.find()
 
-            println "MATCH IS "+match
             def major = match.group(1) as int
             def minor = match.group(2) as int
 
@@ -347,7 +346,6 @@ class GMCPExtension
                 is152Minus = false
             else
                 is152Minus = true
-            println "VERSION IS "+minecraftVersion+"   is152Minus "+is152Minus
 
             resolvedVersion = true
         }

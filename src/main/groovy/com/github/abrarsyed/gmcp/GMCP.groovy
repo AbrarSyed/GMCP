@@ -21,9 +21,6 @@ import net.md_5.specialsource.provider.JointProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
-import au.com.bytecode.opencsv.CSVParser
-import au.com.bytecode.opencsv.CSVReader
-
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
@@ -120,8 +117,6 @@ public class GMCP implements Plugin<Project>
             }
         }
     }
-
-
 
     def configureJarCreation()
     {
@@ -236,25 +231,7 @@ public class GMCP implements Plugin<Project>
         }
         task << {
             // generate robf SRG
-
-            def reader = new CSVReader(baseFile(Constants.DIR_MAPPINGS, Constants.CSVs['methods']), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false)
-            def methods = [:]
-            reader.readAll().each
-            {
-                methods[it[0]] = [name: it[1]]
-            }
-
-            reader = new CSVReader(baseFile(Constants.DIR_MAPPINGS, Constants.CSVs['fields']), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false)
-            def fields = [:]
-            reader.readAll().each
-            {
-                fields[it[0]] = [name: it[1]]
-            }
-
-            def text = baseFile(Constants.DIR_MAPPINGS, "packaged.srg").text
-
-            methods.each { key, val -> text = text.replace(key, val) }
-            fields.each { key, val -> text = text.replace(key, val) }
+            SRGCreator.createReobfSrg()
         }
 
         // ----------------------------------------------------------------------------
