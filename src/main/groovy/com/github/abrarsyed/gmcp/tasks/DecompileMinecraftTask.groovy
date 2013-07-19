@@ -50,14 +50,14 @@ class DecompileMinecraftTask extends DefaultTask
 
         log "Formatting sources"
         applyAstyle()
-        
+
         // TODO: make conditional for fml stuff.
         log "Applying FML tranformations"
         applyFMLModifications()
-        
+
         log "Renaming sources"
         renameSources()
-        
+
         log "Applying Forge patches"
         applyForgeModifications()
     }
@@ -214,7 +214,7 @@ class DecompileMinecraftTask extends DefaultTask
             ]
         }
     }
-    
+
     def applyFMLModifications()
     {
         srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
@@ -230,19 +230,37 @@ class DecompileMinecraftTask extends DefaultTask
             // write text
             it.write(text)
         }
-        
+
         PatchTask.patchStuff ( baseFile(Constants.DIR_FML_PATCHES),
-                               srcFile(Constants.DIR_SRC_MINECRAFT),
-                               baseFile(Constants.DIR_LOGS, "FMLPatches.log"),
-                               file(temporaryDir, 'temp.patch')
-                               )
-        
+                srcFile(Constants.DIR_SRC_MINECRAFT),
+                baseFile(Constants.DIR_LOGS, "FMLPatches.log"),
+                file(temporaryDir, 'temp.patch')
+                )
+
+        def tree = project.fileTree(baseFile(Constants.DIR_FML, "common"))
+
+        // copy classes
+        project.mkdir(srcFile(Constants.DIR_SRC_FML))
         project.copy {
-            from baseFile(Constants.DIR_FML, "common")
+            exclude "META-INF"
+            from (tree) { include "**.java" }
             into srcFile(Constants.DIR_SRC_FML)
         }
+
+        // copy resources
+        project.mkdir(srcFile(Constants.DIR_SRC_RESOURCES))
+        project.copy {
+            exclude "*.java"
+            exclude "**/*.java"
+            exclude "*.class"
+            exclude "**/*.class"
+            exclude "META-INF"
+            from tree
+            into srcFile(Constants.DIR_SRC_RESOURCES)
+            includeEmptyDirs = false
+        }
     }
-    
+
     def renameSources()
     {
         def files = Constants.CSVS.collectEntries { key, value ->
@@ -255,18 +273,36 @@ class DecompileMinecraftTask extends DefaultTask
 
         srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) { remapper.remapFile(it) }
     }
-    
+
     def applyForgeModifications()
     {
         PatchTask.patchStuff ( baseFile(Constants.DIR_FORGE_PATCHES),
-                               srcFile(Constants.DIR_SRC_MINECRAFT),
-                               baseFile(Constants.DIR_LOGS, "ForgePatches.log"),
-                               file(temporaryDir, 'temp.patch')
-                               )
-        
+                srcFile(Constants.DIR_SRC_MINECRAFT),
+                baseFile(Constants.DIR_LOGS, "ForgePatches.log"),
+                file(temporaryDir, 'temp.patch')
+                )
+
+        def tree = project.fileTree(baseFile(Constants.DIR_FORGE, "common"))
+
+        // copy classes
+        project.mkdir(srcFile(Constants.DIR_SRC_FML))
         project.copy {
-            from baseFile(Constants.DIR_FORGE, "common")
+            exclude "META-INF"
+            from (tree) { include "**.java" }
             into srcFile(Constants.DIR_SRC_FORGE)
+        }
+
+        // copy resources
+        project.mkdir(srcFile(Constants.DIR_SRC_RESOURCES))
+        project.copy {
+            exclude "*.java"
+            exclude "**/*.java"
+            exclude "*.class"
+            exclude "**/*.class"
+            exclude "META-INF"
+            from tree
+            into srcFile(Constants.DIR_SRC_FORGE)
+            includeEmptyDirs = false
         }
     }
 }
