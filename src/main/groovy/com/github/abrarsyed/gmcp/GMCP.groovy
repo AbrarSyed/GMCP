@@ -3,7 +3,6 @@ package com.github.abrarsyed.gmcp
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.srcFile
-import groovy.io.FileType
 
 import java.lang.reflect.Method
 import java.util.zip.ZipEntry
@@ -24,16 +23,10 @@ import org.gradle.api.Project
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
-import com.github.abrarsyed.gmcp.source.FFPatcher
-import com.github.abrarsyed.gmcp.source.FMLCleanup
-import com.github.abrarsyed.gmcp.source.MCPCleanup
-import com.github.abrarsyed.gmcp.source.SourceRemapper
 import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
-import com.github.abrarsyed.gmcp.tasks.PatchTask
 import com.google.common.io.Files
 
 import cpw.mods.fml.common.asm.transformers.MCPMerger
-import de.fernflower.main.decompiler.ConsoleDecompiler
 
 public class GMCP implements Plugin<Project>
 {
@@ -61,13 +54,63 @@ public class GMCP implements Plugin<Project>
         // manage dependancy configurations
         configureSourceSet()
         doConfigurationStuff()
-        configureJarCreation()
+        configureCompilation()
+
+        // final resolving.
+        doResolving()
 
         // start the tasks
         downloadTasks()
         jarTasks()
         decompileTask()
-        buildTasks()
+    }
+
+    def doResolving()
+    {
+        project.with {
+            afterEvaluate {
+
+                minecraft.resolveVersion(false)
+                minecraft.resolveSrcDir()
+                minecraft.resolveJarDir()
+
+                def mcver = minecraft.minecraftVersion
+                def is125Minus = minecraft.is152OrLess()
+
+                repositories {
+
+                    mavenCentral()
+
+                    if (!is125Minus)
+                    {
+                        mavenRepo name: "minecraft_"+mcver, url: "http://s3.amazonaws.com/Minecraft.Download/libraries"
+                    }
+                }
+
+                dependencies
+                {
+
+                    if (is125Minus)
+                    {
+                        // 1.5.2-
+
+                        for (dep in Constants.DEP_152_MINUS)
+                        {
+                            gmcp dep
+                        }
+                        
+                        gmcp fileTree(jarFile('bin'))
+
+                    }
+                    else
+                    {
+                        // 1.6.2+
+
+                        // TODO: read JSON here
+                    }
+                }
+            }
+        }
     }
 
     def doConfigurationStuff()
@@ -101,16 +144,15 @@ public class GMCP implements Plugin<Project>
 
     def configureSourceSet()
     {
-        project.sourceSets{
-            minecraft {
-                java {
-                    srcDirs {
-                        [
-                            srcFile(Constants.DIR_SRC_FML),
-                            srcFile(Constants.DIR_SRC_FORGE),
-                            srcFile(Constants.DIR_SRC_MINECRAFT)
-                        ]
-                    }
+        project.sourceSets
+        {
+            minecraft
+            {
+                java
+                {
+                    srcDir {srcFile(Constants.DIR_SRC_MINECRAFT)}
+                    srcDir {srcFile(Constants.DIR_SRC_FORGE)}
+                    srcDir {srcFile(Constants.DIR_SRC_FML)}
                 }
                 resources {
                     srcDir {srcFile(Constants.DIR_SRC_RESOURCES)}
@@ -119,13 +161,16 @@ public class GMCP implements Plugin<Project>
         }
     }
 
-    def configureJarCreation()
+    def configureCompilation()
     {
-        project.tasks.jar {
-            exclude 'net/minecraft/**', 'net/minecraftforge/**', 'cpw/mods/fml/**'
-            exclude { project.fileTree(srcFile(Constants.DIR_SRC_RESOURCES)) }
-            exclude {it.file in configurations.gmcp.files}
-            exclude {it.file in project.fileTree(srcFile(Constants.DIR_SRC_RESOURCES))}
+        project.compileJava {
+            dependsOn 'compileMinecraftJava'
+        }
+
+        project.compileMinecraftJava {
+            dependsOn 'decompileMinecraft'
+            classpath += project.configurations.gmcp
+            options.warnings = false
         }
     }
 
@@ -388,7 +433,7 @@ public class GMCP implements Plugin<Project>
         def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
             dependsOn 'extractMisc'
             dependsOn 'doJarPreProcess'
-            
+
             inputs.with {
                 dir {baseFile(Constants.DIR_FML_PATCHES)}
                 dir {baseFile(Constants.DIR_FORGE_PATCHES)}
@@ -397,19 +442,12 @@ public class GMCP implements Plugin<Project>
                 file {baseFile(Constants.JAR_PROC)}
                 dir {baseFile(Constants.DIR_MCP_PATCHES)}
             }
-            
+
             outputs.with {
                 outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
                 outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
-                outputs.dir {srcFile(Constants.DIR_SRC_FORGE)}
-                outputs.dir {srcFile(Constants.DIR_SRC_FML)}
             }
-            
+
         }
-    }
-
-    def buildTasks()
-    {
-
     }
 }

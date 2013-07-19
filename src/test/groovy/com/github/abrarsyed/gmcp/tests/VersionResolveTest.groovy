@@ -1,34 +1,45 @@
 package com.github.abrarsyed.gmcp.tests
 
-import org.gradle.api.Project
-import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 
+import com.github.abrarsyed.gmcp.extensions.GMCPExtension
+
 public class VersionResolveTest
 {
-	Project project
+    private GMCPExtension ext
 
-	@Before
-	public void doBefore()
-	{
-		project = ProjectBuilder.builder().build()
-		project.apply plugin: "gmcp"
-	}
+    @Before
+    public void doBefore()
+    {
+        ext = new GMCPExtension()
+    }
 
-	@Test
-	public void test()
-	{
-		project.minecraft.forgeVersion = "738"
-		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.738.zip", project.minecraft.forgeURL)
+    @Test
+    public void test1()
+    {
+        ext.forgeVersion = "738"
+        ext.minecraftVersion = null
+        ext.resolveVersion(false)
+        Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.738.zip", ext.forgeURL)
+    }
 
-		project.minecraft.forgeVersion = "latest"
-		project.minecraft.minecraftVersion = "1.5.1"
-		Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.1-7.7.2.682.zip", project.minecraft.forgeURL)
-        
-        project.minecraft.forgeVersion = "recommended-1.5.2"
-        project.minecraft.minecraftVersion = null
-        Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.737.zip", project.minecraft.forgeURL)
-	}
+    @Test
+    public void test2()
+    {
+        ext.forgeVersion = "latest"
+        ext.minecraftVersion = "1.5.1"
+        ext.resolveVersion(false)
+        Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.1-7.7.2.682.zip", ext.forgeURL)
+    }
+
+    @Test
+    public void test3()
+    {
+        ext.forgeVersion = "recommended-1.5.2"
+        ext.minecraftVersion = null
+        ext.resolveVersion(false)
+        Assert.assertEquals("http://files.minecraftforge.net/minecraftforge/minecraftforge-src-1.5.2-7.8.1.737.zip", ext.forgeURL)
+    }
 }

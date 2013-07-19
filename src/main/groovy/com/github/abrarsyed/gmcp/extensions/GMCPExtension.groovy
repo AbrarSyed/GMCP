@@ -13,20 +13,13 @@ import com.github.abrarsyed.gmcp.exceptions.MalformedVersionException
 
 class GMCPExtension
 {
-    @Nullable
-    private String minecraftVersion
-    private forgeVersion = "latest"
+    def String minecraftVersion
+    def forgeVersion = "latest"
     def String forgeURL
     def baseDir = "minecraft"
     def jarDir
     def srcDir
     def accessTransformers = []
-
-    public static boolean is152Minus
-
-    private resolvedVersion = false
-    private resolvedJarDir = false
-    private resolvedSrcDir = false
 
     private final File cacheFile
     private final File cacheFile2
@@ -40,87 +33,7 @@ class GMCPExtension
         cacheFile.getParentFile().mkdirs()
     }
 
-    public void setForgeVersion(Object obj)
-    {
-        if (obj instanceof String)
-            obj = obj.toLowerCase()
-        forgeVersion = obj
-        resolvedVersion = false
-    }
-
-    public String getForgeVersion()
-    {
-        if (!resolvedVersion)
-            resolveVersion(false)
-
-        forgeVersion
-    }
-
-    public void setMinecraftVersion(String obj)
-    {
-        if (obj instanceof String)
-            obj = obj.toLowerCase()
-        minecraftVersion = obj
-        resolvedVersion = false
-    }
-
-    public String getMinecraftVersion()
-    {
-        if (!resolvedVersion)
-            resolveVersion(false)
-
-        minecraftVersion
-    }
-
-    public void setForgeURL(String str)
-    {
-        resolvedVersion = true
-        forgeURL = str
-    }
-
-    public String getForgeURL()
-    {
-        if (!resolvedVersion)
-            resolveVersion(false)
-
-        forgeURL
-    }
-
-    public void setbaseDir(String obj)
-    {
-        resolvedSrcDir = false
-        resolvedJarDir = false
-    }
-
-    public String getSrcDir()
-    {
-        if (!resolvedSrcDir)
-            resolveSrcDir()
-
-        srcDir
-    }
-
-    public String setSrcDir(String obj)
-    {
-        resolvedSrcDir = true
-        srcDir = obj
-    }
-
-    public String getJarDir()
-    {
-        if (!resolvedJarDir)
-            resolveJarDir()
-
-        jarDir
-    }
-
-    public String setJarDir(String obj)
-    {
-        resolvedJarDir = true
-        jarDir = obj
-    }
-
-    protected void resolveVersion(boolean refreshCache)
+    public void resolveVersion(boolean refreshCache)
     {
         String json1
         String json2
@@ -332,34 +245,33 @@ class GMCPExtension
                 minecraftVersion = versionObj.getStringValue("mcversion")
                 forgeURL = root2.getStringValue("webpath") + "/" + fileObj.getStringValue("filename")
             }
-
-            // check for 1.5.2 or lower.
-            def match = minecraftVersion =~ /(\d)\.(\d)(\.\d)?/
-            match.find()
-
-            def major = match.group(1) as int
-            def minor = match.group(2) as int
-
-            if (major > 1)
-                is152Minus = false
-            else if (minor > 5)
-                is152Minus = false
-            else
-                is152Minus = true
-
-            resolvedVersion = true
         }
     }
 
-    private void resolveSrcDir()
+    public void resolveSrcDir()
     {
         if (!srcDir)
             srcDir = baseDir + "/src"
     }
 
-    private void resolveJarDir()
+    public void resolveJarDir()
     {
         if (!jarDir)
             jarDir = baseDir + "/jars"
+    }
+    
+    public boolean is152OrLess()
+    {
+        def match = minecraftVersion =~ /(\d)\.(\d)(\.\d)?/
+
+        def major = match[0][1] as int
+        def minor = match[0][2] as int
+
+        if (major > 1)
+            return false
+        else if (minor > 5)
+            return false
+        else
+            return true
     }
 }

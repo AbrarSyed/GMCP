@@ -33,6 +33,7 @@ public final class Constants
     // download URLs
     public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
     public static final String  URL_JSON_FORGE2     = "http://files.minecraftforge.net/minecraftforge/json2"
+    public static final String  URL_JSON_MC16       = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.json'
 
     // cache file paths
     public static final String  CACHE_JSON_FORGE    = "caches/gmcp/forge.json"
@@ -45,7 +46,7 @@ public final class Constants
     
     // random, 1.5.2-minus dependancies
     public static final List<String> DEP_152_MINUS = [
-            'net.sourceforge.argo:argo:3.2',
+            'net.sourceforge.argo:argo:3.4',
             'org.ow2.asm:asm:4.0',
             'org.bouncycastle:bcprov-ext-jdk15on:1.48',
             'com.google.guava:guava:14.0',

@@ -64,10 +64,6 @@ class DecompileMinecraftTask extends DefaultTask
 
     def void extractJar()
     {
-        def recDir = srcFile(Constants.DIR_SRC_RESOURCES)
-        def srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
-
-        log "Unpacking Jar"
         project.mkdir(unzippedDir)
         def temp = unzippedDir
         project.copy
@@ -237,13 +233,15 @@ class DecompileMinecraftTask extends DefaultTask
                 file(temporaryDir, 'temp.patch')
                 )
 
-        def tree = project.fileTree(baseFile(Constants.DIR_FML, "common"))
+        def common = project.fileTree(baseFile(Constants.DIR_FML, "common"))
+        def client = project.fileTree(baseFile(Constants.DIR_FML, "client"))
 
         // copy classes
         project.mkdir(srcFile(Constants.DIR_SRC_FML))
         project.copy {
             exclude "META-INF"
-            from (tree) { include "**.java" }
+            from (common) { include "**/*.java" }
+            from (client) { include "**/*.java" }
             into srcFile(Constants.DIR_SRC_FML)
         }
 
@@ -255,7 +253,8 @@ class DecompileMinecraftTask extends DefaultTask
             exclude "*.class"
             exclude "**/*.class"
             exclude "META-INF"
-            from tree
+            from common
+            from client
             into srcFile(Constants.DIR_SRC_RESOURCES)
             includeEmptyDirs = false
         }
@@ -272,6 +271,7 @@ class DecompileMinecraftTask extends DefaultTask
         def remapper = new SourceRemapper(files)
 
         srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) { remapper.remapFile(it) }
+        srcFile(Constants.DIR_SRC_FML).eachFileRecurse(FileType.FILES) { remapper.remapFile(it) }
     }
 
     def applyForgeModifications()
@@ -282,26 +282,28 @@ class DecompileMinecraftTask extends DefaultTask
                 file(temporaryDir, 'temp.patch')
                 )
 
-        def tree = project.fileTree(baseFile(Constants.DIR_FORGE, "common"))
+        def common = project.fileTree(baseFile(Constants.DIR_FORGE, "common"))
+        def client = project.fileTree(baseFile(Constants.DIR_FORGE, "client"))
 
         // copy classes
         project.mkdir(srcFile(Constants.DIR_SRC_FML))
         project.copy {
             exclude "META-INF"
-            from (tree) { include "**.java" }
+            from (common) { include "**/*.java" }
+            from (client) { include "**/*.java" }
             into srcFile(Constants.DIR_SRC_FORGE)
         }
 
         // copy resources
-        project.mkdir(srcFile(Constants.DIR_SRC_RESOURCES))
         project.copy {
             exclude "*.java"
             exclude "**/*.java"
             exclude "*.class"
             exclude "**/*.class"
             exclude "META-INF"
-            from tree
-            into srcFile(Constants.DIR_SRC_FORGE)
+            from common
+            from client
+            into srcFile(Constants.DIR_SRC_RESOURCES)
             includeEmptyDirs = false
         }
     }
