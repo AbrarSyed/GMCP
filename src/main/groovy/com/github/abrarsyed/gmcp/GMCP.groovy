@@ -28,6 +28,7 @@ import com.github.abrarsyed.gmcp.source.FFPatcher
 import com.github.abrarsyed.gmcp.source.FMLCleanup
 import com.github.abrarsyed.gmcp.source.MCPCleanup
 import com.github.abrarsyed.gmcp.source.SourceRemapper
+import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
 import com.github.abrarsyed.gmcp.tasks.PatchTask
 import com.google.common.io.Files
 
@@ -65,7 +66,7 @@ public class GMCP implements Plugin<Project>
         // start the tasks
         downloadTasks()
         jarTasks()
-        sourceTasks()
+        decompileTask()
         buildTasks()
     }
 
@@ -380,234 +381,30 @@ public class GMCP implements Plugin<Project>
                 e.printStackTrace()
             }
         }
-
-        // ----------------------------------------------------------------------------
-        // decompile
-        task = project.task("decompileMinecraft", dependsOn: "doJarPreProcess") {
-            inputs.with {
-                file {baseFile(Constants.JAR_PROC)}
-                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
-                dir {baseFile(Constants.DIR_MCP_PATCHES)}
-            }
-
-            outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
-            outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
-
-            dependsOn "extractMisc"
-        }
-        task << {
-            // unzip
-            def unzippedDir = Util.file(temporaryDir, "unzipped")
-            def decompiledDir = Util.file(temporaryDir, "decompiled")
-            def recDir = srcFile(Constants.DIR_SRC_RESOURCES)
-            def srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
-
-            logger.info "Unpacking jar"
-            project.mkdir(unzippedDir)
-            project.copy {
-                from project.zipTree(baseFile(Constants.JAR_PROC))
-                into unzippedDir
-                exclude "**/*/META-INF*"
-                exclude "META-INF"
-            }
-
-            // decompile.
-            project.mkdir(decompiledDir)
-            // JarBouncer.fernFlower(Constants.DIR_CLASSES.getPath(), Constants.DIR_SOURCES.getPath())
-            String[] args = new String[7]
-            args[0] = "-din=0"
-            args[1] = "-rbr=0"
-            args[2] = "-dgs=1"
-            args[3] = "-asc=1"
-            args[4] = "-log=ERROR"
-            args[5] = unzippedDir.getPath()
-            args[6] = decompiledDir.getPath()
-
-            logger.info "Applying fernflower"
-            try
-            {
-                PrintStream stream = System.out
-                def log = baseFile(Constants.DIR_LOGS, "FF.log")
-                project.file log
-                System.setOut(new PrintStream(log))
-
-                ConsoleDecompiler.main(args)
-                // -din=0 -rbr=0 -dgs=1 -asc=1 -log=WARN {indir} {outdir}
-
-                System.setOut(stream)
-            }
-            catch (Exception e)
-            {
-                project.logger.error "Fernflower failed"
-                e.printStackTrace()
-            }
-
-            logger.info "Copying classes"
-
-            def tree = project.fileTree(decompiledDir)
-
-            // copy classes
-            project.mkdir(srcDir)
-            project.copy {
-                exclude "META-INF"
-                from (tree) { include "net/minecraft/**/*.java" }
-                into srcDir
-            }
-
-            // copy resources
-            project.mkdir(recDir)
-            project.copy {
-                exclude "*.java"
-                exclude "**/*.java"
-                exclude "*.class"
-                exclude "**/*.class"
-                exclude "META-INF"
-                from tree
-                into recDir
-                includeEmptyDirs = false
-            }
-        }
-        task << {
-            logger.info "Applying FernFlower fixes"
-            FFPatcher.processDir(srcFile(Constants.DIR_SRC_MINECRAFT))
-
-            // copy patch, and fix lines
-            def text = baseFile(Constants.DIR_MCP_PATCHES, "/minecraft_ff.patch").text
-            text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE)
-            text = text.replaceAll(/(\r\n|\r|\n)/, Constants.NEWLINE)
-            def patch = Util.file(temporaryDir, "patch")
-            patch.write(text)
-
-            logger.info "applying MCP patches"
-            def result = project.exec {
-                if (os == Constants.OperatingSystem.WINDOWS)
-                    executable = baseFile(Constants.EXEC_WIN_PATCH).getPath()
-                else
-                    executable = "patch"
-
-                def log = baseFile(Constants.DIR_LOGS, "MCPPatches.log")
-                project.file log
-                def stream = log.newOutputStream()
-                standardOutput = stream
-                errorOutput = stream
-
-                ignoreExitValue = true
-
-                args = [
-                    "-p1",
-                    "-u",
-                    "-i",
-                    '"'+patch.getAbsolutePath()+'"',
-                    "-d",
-                    '"'+srcFile(Constants.DIR_SRC_MINECRAFT).getPath()+'"'
-                ]
-            }
-        }
-        task << {
-            srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
-
-                def text = it.text
-
-                // pre-formatting cleanup
-                text = MCPCleanup.cleanFile(text)
-
-                // write text
-                it.write(text)
-            }
-        }
-
     }
 
-    def sourceTasks()
+    def decompileTask()
     {
-        // ----------------------------------------------------------------------------
-        // Process MC sources, format and stuff
-        def task = project.task("processMCSources", dependsOn: "decompileMinecraft") {
-            inputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
-            inputs.file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
-            outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
-
-            dependsOn "extractMisc"
-        }
-        // do random source stuff
-        task << {
-            def srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
-
-            // run astyle
-            project.exec {
-                def exec
-                switch(os)
-                {
-                    case OperatingSystem.LINUX:
-                        exec = "astyle"
-                        break
-                    case OperatingSystem.MAC:
-                        exec = baseFile(Constants.EXEC_ASTYLE).getPath()
-                        break
-                    case OperatingSystem.WINDOWS:
-                        exec = baseFile(Constants.EXEC_ASTYLE + ".exe").getPath()
-
-                }
-
-                // %s --suffix=none --quiet --options={conffile} {classes}
-                commandLine = [
-                    exec,
-                    "--suffix=none",
-                    "--quiet",
-                    "--options="+baseFile(Constants.DIR_MAPPINGS, "astyle.cfg").getPath(),
-                    "--recursive",
-                    srcDir.getPath()+File.separator+'*.java"'
-                ]
+        def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
+            dependsOn 'extractMisc'
+            dependsOn 'doJarPreProcess'
+            
+            inputs.with {
+                dir {baseFile(Constants.DIR_FML_PATCHES)}
+                dir {baseFile(Constants.DIR_FORGE_PATCHES)}
+                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+                files { Constants.CSVS.collect { baseFile(Constants.DIR_MAPPINGS, it.getValue()) } }
+                file {baseFile(Constants.JAR_PROC)}
+                dir {baseFile(Constants.DIR_MCP_PATCHES)}
             }
-
-            srcDir.eachFileRecurse(FileType.FILES) {
-                def text = it.text
-
-                // do FML fixes...
-                text = FMLCleanup.updateFile(text)
-
-                // ensure line endings
-                text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)
-                text = text.replaceAll(/(\r\n|\n|\r)/, Constants.NEWLINE)
-
-                // write text
-                it.write(text)
+            
+            outputs.with {
+                outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
+                outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
+                outputs.dir {srcFile(Constants.DIR_SRC_FORGE)}
+                outputs.dir {srcFile(Constants.DIR_SRC_FML)}
             }
-        }
-
-        // ----------------------------------------------------------------------------
-        // apply the renamer.
-        task = project.task("renameSources", dependsOn: "decompileMinecraft") {
-            inputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
-            outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
-        }
-        task << {
-            def files = Constants.CSVS.collectEntries { key, value ->
-                [
-                    key,
-                    baseFile(Constants.DIR_MAPPINGS, value)
-                ]
-            }
-            def remapper = new SourceRemapper(files)
-
-            srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) { remapper.remapFile(it) }
-
-        }
-
-        // ----------------------------------------------------------------------------
-        // do forge and FML patches
-        task = project.task("doFMLPatches", type: PatchTask, dependsOn: "processMCSources") {
-            patchDir = baseFile(Constants.DIR_FML_PATCHES)
-            srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
-            logFile = baseFile(Constants.DIR_LOGS, "FMLPatches.log")
-        }
-
-        task = project.task("doForgePatches", type: PatchTask, dependsOn: "doFMLPatches") {
-            patchDir = baseFile(Constants.DIR_FORGE_PATCHES)
-            srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
-            logFile = baseFile(Constants.DIR_LOGS, "ForgePatches.log")
-
-            dependsOn "renameSources"
+            
         }
     }
 

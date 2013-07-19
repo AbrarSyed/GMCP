@@ -69,6 +69,19 @@ class PatchTask extends DefaultTask
     @TaskAction
     def doBinaryPatches()
     {
+        patchStuff(patchDir, srcDir, logFile, tempPatch)
+    }
+
+    def static fixPatch(File patch, File tempPatch)
+    {
+        def text = patch.text
+        text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)
+        text = text.replaceAll(/(\r\n|\n|\r)/, Constants.NEWLINE)
+        tempPatch.write(text)
+    }
+
+    private static patchStuff(File patchDir, File srcDir, File logFile, File tempPatch)
+    {
         def command, arguments
 
         // prepare command
@@ -92,14 +105,14 @@ class PatchTask extends DefaultTask
                 logFile.delete()
 
             // make it new, delete was to clear data.
-            project.file logFile
+            GMCP.project.file logFile
         }
 
         patchDir.eachFileRecurse(FileType.FILES)
         {
-            fixPatch(it)
+            fixPatch(it, tempPatch)
 
-            def result = project.exec {
+            def result = GMCP.project.exec {
                 executable = command
                 args = arguments
 
@@ -113,19 +126,11 @@ class PatchTask extends DefaultTask
                 ignoreExitValue = true
             }
 
-//            if (result.getExitValue() != 0)
-//            {
-//                throw new RuntimeException("Gnu patch failed! See log file: "+logFile)
-//            }
+            //            if (result.getExitValue() != 0)
+            //            {
+            //                throw new RuntimeException("Gnu patch failed! See log file: "+logFile)
+            //            }
 
         }
-    }
-
-    def fixPatch(File patch)
-    {
-        def text = patch.text
-        text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)
-        text = text.replaceAll(/(\r\n|\n|\r)/, Constants.NEWLINE)
-        tempPatch.write(text)
     }
 }
