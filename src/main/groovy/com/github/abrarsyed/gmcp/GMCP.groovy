@@ -99,7 +99,8 @@ public class GMCP implements Plugin<Project>
                             gmcp dep
                         }
                         
-                        gmcp fileTree(jarFile('bin'))
+                        //minecraftCompile fileTree(dir: 'lib', include: '*.jar')
+                        gmcp fileTree(dir:jarFile(Constants.DIR_JAR_BIN), include: "*.jar")
 
                     }
                     else
@@ -127,14 +128,14 @@ public class GMCP implements Plugin<Project>
                 visible = true
                 description = "Compile time, but not runtime"
             }
+            
+            minecraftCompile.extendsFrom gmcp
 
-            project.sourceSets.minecraft.compileClasspath += gmcp
             project.sourceSets.main.compileClasspath += gmcp
             project.sourceSets.test.compileClasspath += gmcp
             project.idea.module.scopes.COMPILE.plus += gmcp
             project.eclipse.classpath.plusConfigurations += gmcp
 
-            project.sourceSets.minecraft.compileClasspath += provided
             project.sourceSets.main.compileClasspath += provided
             project.sourceSets.test.compileClasspath += provided
             project.idea.module.scopes.PROVIDED.plus += provided
@@ -158,19 +159,23 @@ public class GMCP implements Plugin<Project>
                     srcDir {srcFile(Constants.DIR_SRC_RESOURCES)}
                 }
             }
+            
+            main {
+                java {
+                    // TODO make conditional for using agaricus's lib
+                    compileClasspath += minecraft.output
+                }
+            }
         }
     }
 
     def configureCompilation()
     {
-        project.compileJava {
-            dependsOn 'compileMinecraftJava'
-        }
-
         project.compileMinecraftJava {
             dependsOn 'decompileMinecraft'
-            classpath += project.configurations.gmcp
             options.warnings = false
+            targetCompatibility = '1.6'
+            sourceCompatibility = '1.6'
         }
     }
 
