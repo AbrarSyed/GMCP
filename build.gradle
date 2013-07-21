@@ -1,15 +1,17 @@
-
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'groovy'
+apply plugin: 'signing'
+apply plugin: 'maven'
 
 group = 'com.github.abrarsyed.gmcp'
-version = '.5-SNAPSHOT'
+version = '0.6-SNAPSHOT'
 archivesBaseName = 'GMCP'
+targetCompatibility = '1.6'
+sourceCompatibility = '1.6'
 
-repositories
-{ mavenCentral() }
+repositories {  mavenCentral() }
 
 jar
 {
@@ -23,6 +25,21 @@ jar
             }
         }
     }
+    
+    manifest {
+        attributes 'version':project.version, 'javaCompliance': project.targetCompatibility
+        attributes 'group':project.group
+    }
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from 'build/docs/javadoc'
+}
+
+task groovydocJar(type: Jar, dependsOn: groovydoc) {
+    classifier = 'groovydoc'
+    from 'build/docs/groovydoc'
 }
 
 configurations
@@ -35,15 +52,15 @@ dependencies
 {
     compile gradleApi()
     compile localGroovy()
-    
+
     // all of these marked as packed.
 
     packed fileTree(dir: 'lib', include: '*.jar')
 
-    packed 'net.sourceforge.argo:argo:3.4'
-    packed 'net.sf.opencsv:opencsv:2.3'
-    packed 'com.github.tony19:named-regexp:0.1.9'
-    packed 'net.md-5:SpecialSource:1.5'
+    compile 'net.sourceforge.argo:argo:3.4'
+    compile 'net.sf.opencsv:opencsv:2.3'
+    compile 'com.github.tony19:named-regexp:0.1.9'
+    compile 'net.md-5:SpecialSource:1.5'
 
     // JDT for the formatter
     //packed "org.jibx.config.3rdparty.org.eclipse:org.eclipse.core.resources:3.7.100.v20110510-0712"
@@ -53,7 +70,84 @@ dependencies
     //packed "org.jibx.config.3rdparty.org.eclipse:org.eclipse.text:3.5.100.v20110505-0800"
 }
 
-// wrapper
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.6'
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
 }
+
+artifacts {
+    archives jar
+    archives javadocJar
+    archives groovydocJar
+    archives sourcesJar
+}
+
+signing { sign configurations.archives }
+
+uploadArchives {
+    repositories.mavenDeployer {
+
+        beforeDeployment { MavenDeployment deployment ->
+            signing.signPom(deployment)
+        }
+
+        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+            authentication(userName: sonatypeUsername, password: sonatypePassword)
+        }
+
+        // local testing only.
+        //repository(url: "file://D:/Users/AbrarSyed/EclipseWorkspace/MavenRepo")
+
+        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+            authentication(userName: sonatypeUsername, password: sonatypePassword)
+        }
+
+        pom {
+            groupId = project.group
+            version = project.version
+            artifactId = project.archivesBaseName
+            project {
+                name project.archivesBaseName
+                packaging 'jar'
+                description 'Groovy Minecraft Coder Pack'
+                url 'https://github.com/AbrarSyed/GMCP'
+
+                scm {
+                    url 'https://github.com/AbrarSyed/jastyle'
+                    connection 'scm:git:git://github.com/AbrarSyed/GMCP.git'
+                    developerConnection 'scm:git:git@github.com:AbrarSyed/GMCP.git'
+                }
+
+                issueManagement {
+                    system 'github'
+                    url 'https://github.com/AbrarSyed/GMCP/issues'
+                }
+
+                licenses {
+                    license {
+                        name 'GNU Lesser General Public License (LGPL), Version 3'
+                        url 'http://www.fsf.org/licensing/licenses/lgpl.txt'
+                        distribution 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'AbrarSyed'
+                        name 'Abrar Syed'
+                        roles {
+                            role 'packager'
+                            role 'developer'
+                        }
+                    }
+                }
+            }
+        }
+        
+        // end pom.
+        
+    }
+}
+
+// wrapper
+task wrapper(type: Wrapper) { gradleVersion = '1.6' }

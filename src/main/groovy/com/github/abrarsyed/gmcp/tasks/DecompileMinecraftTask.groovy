@@ -17,6 +17,7 @@ import com.github.abrarsyed.gmcp.source.FFPatcher
 import com.github.abrarsyed.gmcp.source.FMLCleanup
 import com.github.abrarsyed.gmcp.source.MCPCleanup
 import com.github.abrarsyed.gmcp.source.SourceRemapper
+import com.google.common.io.Files
 
 import de.fernflower.main.decompiler.ConsoleDecompiler
 
@@ -136,7 +137,7 @@ class DecompileMinecraftTask extends DefaultTask
     def doMCPPatches()
     {
         // copy patch, and fix lines
-        def text = baseFile(Constants.DIR_MCP_PATCHES, "/minecraft_ff.patch").text
+        def text = baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch").text
         text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE)
         text = text.replaceAll(/(\r\n|\r|\n)/, Constants.NEWLINE)
         def patch = file(temporaryDir, "patch")
@@ -165,6 +166,9 @@ class DecompileMinecraftTask extends DefaultTask
                 '"'+srcFile(Constants.DIR_SRC_MINECRAFT).getPath()+'"'
             ]
         }
+
+        // copy over start.java
+        Files.copy(baseFile(Constants.DIR_MCP_PATCHES, "start.java"), srcFile(Constants.DIR_SRC_MINECRAFT, "Start.java"))
     }
 
     def doMCPCleanup()

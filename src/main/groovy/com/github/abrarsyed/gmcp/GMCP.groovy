@@ -80,13 +80,17 @@ public class GMCP implements Plugin<Project>
                 minecraft.resolveJarDir()
 
                 def mcver = minecraft.minecraftVersion
-                def is125Minus = minecraft.is152OrLess()
+                def is152Minus = minecraft.is152OrLess()
+                
+                // for only 0.5, crash on more than 1.5.2
+//                if (!is152Minus)
+//                    throw new RuntimeException('GMCP 0.5 only supports Minecraft 1.5.2 or lower!')
 
                 repositories {
 
                     mavenCentral()
 
-                    if (!is125Minus)
+                    if (!is152Minus)
                     {
                         mavenRepo name: "minecraft_"+mcver, url: "http://s3.amazonaws.com/Minecraft.Download/libraries"
                     }
@@ -95,7 +99,7 @@ public class GMCP implements Plugin<Project>
                 dependencies
                 {
 
-                    if (is125Minus)
+                    if (is152Minus)
                     {
                         // 1.5.2-
 
@@ -103,8 +107,7 @@ public class GMCP implements Plugin<Project>
                         {
                             gmcp dep
                         }
-
-                        //minecraftCompile fileTree(dir: 'lib', include: '*.jar')
+                        
                         gmcp fileTree(dir:jarFile(Constants.DIR_JAR_BIN), include: "*.jar")
 
                     }
