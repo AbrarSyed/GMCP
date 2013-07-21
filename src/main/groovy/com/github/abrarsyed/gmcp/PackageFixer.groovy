@@ -169,14 +169,14 @@ public class PackageFixer
 		return out
 	}
 
-	private String[] rsplit(String input, String splitter)
+	public static rsplit(String input, String splitter)
 	{
 		def index = input.lastIndexOf(splitter)
 
 		if (index == -1)
 			return input
 
-		def pieceOne = input.substring(1, index)
+		def pieceOne = input.substring(0, index)
 		def pieceTwo = input.substring(index+1)
 		return [pieceOne, pieceTwo]
 	}

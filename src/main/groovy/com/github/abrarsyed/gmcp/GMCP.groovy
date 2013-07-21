@@ -19,6 +19,7 @@ import net.md_5.specialsource.provider.JointProvider
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
@@ -63,6 +64,10 @@ public class GMCP implements Plugin<Project>
         downloadTasks()
         jarTasks()
         decompileTask()
+
+        // replace normal jar task with minr.
+        project.tasks.jar << reobfJarClosure()
+        project.tasks.jar.dependsOn('doJarPreProcess')
     }
 
     def doResolving()
@@ -98,7 +103,7 @@ public class GMCP implements Plugin<Project>
                         {
                             gmcp dep
                         }
-                        
+
                         //minecraftCompile fileTree(dir: 'lib', include: '*.jar')
                         gmcp fileTree(dir:jarFile(Constants.DIR_JAR_BIN), include: "*.jar")
 
@@ -128,7 +133,7 @@ public class GMCP implements Plugin<Project>
                 visible = true
                 description = "Compile time, but not runtime"
             }
-            
+
             minecraftCompile.extendsFrom gmcp
 
             project.sourceSets.main.compileClasspath += gmcp
@@ -159,7 +164,7 @@ public class GMCP implements Plugin<Project>
                     srcDir {srcFile(Constants.DIR_SRC_RESOURCES)}
                 }
             }
-            
+
             main {
                 java {
                     // TODO make conditional for using agaricus's lib
@@ -454,5 +459,81 @@ public class GMCP implements Plugin<Project>
             }
 
         }
+    }
+
+    public static Closure reobfSRGJarClosure()
+    {
+        def c = { Task task ->
+            def file = task.archivePath
+            def inTemp = Util.file(task.temporaryDir, 'jarIn.jar')
+            Files.copy(file, inTemp)
+            file.delete()
+            
+            def deobfed =  Util.baseFile(Constants.JAR_PROC)
+
+            // load mapping
+            JarMapping mapping = new JarMapping()
+            mapping.loadMappings(Util.baseFile(Constants.DIR_MAPPINGS, "reobf_srg.srg"))
+
+            // make remapper
+            JarRemapper remapper = new JarRemapper(null, mapping)
+
+            // load jar
+            def input = Jar.init(inTemp)
+
+            // ensure that inheritance provider is used
+            JointProvider inheritanceProviders = new JointProvider()
+            inheritanceProviders.add(new JarProvider(input))
+            inheritanceProviders.add(new JarProvider(Jar.init(deobfed)))
+            mapping.setFallbackInheritanceProvider(inheritanceProviders)
+
+            // remap jar
+            remapper.remapJar(input, file)
+        }
+
+        return c
+    }
+
+    public static Closure reobfJarClosure()
+    {
+        def c = { Task task ->
+            def file = task.archivePath
+            def inTemp = Util.file(task.temporaryDir, 'jarIn.jar')
+            Files.copy(file, inTemp)
+            file.delete()
+            
+            def deobfed =  Util.baseFile(Constants.JAR_PROC)
+
+            // load mapping
+            JarMapping mapping = new JarMapping()
+            mapping.loadMappings(Util.baseFile(Constants.DIR_MAPPINGS, "reobf_mcp.srg"))
+
+            // make remapper
+            JarRemapper remapper = new JarRemapper(null, mapping)
+
+            // load jar
+            def input = Jar.init(inTemp)
+
+            // ensure that inheritance provider is used
+            JointProvider inheritanceProviders = new JointProvider()
+            inheritanceProviders.add(new JarProvider(input))
+            inheritanceProviders.add(new JarProvider(Jar.init(deobfed)))
+            mapping.setFallbackInheritanceProvider(inheritanceProviders)
+
+            // remap jar
+            remapper.remapJar(input, file)
+        }
+
+        return c
+    }
+
+    public static File setReobfMinecraftNames()
+    {
+        return Util.baseFile(Constants.DIR_MAPPINGS, 'reobf_mcp.srg')
+    }
+
+    public static File setReobfSRGNames()
+    {
+        return  Util.baseFile(Constants.DIR_MAPPINGS, "reobf_srg.srg")
     }
 }

@@ -11,37 +11,52 @@ class SRGCreator
         def methods = [:]
         reader.readAll().each
         {
-            methods[it[0]] = [name: it[1]]
+            methods[it[0]] = it[1]
         }
 
         reader = new CSVReader(Util.baseFile(Constants.DIR_MAPPINGS, Constants.CSVS['fields']).newReader(), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false)
         def fields = [:]
         reader.readAll().each
         {
-            fields[it[0]] = [name: it[1]]
+            fields[it[0]] = it[1]
         }
 
-        def deobf = readSrg(Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg"), false)
-        def deobfReversed = readSrg(Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg"), true)
+        Map deobf = readSrg(Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg"), false)
+        // MC -> srg names
+
+        Map deobfReversed = readSrg(Util.baseFile(Constants.DIR_MAPPINGS, "packaged.srg"), true)
+        // srg names -> MC
 
         // replace SRG names with MCP names
         def mcSrg = deobfReversed.collectEntries
-        { type, info ->
-            // set the checking map
-            def checkMap
-            if (type == 'MD')
-                checkMap = methods
-            else if (type == 'FD')
-                checkMap = fields
-            else
-                checkMap = null
-
+        { type, Map info ->
             // replace with the checking map
-            info = info.each
+            info = info.collectEntries
             { input, out ->
-                if (checkMap && checkMap[input])
+
+                if (type == 'FD')
                 {
-                    return [checkMap[input], out]
+                    def split = PackageFixer.rsplit(input, '/')
+                    def name = split[1]
+
+                    if (fields[name])
+                        name = fields[name]
+
+                    return [split[0]+'/'+name, out]
+                }
+                else if (type == 'MD')
+                {
+                    def split = input.split(' ')
+                    def nameSplit = PackageFixer.rsplit(split[0], '/')
+                    def name = nameSplit[1]
+
+                    if (methods[name])
+                        name = methods[name]
+
+                    return [
+                        nameSplit[0]+'/'+name+' '+split[1],
+                        out
+                    ]
                 }
                 else
                 {
@@ -51,6 +66,8 @@ class SRGCreator
 
             return [type, info]
         }
+
+        // mcSrg == mcpNames -> mc
 
         writeSrg(Util.baseFile(Constants.DIR_MAPPINGS, "reobf_mcp.srg"), mcSrg)
 
@@ -83,9 +100,9 @@ class SRGCreator
             else
             {
                 if (reverse)
-                    out[split[0][0..1]].put split[2..1]
+                    out[split[0][0..1]].put split[2], split[1]
                 else
-                    out[split[0][0..1]].put split[1..2]
+                    out[split[0][0..1]].put split[1], split[2]
             }
         }
 
