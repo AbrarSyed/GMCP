@@ -95,8 +95,8 @@ uploadArchives {
             authentication(userName: sonatypeUsername, password: sonatypePassword)
         }
 
-        // local testing only.
-        //repository(url: "file://D:/Users/AbrarSyed/EclipseWorkspace/MavenRepo")
+//        // local testing only.
+//        snapshotRepository(url: "file://D:/Users/AbrarSyed/EclipseWorkspace/MavenRepo")
 
         repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
             authentication(userName: sonatypeUsername, password: sonatypePassword)

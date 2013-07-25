@@ -3,6 +3,8 @@ package com.github.abrarsyed.gmcp
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.srcFile
+import groovy.xml.StreamingMarkupBuilder
+import groovy.xml.XmlUtil
 
 import java.lang.reflect.Method
 import java.util.zip.ZipEntry
@@ -65,7 +67,10 @@ public class GMCP implements Plugin<Project>
         jarTasks()
         decompileTask()
 
-        // replace normal jar task with minr.
+        // IDE stuff
+        configureEclipse()
+
+        // replace normal jar task with mine.
         project.tasks.jar << reobfJarClosure()
         project.tasks.jar.dependsOn('doJarPreProcess')
     }
@@ -81,11 +86,12 @@ public class GMCP implements Plugin<Project>
 
                 def mcver = minecraft.minecraftVersion
                 def is152Minus = minecraft.is152OrLess()
-                
-                // for only 0.5, crash on more than 1.5.2
-//                if (!is152Minus)
-//                    throw new RuntimeException('GMCP 0.5 only supports Minecraft 1.5.2 or lower!')
 
+                // for only 0.5, crash on more than 1.5.2
+                //                if (!is152Minus)
+                //                    throw new RuntimeException('GMCP 0.5 only supports Minecraft 1.5.2 or lower!')
+
+                // yay for maven central.
                 repositories {
 
                     mavenCentral()
@@ -96,6 +102,7 @@ public class GMCP implements Plugin<Project>
                     }
                 }
 
+                // dependancy management.
                 dependencies
                 {
 
@@ -107,7 +114,7 @@ public class GMCP implements Plugin<Project>
                         {
                             gmcp dep
                         }
-                        
+
                         gmcp fileTree(dir:jarFile(Constants.DIR_JAR_BIN), include: "*.jar")
 
                     }
@@ -118,6 +125,9 @@ public class GMCP implements Plugin<Project>
                         // TODO: read JSON here
                     }
                 }
+
+                // eclipse specific native stuff
+                idea.pathVariables 'MC_BASE': file(project.minecraft.baseDir), 'MC_SRC': file(project.minecraft.srcDir),'MC_JAR': file(project.minecraft.jarDir)
             }
         }
     }
@@ -224,7 +234,7 @@ public class GMCP implements Plugin<Project>
             group = "minecraft"
             inputs.file { baseFile(Constants.DIR_FML, "mc_versions.cfg") }
             outputs.with {
-                file { jarFile(Constants.JAR_JAR_CLIENT) }
+                file { jarFile(Constants.JAR_JAR_CLIENT_BAK) }
                 file { jarFile(Constants.JAR_JAR_SERVER) }
                 file { jarFile("bin", "lwjgl.jar") }
                 file { jarFile("bin", "lwjgl_util.jar") }
@@ -242,7 +252,7 @@ public class GMCP implements Plugin<Project>
             def baseUrl = parser.getProperty("default", "base_url")
 
             def mcver = parser.getProperty("default", "current_ver")
-            Util.download(parser.getProperty(mcver, "client_url"), jarFile(Constants.JAR_JAR_CLIENT))
+            Util.download(parser.getProperty(mcver, "client_url"), jarFile(Constants.JAR_JAR_CLIENT_BAK))
             Util.download(parser.getProperty(mcver, "server_url"), jarFile(Constants.JAR_JAR_SERVER))
 
             def dls = parser.getProperty("default", "libraries").split(/\s/)
@@ -254,6 +264,7 @@ public class GMCP implements Plugin<Project>
 
             project.copy {
                 from project.zipTree(nativesJar)
+                exclude 'META-INF'
                 into Util.file(root, "natives")
             }
         }
@@ -329,7 +340,7 @@ public class GMCP implements Plugin<Project>
             description = "Deobfuscates Minecraft, and applies the Exceptor"
             group = "minecraft"
             inputs.with {
-                file { jarFile(Constants.JAR_JAR_CLIENT) }
+                file { jarFile(Constants.JAR_JAR_CLIENT_BAK) }
                 file { jarFile(Constants.JAR_JAR_SERVER) }
                 file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
@@ -339,6 +350,7 @@ public class GMCP implements Plugin<Project>
             }
 
             outputs.with {
+                file { jarFile(Constants.JAR_JAR_CLIENT) }
                 file { baseFile(Constants.JAR_PROC) }
             }
 
@@ -347,10 +359,10 @@ public class GMCP implements Plugin<Project>
         // merge jars
         task << {
             def server = Util.file(temporaryDir, "server.jar")
-            def merged = Util.file(temporaryDir, "merged.jar")
+            def merged = jarFile(Constants.JAR_JAR_CLIENT)
             def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
-            Files.copy(jarFile(Constants.JAR_JAR_CLIENT), mergeTemp)
+            Files.copy(jarFile(Constants.JAR_JAR_CLIENT_BAK), mergeTemp)
             Files.copy(jarFile(Constants.JAR_JAR_SERVER), server)
 
             logger.lifecycle "Merging jars"
@@ -383,7 +395,7 @@ public class GMCP implements Plugin<Project>
         }
         // deobfuscate---------------------------
         task << {
-            def merged = Util.file(temporaryDir, "merged.jar")
+            def merged = jarFile(Constants.JAR_JAR_CLIENT)
             def deobf = Util.file(temporaryDir, "deobf.jar")
 
             logger.lifecycle "DeObfuscating jar"
@@ -464,6 +476,99 @@ public class GMCP implements Plugin<Project>
         }
     }
 
+    def configureEclipse()
+    {
+        project.eclipse {
+
+            jdt {
+                sourceCompatibility = 1.6
+                targetCompatibility = 1.6
+            }
+
+            classpath {
+                file.withXml {provider ->
+                    Node rootNode = provider.asNode()
+
+                    // NATIVES PART  ---------------------------------------------------------------------
+
+                    // If this is doing anything, assume no gradle plugin.
+                    [
+                        'jinput.jar',
+                        'lwjg.jar',
+                        'lwjgl_util.jar'
+                    ].each { nativ ->
+                        def container = rootNode.children().find {it.@path && it.@path.endsWith(nativ)}
+                        if (container)
+                            container.appendNode('attributes').appendNode('attribute', [name:"org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value:'$MC_JAR/bin/natives'])
+                    }
+
+                    // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
+                    [
+                        Constants.DIR_SRC_MINECRAFT,
+                        Constants.DIR_SRC_FML,
+                        Constants.DIR_SRC_FORGE
+                    ].each { srcDir ->
+                        def container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.endsWith('/'+srcDir)}
+                        if (container)
+                            container.appendNode('attributes').appendNode('attribute', [name:"ignore_optional_problems", value:'true'])
+                    }
+                }
+            }
+        }
+
+        def task = project.task('afterEclipseImport'){
+        }
+        task << {
+            
+            def file = project.file('.classpath')
+            
+            // open up classpath variable, and make edits.
+            def rootNode = new XmlSlurper().parseText(file.text)
+            
+            // NATIVES PART  ---------------------------------------------------------------------
+            def nativesDir = jarFile(Constants.DIR_JAR_BIN, 'natives').getPath()
+
+            // using the gradle plugin.
+            def container = rootNode.children().find { it.@kind == 'con' && it.@path && it.@path == 'org.springsource.ide.eclipse.gradle.classpathcontainer' }
+            if (container)
+            {
+                container.appendNode {
+                    attributes {
+                        attribute(name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir)
+                    }
+                }
+                //container.appendNode('attributes').appendNode("org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", '$MC_JAR/bin/natives')
+            }
+
+            // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
+            [
+                Constants.DIR_SRC_MINECRAFT,
+                Constants.DIR_SRC_FML,
+                Constants.DIR_SRC_FORGE
+            ].each { srcDir ->
+                container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.toString().endsWith('/'+srcDir)}
+                if (container)
+                {
+                    container.appendNode {
+                        attributes {
+                            attribute(name: "ignore_optional_problems", value: true)
+                        }
+                    }
+                }
+            }
+            
+            // write XML
+            // check the whole document using XmlUnit
+            def builder = new StreamingMarkupBuilder()
+            def result = builder.bind({mkp.yield rootNode })
+            result = XmlUtil.serialize(result)
+            
+            println result
+            
+            file.write result
+        }
+    }
+
     public static Closure reobfSRGJarClosure()
     {
         def c = { Task task ->
@@ -471,7 +576,7 @@ public class GMCP implements Plugin<Project>
             def inTemp = Util.file(task.temporaryDir, 'jarIn.jar')
             Files.copy(file, inTemp)
             file.delete()
-            
+
             def deobfed =  Util.baseFile(Constants.JAR_PROC)
 
             // load mapping
@@ -504,7 +609,7 @@ public class GMCP implements Plugin<Project>
             def inTemp = Util.file(task.temporaryDir, 'jarIn.jar')
             Files.copy(file, inTemp)
             file.delete()
-            
+
             def deobfed =  Util.baseFile(Constants.JAR_PROC)
 
             // load mapping
