@@ -1,5 +1,7 @@
 package com.github.abrarsyed.gmcp
 
+import groovy.json.JsonSlurper
+
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.srcFile
@@ -121,8 +123,12 @@ public class GMCP implements Plugin<Project>
                     else
                     {
                         // 1.6.2+
+                        // Download the information file for the version we are about to DL
+                        // Example: https://s3.amazonaws.com/Minecraft.Download/versions/1.6.2/1.6.2.json
+                        def slurper = new JsonSlurper()
+                        def versionInfo
 
-                        // TODO: read JSON here
+
                     }
                 }
 
