@@ -1,5 +1,9 @@
 package com.github.abrarsyed.gmcp
 
+import com.github.abrarsyed.gmcp.mcversion.McVersionInfo
+import com.google.common.io.ByteStreams
+import org.gradle.api.artifacts.Dependency
+
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.srcFile
@@ -87,10 +91,6 @@ public class GMCP implements Plugin<Project>
                 def mcver = minecraft.minecraftVersion
                 def is152Minus = minecraft.is152OrLess()
 
-                // for only 0.5, crash on more than 1.5.2
-                //                if (!is152Minus)
-                //                    throw new RuntimeException('GMCP 0.5 only supports Minecraft 1.5.2 or lower!')
-
                 // yay for maven central.
                 repositories {
 
@@ -115,15 +115,35 @@ public class GMCP implements Plugin<Project>
                             gmcp dep
                         }
 
-                        gmcp fileTree(dir:jarFile(Constants.DIR_JAR_BIN), include: "*.jar")
-
                     }
                     else
                     {
                         // 1.6.2+
+                        // FML seems to replicate the requirements that Minecraft also states,
+                        // so we parse FML's JSON file for dependencies instead of merging the two
+                        def fmlJsonUrl = new URL(String.format(Constants.URL_JSON_FML, mcver))
+                        def versionInfo = McVersionInfo.parse(fmlJsonUrl)
 
-                        // TODO: read JSON here
+                        for (lib in versionInfo.libraries) {
+                            // Gradle really really doesnt like broken POMs
+                            if (lib.name.equals("net.sourceforge.argo:argo:2.25"))
+                                continue
+
+                            if (lib.allowed) {
+                                logger.debug("Adding dependency on {}", lib.name)
+                                if (lib.natives) {
+                                    // Depend on the right qualifier
+                                    gmcp lib.name + ":" + lib.natives.getNative(Util.OS)
+                                } else {
+                                    gmcp lib.name
+                                }
+                            }
+                        }
+
                     }
+
+                    gmcp fileTree(dir:jarFile(Constants.DIR_JAR_BIN), include: "*.jar")
+
                 }
 
                 // eclipse specific native stuff
@@ -226,7 +246,6 @@ public class GMCP implements Plugin<Project>
             }
         }
 
-
         // ----------------------------------------------------------------------------
         // download necessary stuff.
         task = project.task('getMinecraft', dependsOn: "getForge") {
@@ -252,21 +271,65 @@ public class GMCP implements Plugin<Project>
             def baseUrl = parser.getProperty("default", "base_url")
 
             def mcver = parser.getProperty("default", "current_ver")
-            Util.download(parser.getProperty(mcver, "client_url"), jarFile(Constants.JAR_JAR_CLIENT_BAK))
-            Util.download(parser.getProperty(mcver, "server_url"), jarFile(Constants.JAR_JAR_SERVER))
 
-            def dls = parser.getProperty("default", "libraries").split(/\s/)
-            dls.each { Util.download(baseUrl+it, new File(root, it)) }
+            // FML no longer provides a download URL for 1.6.2 and later
+            if (project.minecraft.is152OrLess()) {
+                Util.download(parser.getProperty(mcver, "client_url"), jarFile(Constants.JAR_JAR_CLIENT_BAK))
+                Util.download(parser.getProperty(mcver, "server_url"), jarFile(Constants.JAR_JAR_SERVER))
 
-            def nativesJar = Util.file(temporaryDir, "natives.jar")
-            def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
-            Util.download(baseUrl + nativesName, nativesJar)
+                def dls = parser.getProperty("default", "libraries").split(/\s/)
+                dls.each { Util.download(baseUrl+it, new File(root, it)) }
 
-            project.copy {
-                from project.zipTree(nativesJar)
-                exclude 'META-INF'
-                into Util.file(root, "natives")
+                def nativesJar = Util.file(temporaryDir, "natives.jar")
+                def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
+                Util.download(baseUrl + nativesName, nativesJar)
+
+                project.copy {
+                    from project.zipTree(nativesJar)
+                    exclude 'META-INF'
+                    into Util.file(root, "natives")
+                }
+            } else {
+                // For 1.6.2 we have to build the URLs ourselves
+                def clientUrl = String.format(Constants.URL_MC16_CLIENT, mcver)
+                Util.download(clientUrl, jarFile(Constants.JAR_JAR_CLIENT_BAK))
+                def serverUrl = String.format(Constants.URL_MC16_SERVER, mcver)
+                Util.download(serverUrl, jarFile(Constants.JAR_JAR_SERVER))
+
+                // And parse the FML JSON again to get the native libraries we need
+                def versionInfo = McVersionInfo.parse(baseFile(Constants.DIR_FML, "fml.json"))
+
+                jarFile(Constants.DIR_JAR_BIN_NATIVES).mkdirs()
+
+                for (lib in versionInfo.libraries) {
+                    if (lib.allowed && lib.extract) {
+                        def dep =  project.configurations.gmcp.dependencies.find({
+                            Dependency d ->
+                                (d.group + ":" + d.name + ":" + d.version) == lib.name
+                        })
+                        def files = project.configurations.gmcp.files(dep)
+                        files.each({
+                            File f ->
+                            def zin = new ZipFile(f)
+                            Enumeration zinEn = zin.entries()
+                            while (zinEn.hasMoreElements()) {
+                                ZipEntry ze = zinEn.nextElement()
+                                // Check if its excluded...
+                                def excluded = lib.extract.exclude.any({ String spec -> ze.name.startsWith(spec) })
+                                if (excluded) {
+                                    continue
+                                }
+
+                                File out = jarFile(Constants.DIR_JAR_BIN_NATIVES, ze.name)
+                                InputStream inStream = zin.getInputStream(ze)
+                                Files.write(ByteStreams.toByteArray(inStream), out)
+                                inStream.close()
+                            }
+                        })
+                    }
+                }
             }
+
         }
 
         // ----------------------------------------------------------------------------
@@ -359,15 +422,12 @@ public class GMCP implements Plugin<Project>
         // merge jars
         task << {
             def server = Util.file(temporaryDir, "server.jar")
-            def merged = jarFile(Constants.JAR_JAR_CLIENT)
             def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
             Files.copy(jarFile(Constants.JAR_JAR_CLIENT_BAK), mergeTemp)
             Files.copy(jarFile(Constants.JAR_JAR_SERVER), server)
 
-            logger.lifecycle "Merging jars"
-
-            //Constants.JAR_CLIENT, Constants.JAR_SERVER
+            logger.lifecycle "Merging client and server jars"
             def args = [
                 baseFile(Constants.DIR_FML, "mcp_merge.cfg").getPath(),
                 mergeTemp.getPath(),
@@ -375,7 +435,9 @@ public class GMCP implements Plugin<Project>
             ]
             MCPMerger.main(args as String[])
 
-            // copy and strip METAINF
+            // Make a copy of the merged JAR (still obfuscated) while stripping out META-INF (signatures)
+            logger.lifecycle "Copying merged jar without signatures"
+            def merged = jarFile(Constants.JAR_JAR_CLIENT)
             def ZipFile input = new ZipFile(mergeTemp)
             def output = new ZipOutputStream(merged.newDataOutputStream())
 
@@ -395,7 +457,6 @@ public class GMCP implements Plugin<Project>
         }
         // deobfuscate---------------------------
         task << {
-            def merged = jarFile(Constants.JAR_JAR_CLIENT)
             def deobf = Util.file(temporaryDir, "deobf.jar")
 
             logger.lifecycle "DeObfuscating jar"
@@ -411,13 +472,13 @@ public class GMCP implements Plugin<Project>
             project.minecraft.accessTransformers.collect {
                 accessMap.loadAccessTransformer(project.file(Constants.DIR_FORGE, "common/forge_at.cfg"))
             }
-            def processor = new  RemapperPreprocessor(null, mapping, accessMap)
+            def processor = new RemapperPreprocessor(null, mapping, accessMap)
 
             // make remapper
             JarRemapper remapper = new JarRemapper(processor, mapping)
 
-            // load jar
-            Jar input = Jar.init(merged)
+            // load merged jar (still obfuscated, no signatures)
+            Jar input = Jar.init(jarFile(Constants.JAR_JAR_CLIENT))
 
             // ensure that inheritance provider is used
             JointProvider inheritanceProviders = new JointProvider()

@@ -2,6 +2,9 @@ package com.github.abrarsyed.gmcp
 
 import au.com.bytecode.opencsv.CSVParser
 import au.com.bytecode.opencsv.CSVReader
+import org.objectweb.asm.commons.Remapper
+
+import java.util.regex.Pattern
 
 
 public class PackageFixer
@@ -10,6 +13,7 @@ public class PackageFixer
 	def packages
 	public static final String SIG_PATTERN = /([\[ZBCSIJFDV]|L([\w\\/]+);)/
 	public static final String PACK_PATTERN = /net\\minecraft\\src\\\w+/
+    public static final Pattern METHOD_SIG_PATTERN = Pattern.compile(/^(?<className>[^\.]+)\.(?<methodName>[^\(]+)(?<signature>.*)$/);
 
 	public PackageFixer(file)
 	{
@@ -72,36 +76,48 @@ public class PackageFixer
 			outExc.createNewFile()
 		}
 
-		def outText = new StringBuilder()
+        def mappings = new Properties()
+        def mappingsOut = new Properties()
 
-		inExc.text.readLines().each
+        // Try to load the mappings
+        inExc.withInputStream { stream -> mappings.load(stream) }
+
+		mappings.each
 		{
-			def cls = it.split(/\./)[0] 			// get classname
-			def named = rsplit(it, "=")[1] 			// get method name
-			it = it.substring(cls.size() + 1, it.size() - named.size()) 			// get param names
-			def methName = it.split(/\(/)[0] 			// method get name and sig
+            def methodSignature = it.key
 
-			def temp = named.split(/\|/) as List
+            def matcher = METHOD_SIG_PATTERN.matcher(methodSignature)
 
-			// temp[0] is the exceptions
-			if (temp[0])
+            if (!matcher.matches()) {
+                // There are some new fields in MCP for MC 1.6 that are not straight up method signatures
+                mappingsOut[it.key] = it.value
+                return
+            }
+
+            def className = matcher.group("className")
+            def methodName = matcher.group("methodName")
+            def signature = matcher.group("signature")
+			def exceptionsAndParams = it.value.split(/\|/) as List
+
+            def exceptions = exceptionsAndParams[0]
+			if (exceptions)
 			{
-				def excs = temp[0].split(",")
+				def excs = exceptions.split(",")
 				excs = excs.collect { repackageClass(it) }
-
-				if (temp.size() < 2)
-					temp.add("")
-
-				named = excs.join(",") + "|" + temp[1]
+                exceptionsAndParams[0] = excs.join(",")
 			}
+            if (exceptionsAndParams.size() < 2)
+                exceptionsAndParams.add("")
 
-			def sig = repackageSig(it.substring(methName.length()))
-			cls = repackageClass(cls)
+			signature = repackageSig(signature)
+			className = repackageClass(className)
 
-			outText.append(cls + "." + methName + sig + "=" + named + "\n")
+            def newKey = className + "." + methodName + signature
+
+            mappingsOut[newKey] = exceptionsAndParams.join("|")
 		}
 
-		outExc.write(outText.toString())
+        outExc.withOutputStream { stream -> mappingsOut.store(stream, "") }
 	}
 
 	def fixPatch(File patch)
