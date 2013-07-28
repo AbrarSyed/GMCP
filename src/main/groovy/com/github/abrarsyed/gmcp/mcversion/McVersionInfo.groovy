@@ -1,6 +1,7 @@
 package com.github.abrarsyed.gmcp.mcversion
 
 import com.google.common.base.Charsets
+import com.google.common.io.Files
 import com.google.common.io.Resources
 import groovy.json.JsonSlurper
 
@@ -31,6 +32,10 @@ class McVersionInfo {
 
     String mainClass
 
+    static def parse(File file) {
+        return parse(Files.toString(file, Charsets.UTF_8))
+    }
+
     static def parse(URL url) {
         try {
             return parse(Resources.toString(url, Charsets.UTF_8));
@@ -47,8 +52,16 @@ class McVersionInfo {
         def result = new McVersionInfo()
 
         result.id = (String) jsonInfo["id"]
-        result.time = parseDate((String) jsonInfo["time"])
-        result.releaseTime = parseDate((String) jsonInfo["releaseTime"])
+        try {
+            result.time = parseDate((String) jsonInfo["time"])
+        } catch (IllegalArgumentException ignored) {
+            // Ignore since these timestamps are not important for us right now
+        }
+        try {
+            result.releaseTime = parseDate((String) jsonInfo["releaseTime"])
+        } catch (IllegalArgumentException ignored) {
+            // Ignore since these timestamps are not important for us right now
+        }
         result.type = (String) jsonInfo["type"]
         result.processArguments = (String) jsonInfo["processArguments"]
         result.minecraftArguments = (String) jsonInfo["minecraftArguments"]

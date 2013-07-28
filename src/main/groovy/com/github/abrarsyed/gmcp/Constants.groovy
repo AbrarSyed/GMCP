@@ -34,7 +34,9 @@ public final class Constants
     // download URLs
     public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
     public static final String  URL_JSON_FORGE2     = "http://files.minecraftforge.net/minecraftforge/json2"
-    public static final String  URL_JSON_MC16       = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.json'
+    public static final String  URL_JSON_FML        = 'https://raw.github.com/MinecraftForge/FML/master/jsons/%1$s-dev.json'
+    public static final String  URL_MC16_CLIENT     = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.jar'
+    public static final String  URL_MC16_SERVER     = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar'
 
     // cache file paths
     public static final String  CACHE_JSON_FORGE    = "caches/gmcp/forge.json"
