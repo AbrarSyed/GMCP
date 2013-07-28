@@ -1,6 +1,6 @@
 package com.github.abrarsyed.gmcp
 
-import groovy.json.JsonSlurper
+import com.github.abrarsyed.gmcp.mcversion.McVersionInfo
 
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
@@ -125,9 +125,19 @@ public class GMCP implements Plugin<Project>
                         // 1.6.2+
                         // Download the information file for the version we are about to DL
                         // Example: https://s3.amazonaws.com/Minecraft.Download/versions/1.6.2/1.6.2.json
-                        def slurper = new JsonSlurper()
-                        def versionInfo
+                        def versionInfoUrl = new URL(String.format(Constants.URL_JSON_MC16, mcver))
+                        logger.debug("Loading Minecraft version information from {}", versionInfoUrl)
+                        def versionInfo = McVersionInfo.parse(versionInfoUrl)
 
+                        for (lib in versionInfo.libraries) {
+                            if (!lib.allowed) {
+                                logger.debug("Skipping Minecraft library {} because it does not apply to this system", lib.name)
+                            } else {
+                                // TODO: Respect the extract / native stuff
+                                logger.debug("Adding dependency on {}", lib.name)
+                                gmcp lib.name
+                            }
+                        }
 
                     }
                 }
