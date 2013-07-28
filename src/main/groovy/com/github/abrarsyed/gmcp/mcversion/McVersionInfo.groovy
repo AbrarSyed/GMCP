@@ -85,6 +85,24 @@ class McVersionInfo {
             def library = new McLibraryDependency()
             library.name = jsonLibrary["name"] // This is a Maven-style artifact reference
 
+            def jsonNatives = jsonLibrary["natives"]
+            if (jsonNatives != null) {
+                def natives = new McLibraryNatives()
+                natives.windows = jsonNatives["windows"]
+                natives.linux = jsonNatives["linux"]
+                natives.osx = jsonNatives["osx"]
+                library.natives = natives
+            }
+
+            def jsonExtract = jsonLibrary["extract"]
+            if (jsonExtract != null) {
+                def extract = new McLibraryExtract()
+                if (jsonExtract["exclude"] != null) {
+                    extract.exclude = jsonExtract["exclude"]
+                }
+                library.extract = extract
+            }
+
             // There are "rules" that pull in other versions of the libraries for different OS versions
             // Currently it seems to be used to pull in a nightly-build of lwjgl for certain MacOS versions
             def jsonRules = jsonLibrary["rules"]

@@ -6,6 +6,10 @@ class McLibraryDependency {
 
     List<McLibraryRule> rules = new ArrayList<McLibraryRule>()
 
+    McLibraryNatives natives = null
+
+    McLibraryExtract extract = null
+
     /**
      * Tests whether this dependency is excluded because it has matching disallow rules
      * @return

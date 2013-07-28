@@ -1,6 +1,8 @@
 package com.github.abrarsyed.gmcp
 
 import com.github.abrarsyed.gmcp.mcversion.McVersionInfo
+import com.google.common.io.ByteStreams
+import org.gradle.api.artifacts.Dependency
 
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
@@ -123,17 +125,18 @@ public class GMCP implements Plugin<Project>
                         def versionInfo = McVersionInfo.parse(fmlJsonUrl)
 
                         for (lib in versionInfo.libraries) {
-
                             // Gradle really really doesnt like broken POMs
                             if (lib.name.equals("net.sourceforge.argo:argo:2.25"))
                                 continue
 
-                            if (!lib.allowed) {
-                                logger.debug("Skipping Minecraft library {} because it does not apply to this system", lib.name)
-                            } else {
-                                // TODO: Respect the extract / native stuff
+                            if (lib.allowed) {
                                 logger.debug("Adding dependency on {}", lib.name)
-                                gmcp lib.name
+                                if (lib.natives) {
+                                    // Depend on the right qualifier
+                                    gmcp lib.name + ":" + lib.natives.getNative(Util.OS)
+                                } else {
+                                    gmcp lib.name
+                                }
                             }
                         }
 
@@ -243,7 +246,6 @@ public class GMCP implements Plugin<Project>
             }
         }
 
-
         // ----------------------------------------------------------------------------
         // download necessary stuff.
         task = project.task('getMinecraft', dependsOn: "getForge") {
@@ -293,6 +295,39 @@ public class GMCP implements Plugin<Project>
                 Util.download(clientUrl, jarFile(Constants.JAR_JAR_CLIENT_BAK))
                 def serverUrl = String.format(Constants.URL_MC16_SERVER, mcver)
                 Util.download(serverUrl, jarFile(Constants.JAR_JAR_SERVER))
+
+                // And parse the FML JSON again to get the native libraries we need
+                def versionInfo = McVersionInfo.parse(baseFile(Constants.DIR_FML, "fml.json"))
+
+                jarFile(Constants.DIR_JAR_BIN_NATIVES).mkdirs()
+
+                for (lib in versionInfo.libraries) {
+                    if (lib.allowed && lib.extract) {
+                        def dep =  project.configurations.gmcp.dependencies.find({
+                            Dependency d ->
+                                (d.group + ":" + d.name + ":" + d.version) == lib.name
+                        })
+                        def files = project.configurations.gmcp.files(dep)
+                        files.each({
+                            File f ->
+                            def zin = new ZipFile(f)
+                            Enumeration zinEn = zin.entries()
+                            while (zinEn.hasMoreElements()) {
+                                ZipEntry ze = zinEn.nextElement()
+                                // Check if its excluded...
+                                def excluded = lib.extract.exclude.any({ String spec -> ze.name.startsWith(spec) })
+                                if (excluded) {
+                                    continue
+                                }
+
+                                File out = jarFile(Constants.DIR_JAR_BIN_NATIVES, ze.name)
+                                InputStream inStream = zin.getInputStream(ze)
+                                Files.write(ByteStreams.toByteArray(inStream), out)
+                                inStream.close()
+                            }
+                        })
+                    }
+                }
             }
 
         }

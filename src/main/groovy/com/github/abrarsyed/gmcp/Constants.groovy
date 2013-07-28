@@ -22,6 +22,7 @@ public final class Constants
 
     // stuff in the jars folder
     static final String  	DIR_JAR_BIN 	    	= "bin"
+    static final String  	DIR_JAR_BIN_NATIVES     = DIR_JAR_BIN + "/natives"
     static final String 	JAR_JAR_CLIENT	    	= DIR_JAR_BIN + "/minecraft.jar"
     static final String     JAR_JAR_CLIENT_BAK      = DIR_JAR_BIN + "/minecraft.jar.bak"
     static final String 	JAR_JAR_SERVER	 	    = "minecraft_server.jar"
