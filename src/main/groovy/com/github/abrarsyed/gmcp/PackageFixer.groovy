@@ -78,7 +78,7 @@ public class PackageFixer
 		{
 			def cls = it.split(/\./)[0] 			// get classname
 			def named = rsplit(it, "=")[1] 			// get method name
-			it = it.substring(cls.size() + 1, it.size() - named.size()) 			// get param names
+			it = it.substring(cls.size() + 1, it.size() - named.size()) // get param names
 			def methName = it.split(/\(/)[0] 			// method get name and sig
 
 			def temp = named.split(/\|/) as List

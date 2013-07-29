@@ -35,7 +35,7 @@ class Util
         if (name.contains("windows"))
             OperatingSystem.WINDOWS
         else if (name.contains("mac"))
-            OperatingSystem.MAC
+            OperatingSystem.OSX
         else if (name.contains("linux"))
             OperatingSystem.LINUX
         else
@@ -90,6 +90,21 @@ class Util
         arguments.addAll(args)
 
         return file(arguments as String[])
+    }
+    
+    /**
+     * Just like the jarFile method, except it uses the version in the path.
+     * @param args
+     * @return
+     */
+    def static File jarVersionFile(String... args)
+    {
+        def arguments = []
+        arguments += 'versions'
+        arguments += GMCP.project.minecraft.minecraftVersion
+        arguments.addAll(args)
+
+        return jarFile(arguments as String[])
     }
 
     def static File srcFile(String... args)

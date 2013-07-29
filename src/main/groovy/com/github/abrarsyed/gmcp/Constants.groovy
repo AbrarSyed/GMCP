@@ -21,10 +21,13 @@ public final class Constants
     static final String 	JAR_PROC		    	= "Minecraft_processed.jar"
 
     // stuff in the jars folder
-    static final String  	DIR_JAR_BIN 	    	= "bin"
+    static final String  	DIR_JAR_BIN 	        = "bin"
+    static final String     DIR_JAR_ASSETS          = "assets"
     static final String 	JAR_JAR_CLIENT	    	= DIR_JAR_BIN + "/minecraft.jar"
     static final String     JAR_JAR_CLIENT_BAK      = DIR_JAR_BIN + "/minecraft.jar.bak"
     static final String 	JAR_JAR_SERVER	 	    = "minecraft_server.jar"
+    static final String     JAR_JAR16_CLIENT        = "minecraft.jar"
+    static final String     JAR_JAR16_CLIENT_BAK    = "minecraft.jar.bak"
 
     // misc and executeables
     static final String         EXEC_WIN_PATCH      = DIR_MISC + "/applydiff.exe"
@@ -34,7 +37,7 @@ public final class Constants
     // download URLs
     public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
     public static final String  URL_JSON_FORGE2     = "http://files.minecraftforge.net/minecraftforge/json2"
-    public static final String  URL_JSON_MC16       = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.json'
+    public static final String  URL_ASSETS          = 'http://s3.amazonaws.com/Minecraft.Resources'
 
     // cache file paths
     public static final String  CACHE_JSON_FORGE    = "caches/gmcp/forge.json"
@@ -46,7 +49,7 @@ public final class Constants
     public static final String  REC_ASTYLE_EXEC     = "misc/astyle/astyle_%s"
 
     // random, 1.5.2-minus dependancies
-    public static final List<String> DEP_152_MINUS = [
+    public static final List<String> DEP_152_MINUS  = [
         'net.sourceforge.argo:argo:3.4',
         'org.ow2.asm:asm-all:4.0',
         'org.bouncycastle:bcprov-ext-jdk15on:1.48',
@@ -67,6 +70,6 @@ public final class Constants
 
     static enum OperatingSystem
     {
-        WINDOWS, MAC, LINUX
+        WINDOWS, OSX, LINUX
     }
 }

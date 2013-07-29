@@ -2,7 +2,6 @@ package com.github.abrarsyed.gmcp.tasks
 
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.file
-import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.srcFile
 import groovy.io.FileType
 
@@ -195,7 +194,7 @@ class DecompileMinecraftTask extends DefaultTask
                 case OperatingSystem.LINUX:
                     exec = "astyle"
                     break
-                case OperatingSystem.MAC:
+                case OperatingSystem.OSX:
                     exec = baseFile(Constants.EXEC_ASTYLE).getPath()
                     break
                 case OperatingSystem.WINDOWS:

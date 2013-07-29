@@ -1,7 +1,5 @@
 package com.github.abrarsyed.gmcp.extensions
 
-import org.gradle.api.Nullable
-
 import argo.jdom.JdomParser
 import argo.jdom.JsonNode
 import argo.jdom.JsonRootNode
@@ -25,10 +23,12 @@ class GMCPExtension
     private final File cacheFile2
     private static final JdomParser JDOM_PARSER = new JdomParser()
 
+    def private less152 = null
+
     public GMCPExtension(GMCP project)
     {
-        cacheFile = Util.file(System.getProperty("user.home"), Constants.CACHE_JSON_FORGE)
-        cacheFile2 = Util.file(System.getProperty("user.home"), Constants.CACHE_JSON_FORGE2)
+        cacheFile = Util.file(System.getProperty("user.home"), '.gradle', Constants.CACHE_JSON_FORGE)
+        cacheFile2 = Util.file(System.getProperty("user.home"), '.gradle', Constants.CACHE_JSON_FORGE2)
 
         cacheFile.getParentFile().mkdirs()
     }
@@ -259,19 +259,24 @@ class GMCPExtension
         if (!jarDir)
             jarDir = baseDir + "/jars"
     }
-    
+
     public boolean is152OrLess()
     {
+        if (less152 != null)
+            return less152
+
         def match = minecraftVersion =~ /(\d)\.(\d)(\.\d)?/
 
         def major = match[0][1] as int
         def minor = match[0][2] as int
 
         if (major > 1)
-            return false
+            less152 = false
         else if (minor > 5)
-            return false
+            less152 = false
         else
-            return true
+            less152 = true
+
+        return less152
     }
 }

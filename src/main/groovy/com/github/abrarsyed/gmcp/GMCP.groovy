@@ -2,6 +2,7 @@ package com.github.abrarsyed.gmcp
 
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
+import static com.github.abrarsyed.gmcp.Util.jarVersionFile
 import static com.github.abrarsyed.gmcp.Util.srcFile
 import groovy.xml.StreamingMarkupBuilder
 import groovy.xml.XmlUtil
@@ -64,6 +65,7 @@ public class GMCP implements Plugin<Project>
 
         // start the tasks
         downloadTasks()
+        nativesUnpackTask()
         jarTasks()
         decompileTask()
 
@@ -86,10 +88,14 @@ public class GMCP implements Plugin<Project>
 
                 def mcver = minecraft.minecraftVersion
                 def is152Minus = minecraft.is152OrLess()
-
-                // for only 0.5, crash on more than 1.5.2
-                //                if (!is152Minus)
-                //                    throw new RuntimeException('GMCP 0.5 only supports Minecraft 1.5.2 or lower!')
+                
+                // read 1.6 json
+                def json16 = null
+                if (!is152Minus)
+                {
+                    json16 = new Json16Reader()
+                    json16.parseJson()
+                }
 
                 // yay for maven central.
                 repositories {
@@ -111,23 +117,30 @@ public class GMCP implements Plugin<Project>
                         // 1.5.2-
 
                         for (dep in Constants.DEP_152_MINUS)
-                        {
                             gmcp dep
-                        }
-
-                        gmcp fileTree(dir:jarFile(Constants.DIR_JAR_BIN), include: "*.jar")
+                            
+                        gmcp file(Util.jarFile(Constants.JAR_JAR_CLIENT))
+                        gmcpNative file(Util.jarFile(Constants.DIR_JAR_BIN, 'natives.jar'))
 
                     }
                     else
                     {
-                        // 1.6.2+
-
-                        // TODO: read JSON here
+                        // 1.6+
+                        
+                        for (dep in json16.libs)
+                            gmcp dep
+                        
+                        for (dep in json16.nativeLibs)
+                            gmcpNative dep
+                        
+                        gmcp file(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT))
                     }
                 }
-
-                // eclipse specific native stuff
-                idea.pathVariables 'MC_BASE': file(project.minecraft.baseDir), 'MC_SRC': file(project.minecraft.srcDir),'MC_JAR': file(project.minecraft.jarDir)
+                
+                // minectaft download configuration
+                tasks.getMinecraft {
+                    json = json16
+                }
             }
         }
     }
@@ -140,11 +153,11 @@ public class GMCP implements Plugin<Project>
                 visible = false
                 description = "GMCP internal configuration. Don't use!"
             }
-
-            provided {
-                transitive = true
-                visible = true
-                description = "Compile time, but not runtime"
+            
+            gmcpNative {
+                transitive = false
+                visible = false
+                description = "GMCP internal configuration. Don't use!"
             }
 
             minecraftCompile.extendsFrom gmcp
@@ -153,11 +166,6 @@ public class GMCP implements Plugin<Project>
             project.sourceSets.test.compileClasspath += gmcp
             project.idea.module.scopes.COMPILE.plus += gmcp
             project.eclipse.classpath.plusConfigurations += gmcp
-
-            project.sourceSets.main.compileClasspath += provided
-            project.sourceSets.test.compileClasspath += provided
-            project.idea.module.scopes.PROVIDED.plus += provided
-            project.eclipse.classpath.plusConfigurations += provided
         }
     }
 
@@ -232,41 +240,6 @@ public class GMCP implements Plugin<Project>
         task = project.task('getMinecraft', dependsOn: "getForge") {
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
-            inputs.file { baseFile(Constants.DIR_FML, "mc_versions.cfg") }
-            outputs.with {
-                file { jarFile(Constants.JAR_JAR_CLIENT_BAK) }
-                file { jarFile(Constants.JAR_JAR_SERVER) }
-                file { jarFile("bin", "lwjgl.jar") }
-                file { jarFile("bin", "lwjgl_util.jar") }
-                file { jarFile("bin", "jinput.jar") }
-                dir { jarFile("bin", "natives") }
-            }
-        }
-        task << {
-            new File(project.minecraft.jarDir).mkdirs()
-            def root = jarFile(Constants.DIR_JAR_BIN)
-            root.mkdirs()
-
-            // read config
-            ConfigParser parser = new ConfigParser(baseFile(Constants.DIR_FML, "mc_versions.cfg"))
-            def baseUrl = parser.getProperty("default", "base_url")
-
-            def mcver = parser.getProperty("default", "current_ver")
-            Util.download(parser.getProperty(mcver, "client_url"), jarFile(Constants.JAR_JAR_CLIENT_BAK))
-            Util.download(parser.getProperty(mcver, "server_url"), jarFile(Constants.JAR_JAR_SERVER))
-
-            def dls = parser.getProperty("default", "libraries").split(/\s/)
-            dls.each { Util.download(baseUrl+it, new File(root, it)) }
-
-            def nativesJar = Util.file(temporaryDir, "natives.jar")
-            def nativesName = parser.getProperty("default", "natives").split(/\s/)[os.ordinal()]
-            Util.download(baseUrl + nativesName, nativesJar)
-
-            project.copy {
-                from project.zipTree(nativesJar)
-                exclude 'META-INF'
-                into Util.file(root, "natives")
-            }
         }
 
         // ----------------------------------------------------------------------------
@@ -319,16 +292,37 @@ public class GMCP implements Plugin<Project>
             baseFile(Constants.EXEC_WIN_PATCH) << stream.getBytes()
 
             // extract astyle
-            def astyleIn = String.format(Constants.REC_ASTYLE_EXEC, os.toString().toLowerCase())
-            def astyleOut = Constants.EXEC_ASTYLE
-            if (os == OperatingSystem.WINDOWS)
+            if (os != OperatingSystem.LINUX)
             {
-                astyleIn += ".exe"
-                astyleOut += ".exe"
-            }
+                def astyleIn = String.format(Constants.REC_ASTYLE_EXEC, os.toString().toLowerCase())
+                def astyleOut = Constants.EXEC_ASTYLE
+                if (os == OperatingSystem.WINDOWS)
+                {
+                    astyleIn += ".exe"
+                    astyleOut += ".exe"
+                }
 
-            stream = this.getClass().classLoader.getResourceAsStream(astyleIn)
-            baseFile(astyleOut) << stream.getBytes()
+                stream = this.getClass().classLoader.getResourceAsStream(astyleIn)
+                baseFile(astyleOut) << stream.getBytes()
+            }
+        }
+    }
+    
+    def nativesUnpackTask()
+    {
+        def task = project.task("unpackNatives", dependsOn: 'getMinecraft') {
+            inputs.files { project.configurations.gmcpNative }
+            outputs.dir { jarFile(Constants.DIR_JAR_BIN, 'natives')}
+            
+            doLast {
+                copy {
+                    configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
+                        from zipTree(it.file)
+                    }
+                    
+                    into jarFile(Constants.DIR_JAR_BIN, 'natives')
+                }
+            }
         }
     }
 
@@ -340,7 +334,7 @@ public class GMCP implements Plugin<Project>
             description = "Deobfuscates Minecraft, and applies the Exceptor"
             group = "minecraft"
             inputs.with {
-                file { jarFile(Constants.JAR_JAR_CLIENT_BAK) }
+                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT_BAK) : jarVersionFile(Constants.JAR_JAR_CLIENT16_BAK)}
                 file { jarFile(Constants.JAR_JAR_SERVER) }
                 file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
@@ -350,7 +344,7 @@ public class GMCP implements Plugin<Project>
             }
 
             outputs.with {
-                file { jarFile(Constants.JAR_JAR_CLIENT) }
+                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR_CLIENT16)}
                 file { baseFile(Constants.JAR_PROC) }
             }
 
@@ -458,6 +452,7 @@ public class GMCP implements Plugin<Project>
         def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
             dependsOn 'extractMisc'
             dependsOn 'doJarPreProcess'
+            dependsOn 'unpackNatives'
 
             inputs.with {
                 dir {baseFile(Constants.DIR_FML_PATCHES)}
@@ -519,12 +514,12 @@ public class GMCP implements Plugin<Project>
         def task = project.task('afterEclipseImport'){
         }
         task << {
-            
+
             def file = project.file('.classpath')
-            
+
             // open up classpath variable, and make edits.
             def rootNode = new XmlSlurper().parseText(file.text)
-            
+
             // NATIVES PART  ---------------------------------------------------------------------
             def nativesDir = jarFile(Constants.DIR_JAR_BIN, 'natives').getPath()
 
@@ -556,15 +551,15 @@ public class GMCP implements Plugin<Project>
                     }
                 }
             }
-            
+
             // write XML
             // check the whole document using XmlUnit
             def builder = new StreamingMarkupBuilder()
             def result = builder.bind({mkp.yield rootNode })
             result = XmlUtil.serialize(result)
-            
+
             println result
-            
+
             file.write result
         }
     }
