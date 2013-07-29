@@ -7,6 +7,7 @@ class Util
 
     def static download(String url, File output)
     {
+        output.getParentFile().mkdirs()
         output.createNewFile()
         while(url)
         {

@@ -48,9 +48,13 @@ class DownloadMinecraftTask extends DefaultTask
         def rootNode = new XmlSlurper().parse(Constants.URL_ASSETS)
         
         //ListBucketResult
-        def files = rootNode.Contents.collect { it.key.text() }
+        def files = rootNode.Contents.collect { it.Size.text() != '0' ? it.Key.text() : null}
         
         files.each {
+            // skip empty entries.
+            if (!it)
+                return
+            
             def file = Util.file(assets, it)
             def url = Constants.URL_ASSETS + '/' + it
             Util.download(url, file)

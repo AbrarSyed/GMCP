@@ -95,12 +95,12 @@ uploadArchives {
             authentication(userName: sonatypeUsername, password: sonatypePassword)
         }
 
-//        // local testing only.
-//        snapshotRepository(url: "file://D:/Users/AbrarSyed/EclipseWorkspace/MavenRepo")
+        // local testing only.
+        snapshotRepository(url: 'file://'+project.projectDir.getPath()+"/../MavenRepo")
 
-        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
-            authentication(userName: sonatypeUsername, password: sonatypePassword)
-        }
+//        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+//            authentication(userName: sonatypeUsername, password: sonatypePassword)
+//        }
 
         pom {
             groupId = project.group

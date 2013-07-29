@@ -28,6 +28,7 @@ import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
 import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
+import com.github.abrarsyed.gmcp.tasks.DownloadMinecraftTask
 import com.google.common.io.Files
 
 import cpw.mods.fml.common.asm.transformers.MCPMerger
@@ -37,7 +38,6 @@ public class GMCP implements Plugin<Project>
     //public GMCPExtension ext
     public static OperatingSystem os = Util.getOS()
     public static Project project
-    public static dependancies
 
     @Override
     public void apply(Project project)
@@ -93,7 +93,7 @@ public class GMCP implements Plugin<Project>
                 def json16 = null
                 if (!is152Minus)
                 {
-                    json16 = new Json16Reader()
+                    json16 = new Json16Reader(mcver)
                     json16.parseJson()
                 }
 
@@ -119,8 +119,8 @@ public class GMCP implements Plugin<Project>
                         for (dep in Constants.DEP_152_MINUS)
                             gmcp dep
                             
-                        gmcp file(Util.jarFile(Constants.JAR_JAR_CLIENT))
-                        gmcpNative file(Util.jarFile(Constants.DIR_JAR_BIN, 'natives.jar'))
+                        gmcp files(Util.jarFile(Constants.JAR_JAR_CLIENT).getPath())
+                        gmcpNative files(Util.jarFile(Constants.DIR_JAR_BIN, 'natives.jar').getPath())
 
                     }
                     else
@@ -133,7 +133,7 @@ public class GMCP implements Plugin<Project>
                         for (dep in json16.nativeLibs)
                             gmcpNative dep
                         
-                        gmcp file(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT))
+                        gmcp files(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT).getPath())
                     }
                 }
                 
@@ -237,7 +237,7 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // download necessary stuff.
-        task = project.task('getMinecraft', dependsOn: "getForge") {
+        task = project.task('getMinecraft', dependsOn: "getForge", type: DownloadMinecraftTask) {
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
         }
@@ -315,9 +315,9 @@ public class GMCP implements Plugin<Project>
             outputs.dir { jarFile(Constants.DIR_JAR_BIN, 'natives')}
             
             doLast {
-                copy {
-                    configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
-                        from zipTree(it.file)
+                project.copy {
+                    project.configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
+                        from project.zipTree(it.file)
                     }
                     
                     into jarFile(Constants.DIR_JAR_BIN, 'natives')
@@ -334,7 +334,7 @@ public class GMCP implements Plugin<Project>
             description = "Deobfuscates Minecraft, and applies the Exceptor"
             group = "minecraft"
             inputs.with {
-                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT_BAK) : jarVersionFile(Constants.JAR_JAR_CLIENT16_BAK)}
+                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT_BAK) : jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK)}
                 file { jarFile(Constants.JAR_JAR_SERVER) }
                 file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
@@ -344,7 +344,7 @@ public class GMCP implements Plugin<Project>
             }
 
             outputs.with {
-                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR_CLIENT16)}
+                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR16_CLIENT)}
                 file { baseFile(Constants.JAR_PROC) }
             }
 
@@ -352,11 +352,14 @@ public class GMCP implements Plugin<Project>
         }
         // merge jars
         task << {
+            def is152 = project.minecraft.is152OrLess()
+            println "is152? -> $is152"
+            
             def server = Util.file(temporaryDir, "server.jar")
-            def merged = jarFile(Constants.JAR_JAR_CLIENT)
+            def merged = is152 ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR16_CLIENT)
             def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
-            Files.copy(jarFile(Constants.JAR_JAR_CLIENT_BAK), mergeTemp)
+            Files.copy(is152 ? jarFile(Constants.JAR_JAR_CLIENT_BAK) : jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK), mergeTemp)
             Files.copy(jarFile(Constants.JAR_JAR_SERVER), server)
 
             logger.lifecycle "Merging jars"
@@ -389,7 +392,7 @@ public class GMCP implements Plugin<Project>
         }
         // deobfuscate---------------------------
         task << {
-            def merged = jarFile(Constants.JAR_JAR_CLIENT)
+            def merged = project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR16_CLIENT)
             def deobf = Util.file(temporaryDir, "deobf.jar")
 
             logger.lifecycle "DeObfuscating jar"

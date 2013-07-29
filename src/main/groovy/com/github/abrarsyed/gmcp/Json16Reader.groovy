@@ -17,7 +17,7 @@ class Json16Reader
     def libs = []
     def nativeLibs = []
 
-    public Json16reader(String version)
+    public Json16Reader(String version)
     {
         this.version = version
         slurper = new JsonSlurper()
@@ -37,7 +37,7 @@ class Json16Reader
                 continue;
             else if (obj['natives'] || obj['extract'])
             // native. will need extraction.
-                nativeLibs += obj['name'] + ':' + obj['natives'][GMCP.os.name()]
+                nativeLibs += obj['name'] + ':' + obj['natives'][GMCP.os.name().toLowerCase()]
             else
             // standard download
                 libs += obj['name']

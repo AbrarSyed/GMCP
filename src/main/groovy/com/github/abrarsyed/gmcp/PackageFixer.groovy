@@ -3,182 +3,196 @@ package com.github.abrarsyed.gmcp
 import au.com.bytecode.opencsv.CSVParser
 import au.com.bytecode.opencsv.CSVReader
 
+import com.google.code.regexp.Pattern
+
 
 public class PackageFixer
 {
 
-	def packages
-	public static final String SIG_PATTERN = /([\[ZBCSIJFDV]|L([\w\\/]+);)/
-	public static final String PACK_PATTERN = /net\\minecraft\\src\\\w+/
+    def packages
+    public static final String SIG_PATTERN = /([\[ZBCSIJFDV]|L([\w\\/]+);)/
+    public static final String PACK_PATTERN = /net\\minecraft\\src\\\w+/
+    public static final Pattern METHOD_SIG_PATTERN = Pattern.compile(/^(?<className>[^\.]+)\.(?<methodName>[^\(]+)(?<signature>.*)$/)
 
-	public PackageFixer(file)
-	{
-		def reader = new CSVReader(new FileReader(file), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false)
-		packages = [:]
-		reader.readAll().each
-		{
-			packages[it[0]] = it[1]
-		}
-	}
+    public PackageFixer(file)
+    {
+        def reader = new CSVReader(new FileReader(file), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false)
+        packages = [:]
+        reader.readAll().each
+        {
+            packages[it[0]] = it[1]
+        }
+    }
 
-	def fixSRG(File inSRG, File outSRG)
-	{
-		if (!outSRG.exists())
-		{
-			outSRG.getParentFile().mkdirs()
-			outSRG.createNewFile()
-		}
+    def fixSRG(File inSRG, File outSRG)
+    {
+        if (!outSRG.exists())
+        {
+            outSRG.getParentFile().mkdirs()
+            outSRG.createNewFile()
+        }
 
-		def outText = new StringBuilder()
+        def outText = new StringBuilder()
 
-		inSRG.text.readLines().each
-		{
-			List<String> sections = it.split(" ")
-			def oldSections = sections
-			def line = it
+        inSRG.text.readLines().each
+        {
+            List<String> sections = it.split(" ")
+            def oldSections = sections
+            def line = it
 
-			switch(sections[0])
-			{
-				case "CL:": // class decleration
-					sections[2] = repackageClass(sections[2])
-					break
+            switch(sections[0])
+            {
+                case "CL:": // class decleration
+                    sections[2] = repackageClass(sections[2])
+                    break
 
-				case "FD:":
-					def split = rsplit(sections[2], "/")
-					split[0] = repackageClass(split[0])
-					sections[2] = split.join("/")
-					break
+                case "FD:":
+                    def split = rsplit(sections[2], "/")
+                    split[0] = repackageClass(split[0])
+                    sections[2] = split.join("/")
+                    break
 
-				case "MD:":
-					def split = rsplit(sections[3], "/")
-					split[0] = repackageClass(split[0])
-					sections[3] = split.join("/")
-					sections[4] = repackageSig(sections[4])
-					break
-			}
+                case "MD:":
+                    def split = rsplit(sections[3], "/")
+                    split[0] = repackageClass(split[0])
+                    sections[3] = split.join("/")
+                    sections[4] = repackageSig(sections[4])
+                    break
+            }
 
-			line = sections.join(" ")
-			outText.append(line).append("\n")
-		}
+            line = sections.join(" ")
+            outText.append(line).append("\n")
+        }
 
-		outSRG.write(outText.toString())
-	}
+        outSRG.write(outText.toString())
+    }
 
-	def fixExceptor(File inExc, File outExc)
-	{
-		if (!outExc.exists())
-		{
-			outExc.getParentFile().mkdirs()
-			outExc.createNewFile()
-		}
+    // thanks shartte. This code is stolen directly from him/her
+    def fixExceptor(File inExc, File outExc)
+    {
+        if (!outExc.exists())
+        {
+            outExc.getParentFile().mkdirs()
+            outExc.createNewFile()
+        }
 
-		def outText = new StringBuilder()
+        def mappings = new Properties()
+        def mappingsOut = new Properties()
 
-		inExc.text.readLines().each
-		{
-			def cls = it.split(/\./)[0] 			// get classname
-			def named = rsplit(it, "=")[1] 			// get method name
-			it = it.substring(cls.size() + 1, it.size() - named.size()) // get param names
-			def methName = it.split(/\(/)[0] 			// method get name and sig
+        // Try to load the mappings
+        mappings.load(inExc.newInputStream())
 
-			def temp = named.split(/\|/) as List
+        mappings.each
+        { key, value ->
+            def matcher = METHOD_SIG_PATTERN.matcher(key)
 
-			// temp[0] is the exceptions
-			if (temp[0])
-			{
-				def excs = temp[0].split(",")
-				excs = excs.collect { repackageClass(it) }
+            if (!matcher.matches()) {
+                // There are some new fields in MCP for MC 1.6 that are not straight up method signatures
+                mappingsOut[key] = value
+                return
+            }
 
-				if (temp.size() < 2)
-					temp.add("")
+            def className = matcher.group("className")
+            def methodName = matcher.group("methodName")
+            def signature = matcher.group("signature")
+            def exceptionsAndParams = value.split(/\|/) as List
 
-				named = excs.join(",") + "|" + temp[1]
-			}
+            def exceptions = exceptionsAndParams[0]
+            if (exceptions)
+            {
+                def excs = exceptions.split(',')
+                excs = excs.collect { repackageClass(it) }
+                exceptionsAndParams[0] = excs.join(',')
+            }
+            if (exceptionsAndParams.size() < 2)
+                exceptionsAndParams.add('')
 
-			def sig = repackageSig(it.substring(methName.length()))
-			cls = repackageClass(cls)
+            signature = repackageSig(signature)
+            className = repackageClass(className)
 
-			outText.append(cls + "." + methName + sig + "=" + named + "\n")
-		}
+            def newKey = className + "." + methodName + signature
 
-		outExc.write(outText.toString())
-	}
+            mappingsOut[newKey] = exceptionsAndParams.join('|')
+        }
 
-	def fixPatch(File patch)
-	{
-		def text = patch.text
+        mappingsOut.store(outExc.newOutputStream(), '')
+    }
 
-		text.findAll(PACK_PATTERN)
-		{ match ->
-			def cls = repackageClass(match.replace('\\', '/')).replace('/', '\\')
-			text = text.replace(match, cls)
-		}
+    def fixPatch(File patch)
+    {
+        def text = patch.text
 
-		text.replaceAll(/(\r\n|\n|\r)/, "\n")
+        text.findAll(PACK_PATTERN)
+        { match ->
+            def cls = repackageClass(match.replace('\\', '/')).replace('/', '\\')
+            text = text.replace(match, cls)
+        }
 
-		patch.write(text)
-	}
+        text.replaceAll(/(\r\n|\n|\r)/, "\n")
 
-	private String repackageClass(String input)
-	{
-		if (input.startsWith("net/minecraft/src"))
-		{
-			def className = input.substring(18)
-			if (packages[className])
-				return packages[className]+"/"+className
-		}
+        patch.write(text)
+    }
 
-		return input
-	}
+    private String repackageClass(String input)
+    {
+        if (input.startsWith("net/minecraft/src"))
+        {
+            def className = input.substring(18)
+            if (packages[className])
+                return packages[className]+"/"+className
+        }
 
-	private String repackageSig(String sig)
-	{
-		def split = rsplit(sig, ")")
-		def params = split[0]
-		def ret = split[1]
+        return input
+    }
 
-		def out = "("
+    private String repackageSig(String sig)
+    {
+        def split = rsplit(sig, ")")
+        def params = split[0]
+        def ret = split[1]
 
-		// add in changed parameters
-		def match = params =~ SIG_PATTERN
-		while (match.find())
-		{
-			if (match.group().length() > 1)
-			{
-				def tempTwo = match.group(2)
-				out += "L"+repackageClass(match.group(2))+";"
-			}
-			else
-				out += match.group()
-		}
+        def out = "("
 
-		out += ")"
+        // add in changed parameters
+        def match = params =~ SIG_PATTERN
+        while (match.find())
+        {
+            if (match.group().length() > 1)
+            {
+                def tempTwo = match.group(2)
+                out += "L"+repackageClass(match.group(2))+";"
+            }
+            else
+                out += match.group()
+        }
 
-		match = ret =~ SIG_PATTERN
-		while (match.find())
-		{
-			if (match.group().length() > 1)
-			{
-				def tempTwo = match.group(2)
-				out += "L"+repackageClass(match.group(2))+";"
-			}
-			else
-				out += match.group()
-		}
+        out += ")"
 
-		return out
-	}
+        match = ret =~ SIG_PATTERN
+        while (match.find())
+        {
+            if (match.group().length() > 1)
+            {
+                def tempTwo = match.group(2)
+                out += "L"+repackageClass(match.group(2))+";"
+            }
+            else
+                out += match.group()
+        }
 
-	public static rsplit(String input, String splitter)
-	{
-		def index = input.lastIndexOf(splitter)
+        return out
+    }
 
-		if (index == -1)
-			return input
+    public static rsplit(String input, String splitter)
+    {
+        def index = input.lastIndexOf(splitter)
 
-		def pieceOne = input.substring(0, index)
-		def pieceTwo = input.substring(index+1)
-		return [pieceOne, pieceTwo]
-	}
+        if (index == -1)
+            return input
+
+        def pieceOne = input.substring(0, index)
+        def pieceTwo = input.substring(index+1)
+        return [pieceOne, pieceTwo]
+    }
 
 }
