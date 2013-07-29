@@ -25,9 +25,17 @@ class DownloadMinecraftTask extends DefaultTask
             do16Plus()
     }
     
+    def public setIncrementals()
+    {
+        if (project.minecraft.is152OrLess())
+            set152Incrementals()
+        else
+            set16PlusIncrementals()
+    }
+    
     def private set16PlusIncrementals()
     {
-        inputs.file { baseFile(Constants.DIR_FML, "mc_versions.cfg") }
+        inputs.file { Util.baseFile(Constants.DIR_FML, "mc_versions.cfg") }
         outputs.with {
             file { Util.jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK) }
             file { Util.jarFile(Constants.JAR_JAR_SERVER) }

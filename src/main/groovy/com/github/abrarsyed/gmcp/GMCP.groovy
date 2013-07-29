@@ -140,6 +140,7 @@ public class GMCP implements Plugin<Project>
                 // minectaft download configuration
                 tasks.getMinecraft {
                     json = json16
+                    setIncrementals()
                 }
             }
         }
