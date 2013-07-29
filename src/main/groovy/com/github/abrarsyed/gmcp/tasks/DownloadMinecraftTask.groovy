@@ -29,9 +29,8 @@ class DownloadMinecraftTask extends DefaultTask
     {
         inputs.file { baseFile(Constants.DIR_FML, "mc_versions.cfg") }
         outputs.with {
-            file { Util.jarFile(Constants.JAR_JAR16_CLIENT_BAK) }
+            file { Util.jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK) }
             file { Util.jarFile(Constants.JAR_JAR_SERVER) }
-            dir { Util.jarFile(Constants.DIR_JAR_ASSETS) }
         }
     }
     
@@ -39,26 +38,6 @@ class DownloadMinecraftTask extends DefaultTask
     {
         Util.download(json.getClientURL(), Util.jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK))
         Util.download(json.getServerURL(), Util.jarFile(Constants.JAR_JAR_SERVER))
-        
-        // make assets dir.
-        def assets = Util.jarFile(Constants.DIR_JAR_ASSETS)
-        assets.mkdirs()
-        
-        // get resources
-        def rootNode = new XmlSlurper().parse(Constants.URL_ASSETS)
-        
-        //ListBucketResult
-        def files = rootNode.Contents.collect { it.Size.text() != '0' ? it.Key.text() : null}
-        
-        files.each {
-            // skip empty entries.
-            if (!it)
-                return
-            
-            def file = Util.file(assets, it)
-            def url = Constants.URL_ASSETS + '/' + it
-            Util.download(url, file)
-        }
     }
 
     def private set152Incrementals()

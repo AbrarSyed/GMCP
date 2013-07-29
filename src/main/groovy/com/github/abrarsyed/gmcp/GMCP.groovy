@@ -241,6 +241,36 @@ public class GMCP implements Plugin<Project>
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
         }
+        
+        task = project.task('getAssets', dependsOn: 'getForge') {
+            outputs.dir { Util.jarFile(Constants.DIR_JAR_ASSETS) }
+            
+            doLast {
+                
+                if (project.minecraft.is152OrLess())
+                    return
+                
+                // make assets dir.
+                def assets = Util.jarFile(Constants.DIR_JAR_ASSETS)
+                assets.mkdirs()
+                
+                // get resources
+                def rootNode = new XmlSlurper().parse(Constants.URL_ASSETS)
+                
+                //ListBucketResult
+                def files = rootNode.Contents.collect { it.Size.text() != '0' ? it.Key.text() : null}
+                
+                files.each {
+                    // skip empty entries.
+                    if (!it)
+                        return
+                    
+                    def file = Util.file(assets, it)
+                    def url = Constants.URL_ASSETS + '/' + it
+                    Util.download(url, file)
+                }
+            }
+        }
 
         // ----------------------------------------------------------------------------
         // to do the package changes
@@ -453,9 +483,7 @@ public class GMCP implements Plugin<Project>
     def decompileTask()
     {
         def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
-            dependsOn 'extractMisc'
-            dependsOn 'doJarPreProcess'
-            dependsOn 'unpackNatives'
+            dependsOn 'extractMisc', 'doJarPreProcess', 'unpackNatives', 'getAssets'
 
             inputs.with {
                 dir {baseFile(Constants.DIR_FML_PATCHES)}
