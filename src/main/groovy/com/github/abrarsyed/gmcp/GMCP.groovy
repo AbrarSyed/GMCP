@@ -64,6 +64,7 @@ public class GMCP implements Plugin<Project>
         doResolving()
 
         // start the tasks
+        resolveTask()
         downloadTasks()
         nativesUnpackTask()
         jarTasks()
@@ -88,14 +89,6 @@ public class GMCP implements Plugin<Project>
 
                 def mcver = minecraft.minecraftVersion
                 def is152Minus = minecraft.is152OrLess()
-                
-                // read 1.6 json
-                def json16 = null
-                if (!is152Minus)
-                {
-                    json16 = new Json16Reader(mcver)
-                    json16.parseJson()
-                }
 
                 // yay for maven central.
                 repositories {
@@ -118,29 +111,11 @@ public class GMCP implements Plugin<Project>
 
                         for (dep in Constants.DEP_152_MINUS)
                             gmcp dep
-                            
+
                         gmcp files(Util.jarFile(Constants.JAR_JAR_CLIENT).getPath())
                         gmcpNative files(Util.jarFile(Constants.DIR_JAR_BIN, 'natives.jar').getPath())
 
                     }
-                    else
-                    {
-                        // 1.6+
-                        
-                        for (dep in json16.libs)
-                            gmcp dep
-                        
-                        for (dep in json16.nativeLibs)
-                            gmcpNative dep
-                        
-                        gmcp files(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT).getPath())
-                    }
-                }
-                
-                // minectaft download configuration
-                tasks.getMinecraft {
-                    json = json16
-                    setIncrementals()
                 }
             }
         }
@@ -154,7 +129,7 @@ public class GMCP implements Plugin<Project>
                 visible = false
                 description = "GMCP internal configuration. Don't use!"
             }
-            
+
             gmcpNative {
                 transitive = false
                 visible = false
@@ -199,10 +174,48 @@ public class GMCP implements Plugin<Project>
     def configureCompilation()
     {
         project.compileMinecraftJava {
-            dependsOn 'decompileMinecraft'
+            dependsOn 'decompileMinecraft', 'resolveMinecraftStuff'
             options.warnings = false
             targetCompatibility = '1.6'
             sourceCompatibility = '1.6'
+        }
+    }
+    
+    def resolveTask()
+    {
+        def task = project.task('resolveMinecraftStuff')
+        task << {
+            
+            project.with {
+                // read 1.6 json
+                def json16 = null
+                if (!minecraft.is152OrLess())
+                {
+                    json16 = new Json16Reader(minecraft.minecraftVersion)
+                    json16.parseJson()
+                }
+
+                // set stuff.
+                // minectaft download configuration
+                tasks.getMinecraft {
+                    json = json16
+                    setIncrementals()
+                }
+
+                // do dependnecies
+                if (!minecraft.is152OrLess())
+                {
+                    dependencies {
+                        for (dep in json16.libs)
+                            gmcp dep
+
+                        for (dep in json16.nativeLibs)
+                            gmcpNative dep
+
+                        gmcp files(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT).getPath())
+                    }
+                }
+            }
         }
     }
 
@@ -241,31 +254,33 @@ public class GMCP implements Plugin<Project>
         task = project.task('getMinecraft', dependsOn: "getForge", type: DownloadMinecraftTask) {
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
+            
+            dependsOn 'resolveMinecraftStuff'
         }
-        
+
         task = project.task('getAssets', dependsOn: 'getForge') {
             outputs.dir { Util.jarFile(Constants.DIR_JAR_ASSETS) }
-            
+
             doLast {
-                
+
                 if (project.minecraft.is152OrLess())
                     return
-                
+
                 // make assets dir.
                 def assets = Util.jarFile(Constants.DIR_JAR_ASSETS)
                 assets.mkdirs()
-                
+
                 // get resources
                 def rootNode = new XmlSlurper().parse(Constants.URL_ASSETS)
-                
+
                 //ListBucketResult
                 def files = rootNode.Contents.collect { it.Size.text() != '0' ? it.Key.text() : null}
-                
+
                 files.each {
                     // skip empty entries.
                     if (!it)
                         return
-                    
+
                     def file = Util.file(assets, it)
                     def url = Constants.URL_ASSETS + '/' + it
                     Util.download(url, file)
@@ -338,19 +353,19 @@ public class GMCP implements Plugin<Project>
             }
         }
     }
-    
+
     def nativesUnpackTask()
     {
         def task = project.task("unpackNatives", dependsOn: 'getMinecraft') {
             inputs.files { project.configurations.gmcpNative }
             outputs.dir { jarFile(Constants.DIR_JAR_BIN, 'natives')}
-            
+
             doLast {
                 project.copy {
                     project.configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
                         from project.zipTree(it.file)
                     }
-                    
+
                     into jarFile(Constants.DIR_JAR_BIN, 'natives')
                 }
             }
@@ -384,8 +399,7 @@ public class GMCP implements Plugin<Project>
         // merge jars
         task << {
             def is152 = project.minecraft.is152OrLess()
-            println "is152? -> $is152"
-            
+
             def server = Util.file(temporaryDir, "server.jar")
             def merged = is152 ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR16_CLIENT)
             def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
