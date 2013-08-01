@@ -18,7 +18,7 @@ Feature map
 ---------------
 - 0.7 will be adding support for caching, and using a local central place for grabbing forge stuff. Will also include a proper obfuscation task similair to the signing task of the Signing plugin.
 - 0.8 will enable forge library support
-- 0.9 will sport mcMod.info generation, and bieng able to use jyst FML as opposed forge and FML
+- 0.9 will sport mcMod.info generation, and being able to just use FML as opposed forge and FML
 - 1.0 will add the ability to use custom minecraft jars, and mod with just MCP without FML and forge
 
 Feature wishlist
