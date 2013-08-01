@@ -1,5 +1,7 @@
 package com.github.abrarsyed.gmcp
 
+import com.github.abrarsyed.gmcp.tasks.obfuscate.ReobfTask
+
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.jarVersionFile
@@ -74,8 +76,8 @@ public class GMCP implements Plugin<Project>
         configureEclipse()
 
         // replace normal jar task with mine.
-        project.tasks.jar << reobfJarClosure()
-        project.tasks.jar.dependsOn('doJarPreProcess')
+        //project.tasks.jar << reobfJarClosure()
+        //project.tasks.jar.dependsOn('doJarPreProcess')
     }
 
     def doResolving()
@@ -130,6 +132,12 @@ public class GMCP implements Plugin<Project>
                 description = "GMCP internal configuration. Don't use!"
             }
 
+            obfuscated {
+                transitive = false
+                visible = true
+                description = "For obfuscated artifacts"
+            }
+
             gmcpNative {
                 transitive = false
                 visible = false
@@ -179,6 +187,12 @@ public class GMCP implements Plugin<Project>
             targetCompatibility = '1.6'
             sourceCompatibility = '1.6'
         }
+
+        def task = project.task('reobf', type: ReobfTask, dependsOn: 'doFMLMappingPreProcess') {
+            reobf project.tasks.jar
+        }
+
+        project.tasks.assemble.dependsOn 'reobf'
     }
     
     def resolveTask()
@@ -386,7 +400,7 @@ public class GMCP implements Plugin<Project>
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
                 file { baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
                 file { baseFile(Constants.DIR_FORGE, "common/forge_at.cfg") }
-                project.minecraft.accessTransformers.collect { String str -> file {str} }
+                files {project.minecraft.accessTransformers.collect { String str -> project.file str } }
             }
 
             outputs.with {
@@ -450,8 +464,10 @@ public class GMCP implements Plugin<Project>
             def accessMap = new AccessMap()
             accessMap.loadAccessTransformer(baseFile(Constants.DIR_FML, "common/fml_at.cfg"))
             accessMap.loadAccessTransformer(baseFile(Constants.DIR_FORGE, "common/forge_at.cfg"))
-            project.minecraft.accessTransformers.collect {
-                accessMap.loadAccessTransformer(project.file(Constants.DIR_FORGE, "common/forge_at.cfg"))
+            project.minecraft.accessTransformers.each {
+                def atFile = project.file(it)
+                project.logger.lifecycle "External AccessTransformer found : ${atFile.getName()}"
+                accessMap.loadAccessTransformer(atFile)
             }
             def processor = new  RemapperPreprocessor(null, mapping, accessMap)
 
@@ -610,6 +626,7 @@ public class GMCP implements Plugin<Project>
         }
     }
 
+    @Deprecated
     public static Closure reobfSRGJarClosure()
     {
         def c = { Task task ->
@@ -643,6 +660,7 @@ public class GMCP implements Plugin<Project>
         return c
     }
 
+    @Deprecated
     public static Closure reobfJarClosure()
     {
         def c = { Task task ->
@@ -676,11 +694,13 @@ public class GMCP implements Plugin<Project>
         return c
     }
 
+    @Deprecated
     public static File setReobfMinecraftNames()
     {
         return Util.baseFile(Constants.DIR_MAPPINGS, 'reobf_mcp.srg')
     }
 
+    @Deprecated
     public static File setReobfSRGNames()
     {
         return  Util.baseFile(Constants.DIR_MAPPINGS, "reobf_srg.srg")

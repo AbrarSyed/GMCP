@@ -50,11 +50,11 @@ class ArtifactSpec
 
     ArtifactSpec(AbstractArchiveTask task)
     {
-        baseName = task.baseName
-        appendix = task.appendix
-        version = task.version
-        classifier = task.classifier
-        extension = task.extension
+        baseName = { task.baseName }
+        appendix = { task.appendix }
+        version =  { task.version }
+        classifier = { task.classifier }
+        extension = { task.extension }
     }
 
     public void setArchiveName(archiveName)
@@ -65,23 +65,25 @@ class ArtifactSpec
 
     protected void resolve()
     {
-        // resolves all the properties.
-        this.properties = this.properties.collect { name, val ->
-
-            // ignore the boolean.
-            if (name == 'archiveSet' || name == 'srg')
-                return [name, val]
-
+        def resolveField = { val ->
             if (val instanceof Closure)
                 val = val.call()?.toString()
             else if (val)
                 val = val.toString()
-
-            return [name, val]
         }
 
+        // resolve fields
+        baseName = resolveField.call(baseName)
+        appendix = resolveField.call(appendix)
+        version = resolveField.call(version)
+        classifier = resolveField.call(classifier)
+        extension = resolveField.call(extension)
+
+
         // resolve srg
-        if (srg.toLowerCase() == 'srg')
+        if (!srg)
+            srg = null
+        else if (srg.toLowerCase() == 'srg')
             srg = Util.baseFile(Constants.DIR_MAPPINGS, 'reobf_srg.srg')
         else if (srg.toLowerCase() == 'mc' || srg.toLowerCase() == 'mcp')
             srg = Util.baseFile(Constants.DIR_MAPPINGS, 'reobf_mcp.srg')
@@ -92,12 +94,30 @@ class ArtifactSpec
         if (archiveSet)
             return
 
-        // build archiveName thing
-        if (appendix && classifier)
-            archiveName = "$baseName-$appendix-$version-$classifier.$extension"
-        else if (appendix)
-            archiveName = "$baseName-$appendix-$version.$extension"
-        else if (classifier)
-            archiveName = "$baseName-$version-$classifier.$extension"
+        def builder = new StringBuilder(baseName)
+        builder.with {
+            if (appendix)
+            {
+                append('-')
+                append(appendix)
+            }
+
+            if (version)
+            {
+                append('-')
+                append(version)
+            }
+
+            if (classifier)
+            {
+                append('-')
+                append(classifier)
+            }
+
+            append('.')
+            append(extension)
+        }
+
+        archiveName = builder.toString()
     }
 }

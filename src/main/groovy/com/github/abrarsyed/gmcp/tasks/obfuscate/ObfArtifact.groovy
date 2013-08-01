@@ -9,6 +9,7 @@ import net.md_5.specialsource.JarRemapper
 import net.md_5.specialsource.provider.JarProvider
 import net.md_5.specialsource.provider.JointProvider
 import org.gradle.api.InvalidUserDataException
+import org.gradle.api.Task
 import org.gradle.api.artifacts.PublishArtifact
 import org.gradle.api.internal.artifacts.publish.AbstractPublishArtifact
 
@@ -27,6 +28,7 @@ class ObfArtifact extends AbstractPublishArtifact
     File srg
 
     private final Closure toObfGenerator
+    private final Task caller
 
     final ArtifactSpec outputSpec
 
@@ -57,7 +59,7 @@ class ObfArtifact extends AbstractPublishArtifact
      */
     ObfArtifact(File toObf, ArtifactSpec artifactSpec, ReobfTask task)
     {
-        this({ toObf }, artifactSpec, srg, task)
+        this({ toObf }, artifactSpec, task)
         this.toObfArtifact = toObf
     }
 
@@ -73,9 +75,10 @@ class ObfArtifact extends AbstractPublishArtifact
     ObfArtifact(Closure toObf, ArtifactSpec outputSpec, ReobfTask task)
     {
         super(task)
+        this.caller = task
         toObfGenerator = toObf
         this.outputSpec = outputSpec
-        srg = task.srg
+        this.srg = task.srg
     }
 
     /**
@@ -237,7 +240,7 @@ class ObfArtifact extends AbstractPublishArtifact
         def output = getFile()
 
         // obfuscate here
-        def inTemp = Util.file(this.builtBy().temporaryDir, 'jarIn.jar')
+        def inTemp = Util.file(caller.temporaryDir , 'jarIn.jar')
         Files.copy(toObf, inTemp)
 
         def deobfed = Util.baseFile(Constants.JAR_PROC)

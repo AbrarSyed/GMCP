@@ -113,7 +113,7 @@ uploadArchives {
                 url 'https://github.com/AbrarSyed/GMCP'
 
                 scm {
-                    url 'https://github.com/AbrarSyed/jastyle'
+                    url 'https://github.com/AbrarSyed/GMCP'
                     connection 'scm:git:git://github.com/AbrarSyed/GMCP.git'
                     developerConnection 'scm:git:git@github.com:AbrarSyed/GMCP.git'
                 }
