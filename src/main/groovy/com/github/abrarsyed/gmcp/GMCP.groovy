@@ -251,13 +251,18 @@ public class GMCP implements Plugin<Project>
             }
         }
         task << {
+            def cacheZip = Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion+'.zip')
+
+            if (!cacheZip.exists())
+            {
+                cacheZip.getParentFile().mkdirs()
+                Util.download(project.minecraft.forgeURL, cacheZip)
+            }
 
             def base = Util.file(project.minecraft.baseDir)
             base.mkdirs()
-            def forgeZip = Util.file(temporaryDir, "forge.zip")
-            Util.download(project.minecraft.forgeURL, forgeZip)
             project.copy {
-                from project.zipTree(forgeZip)
+                from project.zipTree(cacheZip)
                 into base
             }
         }

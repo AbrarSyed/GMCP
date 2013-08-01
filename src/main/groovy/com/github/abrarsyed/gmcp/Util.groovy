@@ -9,24 +9,24 @@ class Util
     {
         output.getParentFile().mkdirs()
         output.createNewFile()
-        while(url)
+        while (url)
         {
             new URL(url).openConnection().with
-            { conn ->
-                conn.instanceFollowRedirects = false
-                url = conn.getHeaderField( "Location" )
-                if( !url )
-                {
-                    output.withOutputStream
-                    { out ->
-                        conn.inputStream.with
-                        { inp ->
-                            out << inp
-                            inp.close()
+                    { conn ->
+                        conn.instanceFollowRedirects = false
+                        url = conn.getHeaderField("Location")
+                        if (!url)
+                        {
+                            output.withOutputStream
+                                    { out ->
+                                        conn.inputStream.with
+                                                { inp ->
+                                                    out << inp
+                                                    inp.close()
+                                                }
+                                    }
                         }
                     }
-                }
-            }
         }
     }
 
@@ -49,15 +49,25 @@ class Util
         if (file.exists() && file.isDirectory())
         {
             file.eachFile
-            {
-                if (it.isDirectory())
-                    it.deleteDir()
-                else
-                    it.delete()
-            }
+                    {
+                        if (it.isDirectory())
+                            it.deleteDir()
+                        else
+                            it.delete()
+                    }
         }
         else
             file.mkdirs()
+    }
+
+    def static File gradleDir(String... args)
+    {
+        def arguments = []
+        arguments += System.getProperty("user.home")
+        arguments += '.gradle'
+        arguments.addAll(args)
+
+        return file(arguments as String[])
     }
 
     def static String getRelative(File root, File file)
@@ -92,7 +102,7 @@ class Util
 
         return file(arguments as String[])
     }
-    
+
     /**
      * Just like the jarFile method, except it uses the version in the path.
      * @param args
