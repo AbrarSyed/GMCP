@@ -193,6 +193,7 @@ public class GMCP implements Plugin<Project>
         }
 
         project.tasks.assemble.dependsOn 'reobf'
+        project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
     }
     
     def resolveTask()
