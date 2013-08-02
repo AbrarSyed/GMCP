@@ -74,6 +74,7 @@ public class GMCP implements Plugin<Project>
 
         // IDE stuff
         configureEclipse()
+        //configureIntelliJ()
 
         // replace normal jar task with mine.
         //project.tasks.jar << reobfJarClosure()
@@ -130,6 +131,7 @@ public class GMCP implements Plugin<Project>
                 transitive = true
                 visible = false
                 description = "GMCP internal configuration. Don't use!"
+                getTaskDependencyFromProjectDependency(true, 'resolveMinecraftStuff')
             }
 
             obfuscated {
@@ -142,6 +144,7 @@ public class GMCP implements Plugin<Project>
                 transitive = false
                 visible = false
                 description = "GMCP internal configuration. Don't use!"
+                getTaskDependencyFromProjectDependency(true, 'resolveMinecraftStuff')
             }
 
             minecraftCompile.extendsFrom gmcp
@@ -193,14 +196,14 @@ public class GMCP implements Plugin<Project>
         }
 
         project.tasks.assemble.dependsOn 'reobf'
-        project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
+        //project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
     }
-    
+
     def resolveTask()
     {
         def task = project.task('resolveMinecraftStuff')
         task << {
-            
+
             project.with {
                 // read 1.6 json
                 def json16 = null
@@ -274,7 +277,7 @@ public class GMCP implements Plugin<Project>
         task = project.task('getMinecraft', dependsOn: "getForge", type: DownloadMinecraftTask) {
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
-            
+
             dependsOn 'resolveMinecraftStuff'
         }
 
@@ -630,6 +633,9 @@ public class GMCP implements Plugin<Project>
 
             file.write result
         }
+
+        project.tasks.eclipseClasspath.dependsOn 'resolveMinecraftStuff'
+        project.tasks.ideaProject.dependsOn 'resolveMinecraftStuff'
     }
 
     @Deprecated
