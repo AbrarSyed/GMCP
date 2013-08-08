@@ -6,7 +6,7 @@ apply plugin: 'signing'
 apply plugin: 'maven'
 
 group = 'com.github.abrarsyed.gmcp'
-version = '0.7.2-SNAPSHOT'
+version = '0.7.3-SNAPSHOT'
 archivesBaseName = 'GMCP'
 targetCompatibility = '1.6'
 sourceCompatibility = '1.6'
@@ -91,12 +91,12 @@ uploadArchives {
             signing.signPom(deployment)
         }
 
-        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-            authentication(userName: sonatypeUsername, password: sonatypePassword)
-        }
+//        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+//            authentication(userName: sonatypeUsername, password: sonatypePassword)
+//        }
 
         // local testing only.
-//        snapshotRepository(url: 'file://'+project.projectDir.getPath()+"/../MavenRepo")
+        snapshotRepository(url: 'file://'+project.projectDir.getPath()+"/../MavenRepo")
 
         repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
             authentication(userName: sonatypeUsername, password: sonatypePassword)
@@ -150,4 +150,4 @@ uploadArchives {
 }
 
 // wrapper
-task wrapper(type: Wrapper) { gradleVersion = '1.6' }
+task wrapper(type: Wrapper) { gradleVersion = '1.7' }

@@ -235,6 +235,11 @@ public class GMCP implements Plugin<Project>
                 }
             }
         }
+
+        project.tasks.eclipseClasspath.dependsOn 'resolveMinecraftStuff'
+        project.tasks.ideaModule.dependsOn 'resolveMinecraftStuff'
+        project.tasks.ideaModule.dependsOn 'compileMinecraftJava'
+        //project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
     }
 
     def downloadTasks()
@@ -633,9 +638,6 @@ public class GMCP implements Plugin<Project>
 
             file.write result
         }
-
-        project.tasks.eclipseClasspath.dependsOn 'resolveMinecraftStuff'
-        project.tasks.ideaProject.dependsOn 'resolveMinecraftStuff'
     }
 
     @Deprecated
