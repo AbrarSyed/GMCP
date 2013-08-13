@@ -3,7 +3,6 @@ package com.github.abrarsyed.gmcp.extensions
 import argo.jdom.JdomParser
 import argo.jdom.JsonNode
 import argo.jdom.JsonRootNode
-
 import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
@@ -19,6 +18,8 @@ class GMCPExtension
     def srcDir
     def accessTransformers = []
 
+    def boolean cache = false
+
     private final File cacheFile
     private final File cacheFile2
     private static final JdomParser JDOM_PARSER = new JdomParser()
@@ -27,10 +28,30 @@ class GMCPExtension
 
     public GMCPExtension(GMCP project)
     {
-        cacheFile = Util.file(System.getProperty("user.home"), '.gradle', Constants.CACHE_JSON_FORGE)
-        cacheFile2 = Util.file(System.getProperty("user.home"), '.gradle', Constants.CACHE_JSON_FORGE2)
+        cacheFile = Util.gradleDir(Constants.CACHE_JSON_FORGE)
+        cacheFile2 = Util.gradleDir(Constants.CACHE_JSON_FORGE2)
 
         cacheFile.getParentFile().mkdirs()
+    }
+
+    def accessT(obj)
+    {
+        accessTransformers += obj
+    }
+
+    def accessTs(... obj)
+    {
+        obj.each { accessTransformers }
+    }
+
+    def accessTransformer(obj)
+    {
+        accessTransformers += obj
+    }
+
+    def accessTransformers(... obj)
+    {
+        obj.each { accessTransformers }
     }
 
     public void resolveVersion(boolean refreshCache)
@@ -38,11 +59,24 @@ class GMCPExtension
         String json1
         String json2
 
+        // check for cache refreshing options
+        if (!refreshCache)
+        {
+            def currentTime = System.currentTimeMillis() / 1000L
+
+            // old.
+            if (cacheFile.lastModified() + 86400 <= currentTime || cacheFile2.lastModified() + 86400 <= currentTime)
+                refreshCache = true
+            else if (cache)
+                refreshCache = true
+        }
+
         // check JSON1 cache
         if (!cacheFile.exists() || refreshCache)
         {
             json1 = Constants.URL_JSON_FORGE.toURL().text
             cacheFile.write(json1)
+            cacheFile.setLastModified((System.currentTimeMillis() / 1000L) as Long)
         }
         else
             json1 = cacheFile.text
@@ -52,6 +86,7 @@ class GMCPExtension
         {
             json2 = Constants.URL_JSON_FORGE2.toURL().text
             cacheFile2.write(json2)
+            cacheFile2.setLastModified((System.currentTimeMillis() / 1000L) as Long)
         }
         else
             json2 = cacheFile2.text
@@ -222,9 +257,9 @@ class GMCPExtension
             {
                 def str = ""
                 if (minecraftVersion)
-                    str = " for Minecraft "+minecraftVersion
+                    str = " for Minecraft " + minecraftVersion
 
-                throw new MalformedVersionException("No Forge \""+forgeVersion+"\" found"+str)
+                throw new MalformedVersionException("No Forge \"" + forgeVersion + "\" found" + str)
             }
             // try again with refreshed cache.
             else

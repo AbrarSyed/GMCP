@@ -1,16 +1,16 @@
 package com.github.abrarsyed.gmcp.tasks
 
+import com.github.abrarsyed.gmcp.Constants
+import com.github.abrarsyed.gmcp.GMCP
+import com.github.abrarsyed.gmcp.Util
+import difflib.DiffUtils
+import difflib.Patch
 import groovy.io.FileType
-
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
-
-import com.github.abrarsyed.gmcp.Constants
-import com.github.abrarsyed.gmcp.GMCP
-import com.github.abrarsyed.gmcp.Util
 
 class PatchTask extends DefaultTask
 {
@@ -27,45 +27,6 @@ class PatchTask extends DefaultTask
 
     private final File tempPatch = new File(temporaryDir, "temp.patch")
 
-    //    @TaskAction
-    //    def doLibPatches()
-    //    {
-    //        Map<File, Patch> patchMap = [:]
-    //        def newFile, patch
-    //
-    //        // recurse through files
-    //        patchDir.eachFileRecurse(FileType.FILES) {
-    //            // if its a patch
-    //            if (it.isFile() && it.path.endsWith(".patch"))
-    //            {
-    //                newFile = new File(srcDir, Util.getRelative(patchDir, it).replace(/.patch/, ""))
-    //                patch = DiffUtils.parseUnifiedDiff(it.text.readLines())
-    //                patchMap.put(newFile, patch)
-    //            }
-    //        }
-    //
-    //        def counter = 0, success = 0
-    //        patchMap.each
-    //        { file, delta ->
-    //            try
-    //            {
-    //                def lines = file.text.readLines()
-    //                lines = delta.applyTo(lines)
-    //                file.write(lines.join("\n"))
-    //                success++
-    //            }
-    //            catch(Exception e)
-    //            {
-    //                logger.error "error patching "+file+"   skipping."
-    //                if (counter <= 1)
-    //                    e.printStackTrace()
-    //            }
-    //            counter++
-    //        }
-    //
-    //        logger.lifecycle success + " out of " + counter + " succeeded"
-    //    }
-
     @TaskAction
     def doBinaryPatches()
     {
@@ -80,7 +41,13 @@ class PatchTask extends DefaultTask
         tempPatch.write(text)
     }
 
-    private static patchStuff(File patchDir, File srcDir, File logFile, File tempPatch)
+    public static patchStuff(File patchDir, File srcDir, File logFile, File tempPatch)
+    {
+        //binaryPatch(patchDir, srcDir, logFile, tempPatch);
+        libPatch(patchDir, srcDir, logFile)
+    }
+
+    private static binaryPatch(File patchDir, File srcDir, File logFile, File tempPatch)
     {
         def command, arguments
 
@@ -91,11 +58,11 @@ class PatchTask extends DefaultTask
             command = "patch"
 
         arguments = [
-            "-p3",
-            "-i",
-            "\""+tempPatch.getAbsolutePath()+"\"",
-            "-d",
-            "\""+srcDir.getAbsolutePath()+"\""
+                "-p3",
+                "-i",
+                "\"" + tempPatch.getAbsolutePath() + "\"",
+                "-d",
+                "\"" + srcDir.getAbsolutePath() + "\""
         ]
 
         def log = logFile
@@ -109,28 +76,70 @@ class PatchTask extends DefaultTask
         }
 
         patchDir.eachFileRecurse(FileType.FILES)
-        {
-            fixPatch(it, tempPatch)
-
-            def result = GMCP.project.exec {
-                executable = command
-                args = arguments
-
-                if (log)
                 {
-                    def stream = new FileOutputStream(logFile, true)
-                    standardOutput = stream
-                    errorOutput = stream
+                    fixPatch(it, tempPatch)
+
+                    def result = GMCP.project.exec {
+                        executable = command
+                        args = arguments
+
+                        if (log)
+                        {
+                            def stream = new FileOutputStream(logFile, true)
+                            standardOutput = stream
+                            errorOutput = stream
+                        }
+
+                        ignoreExitValue = true
+                    }
+
+                    //            if (result.getExitValue() != 0)
+                    //            {
+                    //                throw new RuntimeException("Gnu patch failed! See log file: "+logFile)
+                    //            }
+
+                }
+    }
+
+    private static libPatch(File patchDir, File srcDir, File logFile)
+    {
+        Map<File, Patch> patchMap = [:]
+        def newFile, patch
+
+        def writer = logFile.newPrintWriter();
+
+        // recurse through files
+        patchDir.eachFileRecurse(FileType.FILES) {
+            // if its a patch
+            if (it.isFile() && it.path.endsWith(".patch"))
+            {
+                newFile = new File(srcDir, Util.getRelative(patchDir, it).replace(/.patch/, ""))
+                patch = DiffUtils.parseUnifiedDiff(it.text.readLines())
+                patchMap.put(newFile, patch)
+            }
+        }
+
+        def counter = 0, success = 0
+        patchMap.each
+                { file, delta ->
+                    try
+                    {
+                        def lines = file.text.readLines()
+                        lines = delta.applyTo(lines)
+                        file.write(lines.join("\n"))
+                        success++
+                    }
+                    catch (Exception e)
+                    {
+                        writer.writeLine "error patching " + file + "   skipping."
+                        if (counter <= 1)
+                            e.printStackTrace(writer);
+                    }
+                    counter++
                 }
 
-                ignoreExitValue = true
-            }
-
-            //            if (result.getExitValue() != 0)
-            //            {
-            //                throw new RuntimeException("Gnu patch failed! See log file: "+logFile)
-            //            }
-
-        }
+        writer.writeLine success + " out of " + counter + " succeeded"
+        writer.flush();
+        writer.close();
     }
 }

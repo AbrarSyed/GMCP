@@ -167,7 +167,7 @@ class DecompileMinecraftTask extends DefaultTask
         }
 
         // copy over start.java
-        Files.copy(baseFile(Constants.DIR_MCP_PATCHES, "start.java"), srcFile(Constants.DIR_SRC_MINECRAFT, "Start.java"))
+        Files.copy(baseFile(Constants.DIR_MCP_PATCHES, "Start.java"), srcFile(Constants.DIR_SRC_MINECRAFT, "Start.java"))
     }
 
     def doMCPCleanup()
@@ -209,7 +209,7 @@ class DecompileMinecraftTask extends DefaultTask
                 "--quiet",
                 "--options="+baseFile(Constants.DIR_MAPPINGS, "astyle.cfg").getPath(),
                 "--recursive",
-                srcFile(Constants.DIR_SRC_MINECRAFT).getPath()+File.separator+'*.java"'
+                srcFile(Constants.DIR_SRC_MINECRAFT).getPath()+File.separator+'*.java'
             ]
         }
     }

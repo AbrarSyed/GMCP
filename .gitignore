@@ -64,6 +64,7 @@ Desktop.ini
 *.ipr
 *.iws
 .idea/
+out/
 
 ###########
 ## random stuff

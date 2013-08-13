@@ -42,6 +42,7 @@ public final class Constants
     // cache file paths
     public static final String  CACHE_JSON_FORGE    = "caches/gmcp/forge.json"
     public static final String  CACHE_JSON_FORGE2   = "caches/gmcp/forge2.json"
+    public static final String  CACHE_DIR_FORGE     = "caches/gmcp/forge"
 
     // in-jar resource paths
     public static final String  REC_FORMAT_CFG      = "misc/formatter.cfg"

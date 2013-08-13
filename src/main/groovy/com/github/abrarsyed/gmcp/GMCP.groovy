@@ -1,5 +1,7 @@
 package com.github.abrarsyed.gmcp
 
+import com.github.abrarsyed.gmcp.tasks.obfuscate.ReobfTask
+
 import static com.github.abrarsyed.gmcp.Util.baseFile
 import static com.github.abrarsyed.gmcp.Util.jarFile
 import static com.github.abrarsyed.gmcp.Util.jarVersionFile
@@ -72,10 +74,11 @@ public class GMCP implements Plugin<Project>
 
         // IDE stuff
         configureEclipse()
+        //configureIntelliJ()
 
         // replace normal jar task with mine.
-        project.tasks.jar << reobfJarClosure()
-        project.tasks.jar.dependsOn('doJarPreProcess')
+        //project.tasks.jar << reobfJarClosure()
+        //project.tasks.jar.dependsOn('doJarPreProcess')
     }
 
     def doResolving()
@@ -128,12 +131,20 @@ public class GMCP implements Plugin<Project>
                 transitive = true
                 visible = false
                 description = "GMCP internal configuration. Don't use!"
+                getTaskDependencyFromProjectDependency(true, 'resolveMinecraftStuff')
+            }
+
+            obfuscated {
+                transitive = false
+                visible = true
+                description = "For obfuscated artifacts"
             }
 
             gmcpNative {
                 transitive = false
                 visible = false
                 description = "GMCP internal configuration. Don't use!"
+                getTaskDependencyFromProjectDependency(true, 'resolveMinecraftStuff')
             }
 
             minecraftCompile.extendsFrom gmcp
@@ -179,13 +190,20 @@ public class GMCP implements Plugin<Project>
             targetCompatibility = '1.6'
             sourceCompatibility = '1.6'
         }
+
+        def task = project.task('reobf', type: ReobfTask, dependsOn: 'doFMLMappingPreProcess') {
+            reobf project.tasks.jar
+        }
+
+        project.tasks.assemble.dependsOn 'reobf'
+        //project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
     }
-    
+
     def resolveTask()
     {
         def task = project.task('resolveMinecraftStuff')
         task << {
-            
+
             project.with {
                 // read 1.6 json
                 def json16 = null
@@ -217,6 +235,11 @@ public class GMCP implements Plugin<Project>
                 }
             }
         }
+
+        project.tasks.eclipseClasspath.dependsOn 'resolveMinecraftStuff'
+        project.tasks.ideaModule.dependsOn 'resolveMinecraftStuff'
+        project.tasks.ideaModule.dependsOn 'compileMinecraftJava'
+        //project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
     }
 
     def downloadTasks()
@@ -237,13 +260,18 @@ public class GMCP implements Plugin<Project>
             }
         }
         task << {
+            def cacheZip = Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion+'.zip')
+
+            if (!cacheZip.exists())
+            {
+                cacheZip.getParentFile().mkdirs()
+                Util.download(project.minecraft.forgeURL, cacheZip)
+            }
 
             def base = Util.file(project.minecraft.baseDir)
             base.mkdirs()
-            def forgeZip = Util.file(temporaryDir, "forge.zip")
-            Util.download(project.minecraft.forgeURL, forgeZip)
             project.copy {
-                from project.zipTree(forgeZip)
+                from project.zipTree(cacheZip)
                 into base
             }
         }
@@ -254,7 +282,7 @@ public class GMCP implements Plugin<Project>
         task = project.task('getMinecraft', dependsOn: "getForge", type: DownloadMinecraftTask) {
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
-            
+
             dependsOn 'resolveMinecraftStuff'
         }
 
@@ -386,7 +414,7 @@ public class GMCP implements Plugin<Project>
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
                 file { baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
                 file { baseFile(Constants.DIR_FORGE, "common/forge_at.cfg") }
-                project.minecraft.accessTransformers.collect { String str -> file {str} }
+                files {project.minecraft.accessTransformers.collect { String str -> project.file str } }
             }
 
             outputs.with {
@@ -450,8 +478,10 @@ public class GMCP implements Plugin<Project>
             def accessMap = new AccessMap()
             accessMap.loadAccessTransformer(baseFile(Constants.DIR_FML, "common/fml_at.cfg"))
             accessMap.loadAccessTransformer(baseFile(Constants.DIR_FORGE, "common/forge_at.cfg"))
-            project.minecraft.accessTransformers.collect {
-                accessMap.loadAccessTransformer(project.file(Constants.DIR_FORGE, "common/forge_at.cfg"))
+            project.minecraft.accessTransformers.each {
+                def atFile = project.file(it)
+                project.logger.lifecycle "External AccessTransformer found : ${atFile.getName()}"
+                accessMap.loadAccessTransformer(atFile)
             }
             def processor = new  RemapperPreprocessor(null, mapping, accessMap)
 
@@ -610,6 +640,7 @@ public class GMCP implements Plugin<Project>
         }
     }
 
+    @Deprecated
     public static Closure reobfSRGJarClosure()
     {
         def c = { Task task ->
@@ -643,6 +674,7 @@ public class GMCP implements Plugin<Project>
         return c
     }
 
+    @Deprecated
     public static Closure reobfJarClosure()
     {
         def c = { Task task ->
@@ -676,11 +708,13 @@ public class GMCP implements Plugin<Project>
         return c
     }
 
+    @Deprecated
     public static File setReobfMinecraftNames()
     {
         return Util.baseFile(Constants.DIR_MAPPINGS, 'reobf_mcp.srg')
     }
 
+    @Deprecated
     public static File setReobfSRGNames()
     {
         return  Util.baseFile(Constants.DIR_MAPPINGS, "reobf_srg.srg")
