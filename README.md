@@ -4,7 +4,7 @@ Groovy Minecraft Coder Pack
 GMCP is a gradle version of MCP that will setup a minecraft modding workspace, as well as build your mod for you.
 
 
-###Current version: 0.6.2
+###Current version: 0.7.3
 
 changelog
 ---------------
@@ -12,6 +12,8 @@ changelog
  - 0.6   - attempt at updating for MC 1.6.2 BUGGED
  - 0.6.1 - attemp at fixing bugs with 0.6. BUGGED
  - 0.6.2 - stable release for 1.6.2
+ - 0.7.2 - bug fixes for 0.6.2 (Bugged for Linux)
+ - 0.7.3 - bug fixes for 0.7.2 (Bugged for Linux)
 
 
 Feature map
@@ -23,6 +25,6 @@ Feature map
 
 Feature wishlist
 ----------------
-MCModInfo generation
-mod dependancies
-coremod dependancy generation
+* MCModInfo generation
+* mod dependencies
+* coremod dependency generation
