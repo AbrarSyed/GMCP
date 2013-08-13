@@ -12,6 +12,8 @@ changelog
  - 0.6   - attempt at updating for MC 1.6.2 BUGGED
  - 0.6.1 - attemp at fixing bugs with 0.6. BUGGED
  - 0.6.2 - stable release for 1.6.2
+ - 0.7.2 - bug fixes for 0.6.2 (Bugged for Linux)
+ - 0.7.3 - bug fixes for 0.7.2 (Bugged for Linux)
 
 
 Feature map
