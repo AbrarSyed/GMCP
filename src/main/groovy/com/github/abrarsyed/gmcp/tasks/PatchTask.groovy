@@ -131,14 +131,14 @@ class PatchTask extends DefaultTask
                     }
                     catch (Exception e)
                     {
-                        writer.writeLine "error patching " + file + "   skipping."
+                        writer.println "error patching " + file + "   skipping."
                         if (counter <= 1)
                             e.printStackTrace(writer);
                     }
                     counter++
                 }
 
-        writer.writeLine success + " out of " + counter + " succeeded"
+        writer.println success + " out of " + counter + " succeeded"
         writer.flush();
         writer.close();
     }
