@@ -196,6 +196,7 @@ class DecompileMinecraftTask extends DefaultTask
                     break
                 case OperatingSystem.OSX:
                     exec = baseFile(Constants.EXEC_ASTYLE).getPath()
+                    ant.chmod(file: exec, perm: "777", includes: "astyle")
                     break
                 case OperatingSystem.WINDOWS:
                     exec = baseFile(Constants.EXEC_ASTYLE + ".exe").getPath()
