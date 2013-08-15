@@ -378,6 +378,10 @@ public class GMCP implements Plugin<Project>
 
                 stream = this.getClass().classLoader.getResourceAsStream(astyleIn)
                 baseFile(astyleOut) << stream.getBytes()
+                
+                // fix OSX permissions
+                if (os == OperatingSystem.OSX)
+                    ant.chmod(file: astyleOut, perm: "777", includes: "astyle")
             }
         }
     }
