@@ -1,24 +1,18 @@
 package com.github.abrarsyed.gmcp.tasks
 
-import static com.github.abrarsyed.gmcp.Util.baseFile
-import static com.github.abrarsyed.gmcp.Util.file
-import static com.github.abrarsyed.gmcp.Util.srcFile
+import com.github.abrarsyed.gmcp.Constants
+import com.github.abrarsyed.gmcp.Constants.OperatingSystem
+import com.github.abrarsyed.gmcp.GMCP
+import com.github.abrarsyed.gmcp.source.FMLCleanup
+import com.github.abrarsyed.gmcp.source.SourceRemapper
+import com.google.common.io.Files
+import de.fernflower.main.decompiler.ConsoleDecompiler
 import groovy.io.FileType
-
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskAction
 
-import com.github.abrarsyed.gmcp.Constants
-import com.github.abrarsyed.gmcp.GMCP
-import com.github.abrarsyed.gmcp.Constants.OperatingSystem
-import com.github.abrarsyed.gmcp.source.FFPatcher
-import com.github.abrarsyed.gmcp.source.FMLCleanup
-import com.github.abrarsyed.gmcp.source.MCPCleanup
-import com.github.abrarsyed.gmcp.source.SourceRemapper
-import com.google.common.io.Files
-
-import de.fernflower.main.decompiler.ConsoleDecompiler
+import static com.github.abrarsyed.gmcp.Util.*
 
 class DecompileMinecraftTask extends DefaultTask
 {
@@ -67,12 +61,12 @@ class DecompileMinecraftTask extends DefaultTask
         project.mkdir(unzippedDir)
         def temp = unzippedDir
         project.copy
-        {
-            from project.zipTree(baseFile(Constants.JAR_PROC))
-            into temp
-            exclude "**/*/META-INF*"
-            exclude "META-INF"
-        }
+                {
+                    from project.zipTree(baseFile(Constants.JAR_PROC))
+                    into temp
+                    exclude "**/*/META-INF*"
+                    exclude "META-INF"
+                }
     }
 
     def decompile()
@@ -115,7 +109,7 @@ class DecompileMinecraftTask extends DefaultTask
         project.mkdir(srcFile(Constants.DIR_SRC_MINECRAFT))
         project.copy {
             exclude "META-INF"
-            from (tree) { include "net/minecraft/**/*.java" }
+            from(tree) { include "net/minecraft/**/*.java" }
             into srcFile(Constants.DIR_SRC_MINECRAFT)
         }
 
@@ -144,9 +138,13 @@ class DecompileMinecraftTask extends DefaultTask
 
         def result = project.exec {
             if (GMCP.os == Constants.OperatingSystem.WINDOWS)
+            {
                 executable = baseFile(Constants.EXEC_WIN_PATCH).getPath()
+            }
             else
+            {
                 executable = "patch"
+            }
 
             def log = baseFile(Constants.DIR_LOGS, "MCPPatches.log")
             project.file log
@@ -157,12 +155,12 @@ class DecompileMinecraftTask extends DefaultTask
             ignoreExitValue = true
 
             args = [
-                "-p1",
-                "-u",
-                "-i",
-                '"'+patch.getAbsolutePath()+'"',
-                "-d",
-                '"'+srcFile(Constants.DIR_SRC_MINECRAFT).getPath()+'"'
+                    "-p1",
+                    "-u",
+                    "-i",
+                    '"' + patch.getAbsolutePath() + '"',
+                    "-d",
+                    '"' + srcFile(Constants.DIR_SRC_MINECRAFT).getPath() + '"'
             ]
         }
 
@@ -189,7 +187,7 @@ class DecompileMinecraftTask extends DefaultTask
         // run astyle
         project.exec {
             def exec
-            switch(GMCP.os)
+            switch (GMCP.os)
             {
                 case OperatingSystem.LINUX:
                     exec = "astyle"
@@ -204,12 +202,12 @@ class DecompileMinecraftTask extends DefaultTask
 
             // %s --suffix=none --quiet --options={conffile} {classes}
             commandLine = [
-                exec,
-                "--suffix=none",
-                "--quiet",
-                "--options="+baseFile(Constants.DIR_MAPPINGS, "astyle.cfg").getPath(),
-                "--recursive",
-                srcFile(Constants.DIR_SRC_MINECRAFT).getPath()+File.separator+'*.java'
+                    exec,
+                    "--suffix=none",
+                    "--quiet",
+                    "--options=" + baseFile(Constants.DIR_MAPPINGS, "astyle.cfg").getPath(),
+                    "--recursive",
+                    srcFile(Constants.DIR_SRC_MINECRAFT).getPath() + File.separator + '*.java'
             ]
         }
     }
@@ -230,11 +228,11 @@ class DecompileMinecraftTask extends DefaultTask
             it.write(text)
         }
 
-        PatchTask.patchStuff ( baseFile(Constants.DIR_FML_PATCHES),
+        PatchTask.patchStuff(baseFile(Constants.DIR_FML_PATCHES),
                 srcFile(Constants.DIR_SRC_MINECRAFT),
                 baseFile(Constants.DIR_LOGS, "FMLPatches.log"),
                 file(temporaryDir, 'temp.patch')
-                )
+        )
 
         def common = project.fileTree(baseFile(Constants.DIR_FML, "common"))
         def client = project.fileTree(baseFile(Constants.DIR_FML, "client"))
@@ -243,8 +241,8 @@ class DecompileMinecraftTask extends DefaultTask
         project.mkdir(srcFile(Constants.DIR_SRC_FML))
         project.copy {
             exclude "META-INF"
-            from (common) { include "**/*.java" }
-            from (client) { include "**/*.java" }
+            from(common) { include "**/*.java" }
+            from(client) { include "**/*.java" }
             into srcFile(Constants.DIR_SRC_FML)
         }
 
@@ -267,8 +265,8 @@ class DecompileMinecraftTask extends DefaultTask
     {
         def files = Constants.CSVS.collectEntries { key, value ->
             [
-                key,
-                baseFile(Constants.DIR_MAPPINGS, value)
+                    key,
+                    baseFile(Constants.DIR_MAPPINGS, value)
             ]
         }
         def remapper = new SourceRemapper(files)
@@ -279,11 +277,11 @@ class DecompileMinecraftTask extends DefaultTask
 
     def applyForgeModifications()
     {
-        PatchTask.patchStuff ( baseFile(Constants.DIR_FORGE_PATCHES),
+        PatchTask.patchStuff(baseFile(Constants.DIR_FORGE_PATCHES),
                 srcFile(Constants.DIR_SRC_MINECRAFT),
                 baseFile(Constants.DIR_LOGS, "ForgePatches.log"),
                 file(temporaryDir, 'temp.patch')
-                )
+        )
 
         def common = project.fileTree(baseFile(Constants.DIR_FORGE, "common"))
         def client = project.fileTree(baseFile(Constants.DIR_FORGE, "client"))
@@ -292,8 +290,8 @@ class DecompileMinecraftTask extends DefaultTask
         project.mkdir(srcFile(Constants.DIR_SRC_FML))
         project.copy {
             exclude "META-INF"
-            from (common) { include "**/*.java" }
-            from (client) { include "**/*.java" }
+            from(common) { include "**/*.java" }
+            from(client) { include "**/*.java" }
             into srcFile(Constants.DIR_SRC_FORGE)
         }
 

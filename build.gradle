@@ -8,10 +8,10 @@ apply plugin: 'signing'
 apply plugin: 'maven'
 
 group = 'com.github.abrarsyed.gmcp'
-version = '0.7.4-SNAPSHOT'
+version = '0.8-SNAPSHOT'
 archivesBaseName = 'GMCP'
-targetCompatibility = '1.6'
-sourceCompatibility = '1.6'
+targetCompatibility = '1.7'
+sourceCompatibility = '1.7'
 
 repositories {  mavenCentral() }
 
@@ -37,11 +37,6 @@ jar
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from 'build/docs/javadoc'
-}
-
-task groovydocJar(type: Jar, dependsOn: groovydoc) {
-    classifier = 'groovydoc'
-    from 'build/docs/groovydoc'
 }
 
 configurations
