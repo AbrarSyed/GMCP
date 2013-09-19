@@ -2,6 +2,8 @@ package com.github.abrarsyed.gmcp
 
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 
+import java.security.MessageDigest
+
 class Util
 {
 
@@ -34,13 +36,21 @@ class Util
     {
         def name = System.properties["os.name"].toString().toLowerCase()
         if (name.contains("windows"))
+        {
             OperatingSystem.WINDOWS
+        }
         else if (name.contains("mac"))
+        {
             OperatingSystem.OSX
+        }
         else if (name.contains("linux"))
+        {
             OperatingSystem.LINUX
+        }
         else
+        {
             null
+        }
     }
 
     public static createOrCleanDir(File file)
@@ -51,13 +61,19 @@ class Util
             file.eachFile
                     {
                         if (it.isDirectory())
+                        {
                             it.deleteDir()
+                        }
                         else
+                        {
                             it.delete()
+                        }
                     }
         }
         else
+        {
             file.mkdirs()
+        }
     }
 
     def static File gradleDir(String... args)
@@ -125,5 +141,19 @@ class Util
         arguments.addAll(args)
 
         return file(arguments as String[])
+    }
+
+    def static String hashFile(File file)
+    {
+
+        MessageDigest complete = MessageDigest.getInstance("MD5");
+        byte[] hash = complete.digest(file.bytes);
+
+        def builder = new StringBuilder(40);
+
+        hash.each { builder.append Integer.toString((it & 0xff) + 0x100, 16).substring(1) }
+
+        return builder.toString();
+
     }
 }
