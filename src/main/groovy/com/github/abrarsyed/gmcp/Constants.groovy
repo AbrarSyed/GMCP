@@ -49,15 +49,6 @@ public final class Constants
     public static final String  REC_PATCH_EXEC      = "misc/applydiff.exe"
     public static final String  REC_ASTYLE_EXEC     = "misc/astyle/astyle_%s"
 
-    // random, 1.5.2-minus dependancies
-    public static final List<String> DEP_152_MINUS  = [
-        'net.sourceforge.argo:argo:3.4',
-        'org.ow2.asm:asm-all:4.0',
-        'org.bouncycastle:bcprov-ext-jdk15on:1.48',
-        'com.google.guava:guava:14.0',
-        'org.scala-lang:scala-library:2.10.0'
-    ] as List
-
     // util
     public static final String NEWLINE = System.getProperty("line.separator")
 

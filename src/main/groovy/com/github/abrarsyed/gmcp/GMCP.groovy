@@ -1,39 +1,29 @@
 package com.github.abrarsyed.gmcp
 
+import com.github.abrarsyed.gmcp.Constants.OperatingSystem
+import com.github.abrarsyed.gmcp.extensions.GMCPExtension
+import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
+import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
+import com.github.abrarsyed.gmcp.tasks.DownloadMinecraftTask
+import com.github.abrarsyed.gmcp.tasks.DownloadTask
 import com.github.abrarsyed.gmcp.tasks.obfuscate.ReobfTask
-
-import static com.github.abrarsyed.gmcp.Util.baseFile
-import static com.github.abrarsyed.gmcp.Util.jarFile
-import static com.github.abrarsyed.gmcp.Util.jarVersionFile
-import static com.github.abrarsyed.gmcp.Util.srcFile
+import com.google.common.io.Files
+import cpw.mods.fml.common.asm.transformers.MCPMerger
 import groovy.xml.StreamingMarkupBuilder
 import groovy.xml.XmlUtil
+import net.md_5.specialsource.*
+import net.md_5.specialsource.provider.JarProvider
+import net.md_5.specialsource.provider.JointProvider
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.Task
 
 import java.lang.reflect.Method
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
-import net.md_5.specialsource.AccessMap
-import net.md_5.specialsource.Jar
-import net.md_5.specialsource.JarMapping
-import net.md_5.specialsource.JarRemapper
-import net.md_5.specialsource.RemapperPreprocessor
-import net.md_5.specialsource.provider.JarProvider
-import net.md_5.specialsource.provider.JointProvider
-
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.api.Task
-
-import com.github.abrarsyed.gmcp.Constants.OperatingSystem
-import com.github.abrarsyed.gmcp.extensions.GMCPExtension
-import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
-import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
-import com.github.abrarsyed.gmcp.tasks.DownloadMinecraftTask
-import com.google.common.io.Files
-
-import cpw.mods.fml.common.asm.transformers.MCPMerger
+import static com.github.abrarsyed.gmcp.Util.*
 
 public class GMCP implements Plugin<Project>
 {
@@ -53,9 +43,9 @@ public class GMCP implements Plugin<Project>
         project.minecraft.extensions.create("mcmodinfo", ModInfoExtension)
 
         // ensure java is in.
-        project.apply( plugin: "java")
-        project.apply( plugin: "idea")
-        project.apply( plugin: "eclipse")
+        project.apply(plugin: "java")
+        project.apply(plugin: "idea")
+        project.apply(plugin: "eclipse")
 
         // manage dependancy configurations
         configureSourceSet()
@@ -91,35 +81,18 @@ public class GMCP implements Plugin<Project>
                 minecraft.resolveJarDir()
 
                 def mcver = minecraft.minecraftVersion
-                def is152Minus = minecraft.is152OrLess()
 
                 // yay for maven central.
                 repositories {
 
                     mavenCentral()
-
-                    if (!is152Minus)
-                    {
-                        mavenRepo name: "minecraft_"+mcver, url: "http://s3.amazonaws.com/Minecraft.Download/libraries"
-                    }
+                    mavenRepo name: "minecraft_" + mcver, url: "http://s3.amazonaws.com/Minecraft.Download/libraries"
                 }
 
                 // dependancy management.
                 dependencies
-                {
-
-                    if (is152Minus)
-                    {
-                        // 1.5.2-
-
-                        for (dep in Constants.DEP_152_MINUS)
-                            gmcp dep
-
-                        gmcp files(Util.jarFile(Constants.JAR_JAR_CLIENT).getPath())
-                        gmcpNative files(Util.jarFile(Constants.DIR_JAR_BIN, 'natives.jar').getPath())
-
-                    }
-                }
+                        {
+                        }
             }
         }
     }
@@ -159,27 +132,27 @@ public class GMCP implements Plugin<Project>
     def configureSourceSet()
     {
         project.sourceSets
-        {
-            minecraft
-            {
-                java
                 {
-                    srcDir {srcFile(Constants.DIR_SRC_MINECRAFT)}
-                    srcDir {srcFile(Constants.DIR_SRC_FORGE)}
-                    srcDir {srcFile(Constants.DIR_SRC_FML)}
-                }
-                resources {
-                    srcDir {srcFile(Constants.DIR_SRC_RESOURCES)}
-                }
-            }
+                    minecraft
+                            {
+                                java
+                                        {
+                                            srcDir { srcFile(Constants.DIR_SRC_MINECRAFT) }
+                                            srcDir { srcFile(Constants.DIR_SRC_FORGE) }
+                                            srcDir { srcFile(Constants.DIR_SRC_FML) }
+                                        }
+                                resources {
+                                    srcDir { srcFile(Constants.DIR_SRC_RESOURCES) }
+                                }
+                            }
 
-            main {
-                java {
-                    // TODO make conditional for using agaricus's lib
-                    compileClasspath += minecraft.output
+                    main {
+                        java {
+                            // TODO make conditional for using agaricus's lib
+                            compileClasspath += minecraft.output
+                        }
+                    }
                 }
-            }
-        }
     }
 
     def configureCompilation()
@@ -207,11 +180,8 @@ public class GMCP implements Plugin<Project>
             project.with {
                 // read 1.6 json
                 def json16 = null
-                if (!minecraft.is152OrLess())
-                {
-                    json16 = new Json16Reader(minecraft.minecraftVersion)
-                    json16.parseJson()
-                }
+                json16 = new Json16Reader(minecraft.minecraftVersion)
+                json16.parseJson()
 
                 // set stuff.
                 // minectaft download configuration
@@ -221,17 +191,18 @@ public class GMCP implements Plugin<Project>
                 }
 
                 // do dependnecies
-                if (!minecraft.is152OrLess())
-                {
-                    dependencies {
-                        for (dep in json16.libs)
-                            gmcp dep
-
-                        for (dep in json16.nativeLibs)
-                            gmcpNative dep
-
-                        gmcp files(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT).getPath())
+                dependencies {
+                    for (dep in json16.libs)
+                    {
+                        gmcp dep
                     }
+
+                    for (dep in json16.nativeLibs)
+                    {
+                        gmcpNative dep
+                    }
+
+                    gmcp files(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT).getPath())
                 }
             }
         }
@@ -244,38 +215,30 @@ public class GMCP implements Plugin<Project>
 
     def downloadTasks()
     {
+        // download forge
+        def task = project.task('downloadForge', type: DownloadTask) {
+            output = { Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip') }
+            url = { project.minecraft.forgeURL }
+        }
+
         // Get Forge task
-        def task = project.task('getForge') {
-            description = "Downloads the correct version of Forge"
+        task = project.task('getForge', type: DownloadTask, depemdsOn: 'downloadForge') {
+            description = "Extract the correct version of Forge"
             group = "minecraft"
-            outputs.dir { baseFile(Constants.DIR_FORGE) }
+            from { project.zipTree(Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip')) }
+            into { baseFile(Constants.DIR_FORGE) }
             outputs.upToDateWhen {
                 def file = baseFile("forge", "forgeversion.properties")
                 if (!file.exists())
+                {
                     return false
+                }
                 def props = new Properties()
                 props.load(file.newInputStream())
                 def version = String.format("%s.%s.%s.%s", props.get("forge.major.number"), props.get("forge.minor.number"), props.get("forge.revision.number"), props.get("forge.build.number"))
                 return project.minecraft.forgeVersion == version
             }
         }
-        task << {
-            def cacheZip = Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion+'.zip')
-
-            if (!cacheZip.exists())
-            {
-                cacheZip.getParentFile().mkdirs()
-                Util.download(project.minecraft.forgeURL, cacheZip)
-            }
-
-            def base = Util.file(project.minecraft.baseDir)
-            base.mkdirs()
-            project.copy {
-                from project.zipTree(cacheZip)
-                into base
-            }
-        }
-
 
         // ----------------------------------------------------------------------------
         // download necessary stuff.
@@ -291,9 +254,6 @@ public class GMCP implements Plugin<Project>
 
             doLast {
 
-                if (project.minecraft.is152OrLess())
-                    return
-
                 // make assets dir.
                 def assets = Util.jarFile(Constants.DIR_JAR_ASSETS)
                 assets.mkdirs()
@@ -302,12 +262,14 @@ public class GMCP implements Plugin<Project>
                 def rootNode = new XmlSlurper().parse(Constants.URL_ASSETS)
 
                 //ListBucketResult
-                def files = rootNode.Contents.collect { it.Size.text() != '0' ? it.Key.text() : null}
+                def files = rootNode.Contents.collect { it.Size.text() != '0' ? it.Key.text() : null }
 
                 files.each {
                     // skip empty entries.
                     if (!it)
+                    {
                         return
+                    }
 
                     def file = Util.file(assets, it)
                     def url = Constants.URL_ASSETS + '/' + it
@@ -325,7 +287,7 @@ public class GMCP implements Plugin<Project>
 
             outputs.with {
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
-                file  { baseFile(Constants.DIR_MAPPINGS, "packaged.exc") }
+                file { baseFile(Constants.DIR_MAPPINGS, "packaged.exc") }
                 file { baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch") }
             }
 
@@ -378,10 +340,12 @@ public class GMCP implements Plugin<Project>
 
                 stream = this.getClass().classLoader.getResourceAsStream(astyleIn)
                 baseFile(astyleOut) << stream.getBytes()
-                
+
                 // fix OSX permissions
                 if (os == OperatingSystem.OSX)
+                {
                     ant.chmod(file: astyleOut, perm: "777", includes: "astyle")
+                }
             }
         }
     }
@@ -390,7 +354,7 @@ public class GMCP implements Plugin<Project>
     {
         def task = project.task("unpackNatives", dependsOn: 'getMinecraft') {
             inputs.files { project.configurations.gmcpNative }
-            outputs.dir { jarFile(Constants.DIR_JAR_BIN, 'natives')}
+            outputs.dir { jarFile(Constants.DIR_JAR_BIN, 'natives') }
 
             doLast {
                 project.copy {
@@ -412,17 +376,17 @@ public class GMCP implements Plugin<Project>
             description = "Deobfuscates Minecraft, and applies the Exceptor"
             group = "minecraft"
             inputs.with {
-                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT_BAK) : jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK)}
+                file { jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK) }
                 file { jarFile(Constants.JAR_JAR_SERVER) }
                 file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
                 file { baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
                 file { baseFile(Constants.DIR_FORGE, "common/forge_at.cfg") }
-                files {project.minecraft.accessTransformers.collect { String str -> project.file str } }
+                files { project.minecraft.accessTransformers.collect { String str -> project.file str } }
             }
 
             outputs.with {
-                file { project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR16_CLIENT)}
+                file { jarVersionFile(Constants.JAR_JAR16_CLIENT) }
                 file { baseFile(Constants.JAR_PROC) }
             }
 
@@ -430,22 +394,20 @@ public class GMCP implements Plugin<Project>
         }
         // merge jars
         task << {
-            def is152 = project.minecraft.is152OrLess()
-
             def server = Util.file(temporaryDir, "server.jar")
-            def merged = is152 ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR16_CLIENT)
+            def merged = jarVersionFile(Constants.JAR_JAR16_CLIENT)
             def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
-            Files.copy(is152 ? jarFile(Constants.JAR_JAR_CLIENT_BAK) : jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK), mergeTemp)
+            Files.copy(jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK), mergeTemp)
             Files.copy(jarFile(Constants.JAR_JAR_SERVER), server)
 
             logger.lifecycle "Merging jars"
 
             //Constants.JAR_CLIENT, Constants.JAR_SERVER
             def args = [
-                baseFile(Constants.DIR_FML, "mcp_merge.cfg").getPath(),
-                mergeTemp.getPath(),
-                server.getPath()
+                    baseFile(Constants.DIR_FML, "mcp_merge.cfg").getPath(),
+                    mergeTemp.getPath(),
+                    server.getPath()
             ]
             MCPMerger.main(args as String[])
 
@@ -453,9 +415,11 @@ public class GMCP implements Plugin<Project>
             def ZipFile input = new ZipFile(mergeTemp)
             def output = new ZipOutputStream(merged.newDataOutputStream())
 
-            input.entries().each{ ZipEntry entry ->
+            input.entries().each { ZipEntry entry ->
                 if (entry.name.contains("META-INF"))
+                {
                     return
+                }
                 else if (entry.size > 0)
                 {
                     output.putNextEntry(entry)
@@ -469,7 +433,7 @@ public class GMCP implements Plugin<Project>
         }
         // deobfuscate---------------------------
         task << {
-            def merged = project.minecraft.is152OrLess() ? jarFile(Constants.JAR_JAR_CLIENT) : jarVersionFile(Constants.JAR_JAR16_CLIENT)
+            def merged = jarVersionFile(Constants.JAR_JAR16_CLIENT)
             def deobf = Util.file(temporaryDir, "deobf.jar")
 
             logger.lifecycle "DeObfuscating jar"
@@ -487,7 +451,7 @@ public class GMCP implements Plugin<Project>
                 project.logger.lifecycle "External AccessTransformer found : ${atFile.getName()}"
                 accessMap.loadAccessTransformer(atFile)
             }
-            def processor = new  RemapperPreprocessor(null, mapping, accessMap)
+            def processor = new RemapperPreprocessor(null, mapping, accessMap)
 
             // make remapper
             JarRemapper remapper = new JarRemapper(processor, mapping)
@@ -535,17 +499,17 @@ public class GMCP implements Plugin<Project>
             dependsOn 'extractMisc', 'doJarPreProcess', 'unpackNatives', 'getAssets'
 
             inputs.with {
-                dir {baseFile(Constants.DIR_FML_PATCHES)}
-                dir {baseFile(Constants.DIR_FORGE_PATCHES)}
-                file {baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")}
+                dir { baseFile(Constants.DIR_FML_PATCHES) }
+                dir { baseFile(Constants.DIR_FORGE_PATCHES) }
+                file { baseFile(Constants.DIR_MAPPINGS, "astyle.cfg") }
                 files { Constants.CSVS.collect { baseFile(Constants.DIR_MAPPINGS, it.getValue()) } }
-                file {baseFile(Constants.JAR_PROC)}
-                dir {baseFile(Constants.DIR_MCP_PATCHES)}
+                file { baseFile(Constants.JAR_PROC) }
+                dir { baseFile(Constants.DIR_MCP_PATCHES) }
             }
 
             outputs.with {
-                outputs.dir {srcFile(Constants.DIR_SRC_MINECRAFT)}
-                outputs.dir {srcFile(Constants.DIR_SRC_RESOURCES)}
+                outputs.dir { srcFile(Constants.DIR_SRC_MINECRAFT) }
+                outputs.dir { srcFile(Constants.DIR_SRC_RESOURCES) }
             }
 
         }
@@ -561,37 +525,41 @@ public class GMCP implements Plugin<Project>
             }
 
             classpath {
-                file.withXml {provider ->
+                file.withXml { provider ->
                     Node rootNode = provider.asNode()
 
                     // NATIVES PART  ---------------------------------------------------------------------
 
                     // If this is doing anything, assume no gradle plugin.
                     [
-                        'jinput.jar',
-                        'lwjg.jar',
-                        'lwjgl_util.jar'
+                            'jinput.jar',
+                            'lwjg.jar',
+                            'lwjgl_util.jar'
                     ].each { nativ ->
-                        def container = rootNode.children().find {it.@path && it.@path.endsWith(nativ)}
+                        def container = rootNode.children().find { it.@path && it.@path.endsWith(nativ) }
                         if (container)
-                            container.appendNode('attributes').appendNode('attribute', [name:"org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value:'$MC_JAR/bin/natives'])
+                        {
+                            container.appendNode('attributes').appendNode('attribute', [name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: '$MC_JAR/bin/natives'])
+                        }
                     }
 
                     // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
                     [
-                        Constants.DIR_SRC_MINECRAFT,
-                        Constants.DIR_SRC_FML,
-                        Constants.DIR_SRC_FORGE
+                            Constants.DIR_SRC_MINECRAFT,
+                            Constants.DIR_SRC_FML,
+                            Constants.DIR_SRC_FORGE
                     ].each { srcDir ->
-                        def container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.endsWith('/'+srcDir)}
+                        def container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.endsWith('/' + srcDir) }
                         if (container)
-                            container.appendNode('attributes').appendNode('attribute', [name:"ignore_optional_problems", value:'true'])
+                        {
+                            container.appendNode('attributes').appendNode('attribute', [name: "ignore_optional_problems", value: 'true'])
+                        }
                     }
                 }
             }
         }
 
-        def task = project.task('afterEclipseImport'){
+        def task = project.task('afterEclipseImport') {
         }
         task << {
 
@@ -617,11 +585,11 @@ public class GMCP implements Plugin<Project>
 
             // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
             [
-                Constants.DIR_SRC_MINECRAFT,
-                Constants.DIR_SRC_FML,
-                Constants.DIR_SRC_FORGE
+                    Constants.DIR_SRC_MINECRAFT,
+                    Constants.DIR_SRC_FML,
+                    Constants.DIR_SRC_FORGE
             ].each { srcDir ->
-                container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.toString().endsWith('/'+srcDir)}
+                container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.toString().endsWith('/' + srcDir) }
                 if (container)
                 {
                     container.appendNode {
@@ -635,7 +603,7 @@ public class GMCP implements Plugin<Project>
             // write XML
             // check the whole document using XmlUnit
             def builder = new StreamingMarkupBuilder()
-            def result = builder.bind({mkp.yield rootNode })
+            def result = builder.bind({ mkp.yield rootNode })
             result = XmlUtil.serialize(result)
 
             println result
@@ -653,7 +621,7 @@ public class GMCP implements Plugin<Project>
             Files.copy(file, inTemp)
             file.delete()
 
-            def deobfed =  Util.baseFile(Constants.JAR_PROC)
+            def deobfed = Util.baseFile(Constants.JAR_PROC)
 
             // load mapping
             JarMapping mapping = new JarMapping()
@@ -687,7 +655,7 @@ public class GMCP implements Plugin<Project>
             Files.copy(file, inTemp)
             file.delete()
 
-            def deobfed =  Util.baseFile(Constants.JAR_PROC)
+            def deobfed = Util.baseFile(Constants.JAR_PROC)
 
             // load mapping
             JarMapping mapping = new JarMapping()
@@ -710,17 +678,5 @@ public class GMCP implements Plugin<Project>
         }
 
         return c
-    }
-
-    @Deprecated
-    public static File setReobfMinecraftNames()
-    {
-        return Util.baseFile(Constants.DIR_MAPPINGS, 'reobf_mcp.srg')
-    }
-
-    @Deprecated
-    public static File setReobfSRGNames()
-    {
-        return  Util.baseFile(Constants.DIR_MAPPINGS, "reobf_srg.srg")
     }
 }

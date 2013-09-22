@@ -24,7 +24,7 @@ class GMCPExtension
     private final File cacheFile2
     private static final JdomParser JDOM_PARSER = new JdomParser()
 
-    def private less152 = null
+    private less152 = null
 
     public GMCPExtension(GMCP project)
     {
@@ -197,9 +197,6 @@ class GMCPExtension
                         break
                     }
                 }
-                //
-                //				if (!versionObj || !fileObj)
-                //					throw new MalformedVersionException("Forge "+forgeVersion+" found for Minecraft "+minecraftVersion)
 
             }
         }
@@ -281,6 +278,11 @@ class GMCPExtension
                 forgeURL = root2.getStringValue("webpath") + "/" + fileObj.getStringValue("filename")
             }
         }
+
+        if (is152OrLess())
+        {
+            throw new RuntimeException("Only Minecraft versions 1.6 and above are supported");
+        }
     }
 
     public void resolveSrcDir()
@@ -295,7 +297,7 @@ class GMCPExtension
             jarDir = baseDir + "/jars"
     }
 
-    public boolean is152OrLess()
+    private boolean is152OrLess()
     {
         if (less152 != null)
             return less152
