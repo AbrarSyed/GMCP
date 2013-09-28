@@ -2,6 +2,7 @@ package com.github.abrarsyed.gmcp
 
 import au.com.bytecode.opencsv.CSVParser
 import au.com.bytecode.opencsv.CSVReader
+import com.github.abrarsyed.gmcp.tasks.MergeMappingsTask
 
 class SRGCreator
 {
@@ -36,7 +37,7 @@ class SRGCreator
 
                 if (type == 'FD')
                 {
-                    def split = PackageFixer.rsplit(input, '/')
+                    def split = MergeMappingsTask.rsplit(input, '/')
                     def name = split[1]
 
                     if (fields[name])
@@ -47,7 +48,7 @@ class SRGCreator
                 else if (type == 'MD')
                 {
                     def split = input.split(' ')
-                    def nameSplit = PackageFixer.rsplit(split[0], '/')
+                    def nameSplit = MergeMappingsTask.rsplit(split[0], '/')
                     def name = nameSplit[1]
 
                     if (methods[name])

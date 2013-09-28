@@ -6,6 +6,7 @@ import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
 import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
 
 import com.github.abrarsyed.gmcp.tasks.DownloadTask
+import com.github.abrarsyed.gmcp.tasks.MergeMappingsTask
 import com.github.abrarsyed.gmcp.tasks.obfuscate.ReobfTask
 import com.google.common.io.Files
 import cpw.mods.fml.common.asm.transformers.MCPMerger
@@ -273,37 +274,16 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // to do the package changes
-        project.task('doFMLMappingPreProcess', dependsOn: "extractForge") {
-            description = "Copies and updates the mappings and configs with the new package structure"
-            group = "minecraft"
-            inputs.dir { baseFile(Constants.DIR_FML, "conf") }
+        project.task('doFMLMappingPreProcess', type: MergeMappingsTask, dependsOn: "extractForge") {
+            inSrg = baseFile(Constants.DIR_MAPPINGS, "joined.srg")
+            inPatch = baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
+            inExc = baseFile(Constants.DIR_MAPPINGS, "joined.exc")
 
-            outputs.with {
-                file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
-                file { baseFile(Constants.DIR_MAPPINGS, "packaged.exc") }
-                file { baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch") }
-            }
+            packageCsv = baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"])
 
-        }
-        task << {
-            // copy files over.
-            project.copy {
-                from baseFile(Constants.DIR_FML, "conf")
-                into baseFile(Constants.DIR_MAPPINGS)
-            }
-
-            // gotta love groovy  and its .with closure :)
-            (new PackageFixer(baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"]))).with {
-                // calls the following on the package fixer.
-                fixSRG(baseFile(Constants.DIR_MAPPINGS, "joined.srg"), baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
-                fixExceptor(baseFile(Constants.DIR_MAPPINGS, "joined.exc"), baseFile(Constants.DIR_MAPPINGS, "packaged.exc"))
-                fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch"))
-                fixPatch(baseFile(Constants.DIR_MCP_PATCHES, "minecraft_server_ff.patch"))
-            }
-        }
-        task << {
-            // generate robf SRG
-            SRGCreator.createReobfSrg()
+            outSrg = { cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftversion)) }
+            outPatch = { cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftversion)) }
+            outExc = { cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftversion)) }
         }
 
         // ----------------------------------------------------------------------------
