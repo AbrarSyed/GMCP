@@ -7,27 +7,28 @@ import org.gradle.api.tasks.TaskAction
 public class DownloadTask extends CachedTask
 {
     @Input
-    def String url;
+    def url;
 
     @OutputFile
-    @Cached
-    def File output;
+    @CachedTask.Cached
+    def output;
 
     @TaskAction
     public void doTask() throws IOException
     {
+        output = project.file(output)
         output.getParentFile().mkdirs()
         output.createNewFile()
-        getLogger().info("Downloading " + url + " to " + outputFile);
+        getLogger().info("Downloading " + url + " to " + output);
 
-        def tempUrl = url;
+        def tempUrl = url instanceof Closure ? url.call() : url;
 
         while (tempUrl)
         {
             new URL(tempUrl).openConnection().with
                     { conn ->
                         conn.instanceFollowRedirects = false
-                        url = conn.getHeaderField("Location")
+                        tempUrl = conn.getHeaderField("Location")
                         if (!tempUrl)
                         {
                             output.withOutputStream

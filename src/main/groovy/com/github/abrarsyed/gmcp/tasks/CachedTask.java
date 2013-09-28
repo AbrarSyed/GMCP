@@ -175,7 +175,7 @@ public abstract class CachedTask extends DefaultTask
 
     @Target(ElementType.FIELD)
     @Retention(RetentionPolicy.RUNTIME)
-    protected @interface Cached
+    public @interface Cached
     {
     }
 

@@ -9,7 +9,7 @@ class Json16Reader
     private static final String CLIENT = '/%1$s.jar'
     private static final String SERVER = '/minecraft_server.%1$s.jar'
 
-    private String version
+    public String version
     private JsonSlurper slurper
 
     // other stuff
@@ -21,6 +21,11 @@ class Json16Reader
     {
         this.version = version
         slurper = new JsonSlurper()
+    }
+
+    def static doesFileExist()
+    {
+        return Util.baseFile(Constants.DIR_FML, 'fml.json').exists();
     }
 
     def parseJson()

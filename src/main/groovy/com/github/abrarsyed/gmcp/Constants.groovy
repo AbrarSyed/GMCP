@@ -4,33 +4,43 @@ package com.github.abrarsyed.gmcp
 public final class Constants
 {
     // temp dirs
-    static final String 	DIR_LOGS			    = "logs"
-    static final String     DIR_MISC                = "misc"
-    static final String     DIR_SRC_FORGE           = "Forge"
-    static final String     DIR_SRC_FML             = "FML"
-    static final String 	DIR_SRC_MINECRAFT	    = "Minecraft"
-    static final String     DIR_SRC_RESOURCES       = "resources"
-    static final String  	DIR_FORGE 			    = "forge"
-    static final String  	DIR_FML 			    = DIR_FORGE + "/fml"
-    static final String  	DIR_FORGE_PATCHES     	= DIR_FORGE + "/patches/minecraft"
-    static final String  	DIR_FML_PATCHES 	    = DIR_FML + "/patches/minecraft"
-    static final String  	DIR_MAPPINGS 		    = "mappings"
-    static final String  	DIR_MCP_PATCHES 	    = DIR_MAPPINGS + "/patches"
+    public static final String  	DIR_LOGS			    = "logs"
+    public static final String      DIR_MISC                = "misc"
+    public static final String      DIR_SRC_FORGE           = "Forge"
+    public static final String      DIR_SRC_FML             = "FML"
+    public static final String  	DIR_SRC_MINECRAFT	    = "Minecraft"
+    public static final String      DIR_SRC_RESOURCES       = "resources"
+    public static final String  	DIR_FORGE 			    = "forge"
+    public static final String  	DIR_FML 			    = DIR_FORGE + "/fml"
+    public static final String  	DIR_FORGE_PATCHES     	= DIR_FORGE + "/patches/minecraft"
+    public static final String  	DIR_FML_PATCHES 	    = DIR_FML + "/patches/minecraft"
+    public static final String  	DIR_MAPPINGS 		    = "mappings"
+    public static final String  	DIR_MCP_PATCHES 	    = DIR_MAPPINGS + "/patches"
 
     // jars
-    static final String 	JAR_PROC		    	= "Minecraft_processed.jar"
+    public static final String  	JAR_PROC		    	= "Minecraft_processed.jar"
+
+    public static final String      DIR_NATIVES             = "build/natives"
 
     // stuff in the jars folder
-    static final String  	DIR_JAR_BIN 	        = "bin"
-    static final String     DIR_JAR_ASSETS          = "assets"
-    static final String 	JAR_JAR_CLIENT	    	= DIR_JAR_BIN + "/minecraft.jar"
-    static final String     JAR_JAR_CLIENT_BAK      = DIR_JAR_BIN + "/minecraft.jar.bak"
-    static final String 	JAR_JAR_SERVER	 	    = "minecraft_server.jar"
-    static final String     JAR_JAR16_CLIENT        = "minecraft.jar"
-    static final String     JAR_JAR16_CLIENT_BAK    = "minecraft.jar.bak"
+
+    // stuff in the jars folder
+    public static final String  	DIR_JAR_BIN 	        = "bin"
+    public static final String      DIR_JAR_ASSETS          = "assets"
+
+    // things in the cache dir.
+    public static final String CACHE_DIR            = "caches/minecraft";
+    public static final String CACHE_ASSETS                = "assets"
+    public static final String FMED_JAR_CLIENT_FRESH     = CACHE_DIR + '/net/minecraft/minecraft/%1$s/minecraft-%1$s.jar'
+    public static final String FMED_JAR_SERVER_FRESH     = CACHE_DIR + '/net/minecraft/minecraft_server/%1$s/minecraft_server-%1$s.jar'
+    public static final String FMED_JAR_MERGED           = CACHE_DIR + '/net/minecraft/minecraft_merged/%1$s/minecraft_merged-%1$s.jar'
+    public static final String FMED_PACKAGED_SRG         = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/packaged-%1$s.srg'
+    public static final String FMED_PACKAGED_EXC         = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/packaged-%1$s.exc'
+    public static final String FERNFLOWER           = "caches/fernflower.jar";
+    public static final String EXCEPTOR             = "caches/exceptor.jar";
 
     // misc and executeables
-    static final String         EXEC_WIN_PATCH      = DIR_MISC + "/applydiff.exe"
+    public static final String  EXEC_WIN_PATCH      = DIR_MISC + "/applydiff.exe"
     public static final String  CFG_FORMAT          = DIR_MISC + "/formatter.cfg"
     public static final String  EXEC_ASTYLE         = DIR_MISC + "/astyle"
 
@@ -50,7 +60,7 @@ public final class Constants
     public static final String  REC_ASTYLE_EXEC     = "misc/astyle/astyle_%s"
 
     // util
-    public static final String NEWLINE = System.getProperty("line.separator")
+    public static final String  NEWLINE             = System.getProperty("line.separator")
 
     // CSVs
     public static final CSVS = [

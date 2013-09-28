@@ -1,10 +1,9 @@
 package com.github.abrarsyed.gmcp.tests
 
+import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-
-import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 
 public class VersionResolveTest
 {

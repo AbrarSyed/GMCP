@@ -28,14 +28,14 @@ class DownloadMinecraftTask extends DefaultTask
     {
         inputs.file { Util.baseFile(Constants.DIR_FML, "mc_versions.cfg") }
         outputs.with {
-            file { Util.jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK) }
-            file { Util.jarFile(Constants.JAR_JAR_SERVER) }
+            file { Util.cacheFile(Constants.FMED_JAR_MERGED) }
+            file { Util.jarFile(Constants.FMED_JAR_SERVER_FRESH) }
         }
     }
 
     def private do16Plus()
     {
-        Util.download(json.getClientURL(), Util.jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK))
-        Util.download(json.getServerURL(), Util.jarFile(Constants.JAR_JAR_SERVER))
+        Util.download(json.getClientURL(), Util.cacheFile(Constants.FMED_JAR_MERGED))
+        Util.download(json.getServerURL(), Util.jarFile(Constants.FMED_JAR_SERVER_FRESH))
     }
 }

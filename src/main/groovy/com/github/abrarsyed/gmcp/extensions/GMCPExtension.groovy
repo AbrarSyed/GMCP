@@ -14,7 +14,6 @@ class GMCPExtension
     def forgeVersion = "latest"
     def String forgeURL
     def baseDir = "minecraft"
-    def jarDir
     def srcDir
     def accessTransformers = []
 
@@ -41,7 +40,17 @@ class GMCPExtension
 
     def accessTs(... obj)
     {
-        obj.each { accessTransformers }
+        obj.each { accessTransformers += obj }
+    }
+
+    def at(obj)
+    {
+        accessTransformers += obj
+    }
+
+    def ats(... obj)
+    {
+        obj.each { accessTransformers += obj }
     }
 
     def accessTransformer(obj)
@@ -289,12 +298,6 @@ class GMCPExtension
     {
         if (!srcDir)
             srcDir = baseDir + "/src"
-    }
-
-    public void resolveJarDir()
-    {
-        if (!jarDir)
-            jarDir = baseDir + "/jars"
     }
 
     private boolean is152OrLess()

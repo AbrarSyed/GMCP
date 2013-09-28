@@ -30,6 +30,7 @@ public class GMCP implements Plugin<Project>
     //public GMCPExtension ext
     public static OperatingSystem os = Util.getOS()
     public static Project project
+    public static Json16Reader json;
 
     @Override
     public void apply(Project project)
@@ -47,16 +48,38 @@ public class GMCP implements Plugin<Project>
         project.apply(plugin: "idea")
         project.apply(plugin: "eclipse")
 
-        // manage dependancy configurations
+        // final resolving.   this closure is executed later...
+        doResolving()
+
+        // well why not?  read the json NOW
+        if (Json16Reader.doesFileExist())
+        {
+            json = new Json16Reader("1.6")
+            json.parseJson()
+
+            // do dependnecies
+            dependencies
+                    {
+                        for (dep in json.libs)
+                        {
+                            gmcp dep
+                        }
+
+                        for (dep in json.nativeLibs)
+                        {
+                            gmcpNative dep
+                        }
+
+                        gmcp files(Util.cacheFile(Constants.FMED_JAR_MERGED).getPath())
+                    }
+        }
+
+        // manage dependency configurations
         configureSourceSet()
         doConfigurationStuff()
         configureCompilation()
 
-        // final resolving.
-        doResolving()
-
         // start the tasks
-        resolveTask()
         downloadTasks()
         nativesUnpackTask()
         jarTasks()
@@ -78,21 +101,15 @@ public class GMCP implements Plugin<Project>
 
                 minecraft.resolveVersion(false)
                 minecraft.resolveSrcDir()
-                minecraft.resolveJarDir()
-
-                def mcver = minecraft.minecraftVersion
 
                 // yay for maven central.
                 repositories {
-
+                    mavenRepo name: 'forge', url: 'http:/files.minecraftforge.net/maven'
+                    mavenRepo name: "minecraft_" + minecraft.minecraftVersion, url: "http://s3.amazonaws.com/Minecraft.Download/libraries"
                     mavenCentral()
-                    mavenRepo name: "minecraft_" + mcver, url: "http://s3.amazonaws.com/Minecraft.Download/libraries"
                 }
 
-                // dependancy management.
-                dependencies
-                        {
-                        }
+                json.version = minecraft.minecraftVersion;
             }
         }
     }
@@ -158,7 +175,6 @@ public class GMCP implements Plugin<Project>
     def configureCompilation()
     {
         project.compileMinecraftJava {
-            dependsOn 'decompileMinecraft', 'resolveMinecraftStuff'
             options.warnings = false
             targetCompatibility = '1.6'
             sourceCompatibility = '1.6'
@@ -172,47 +188,6 @@ public class GMCP implements Plugin<Project>
         //project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
     }
 
-    def resolveTask()
-    {
-        def task = project.task('resolveMinecraftStuff')
-        task << {
-
-            project.with {
-                // read 1.6 json
-                def json16 = null
-                json16 = new Json16Reader(minecraft.minecraftVersion)
-                json16.parseJson()
-
-                // set stuff.
-                // minectaft download configuration
-                tasks.getMinecraft {
-                    json = json16
-                    setIncrementals()
-                }
-
-                // do dependnecies
-                dependencies {
-                    for (dep in json16.libs)
-                    {
-                        gmcp dep
-                    }
-
-                    for (dep in json16.nativeLibs)
-                    {
-                        gmcpNative dep
-                    }
-
-                    gmcp files(Util.jarVersionFile(Constants.JAR_JAR16_CLIENT).getPath())
-                }
-            }
-        }
-
-        project.tasks.eclipseClasspath.dependsOn 'resolveMinecraftStuff'
-        project.tasks.ideaModule.dependsOn 'resolveMinecraftStuff'
-        project.tasks.ideaModule.dependsOn 'compileMinecraftJava'
-        //project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
-    }
-
     def downloadTasks()
     {
         // download forge
@@ -222,7 +197,7 @@ public class GMCP implements Plugin<Project>
         }
 
         // Get Forge task
-        task = project.task('getForge', type: DownloadTask, depemdsOn: 'downloadForge') {
+        task = project.task('getForge', type: DownloadTask, dependsOn: 'downloadForge') {
             description = "Extract the correct version of Forge"
             group = "minecraft"
             from { project.zipTree(Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip')) }
@@ -245,8 +220,6 @@ public class GMCP implements Plugin<Project>
         task = project.task('getMinecraft', dependsOn: "getForge", type: DownloadMinecraftTask) {
             description = "Downloads the correct version of Minecraft and lwJGL and its natives"
             group = "minecraft"
-
-            dependsOn 'resolveMinecraftStuff'
         }
 
         task = project.task('getAssets', dependsOn: 'getForge') {
@@ -352,9 +325,10 @@ public class GMCP implements Plugin<Project>
 
     def nativesUnpackTask()
     {
-        def task = project.task("unpackNatives", dependsOn: 'getMinecraft') {
+        def task = project.task("unpackNatives", dependsOn: 'getForge')
+        {
             inputs.files { project.configurations.gmcpNative }
-            outputs.dir { jarFile(Constants.DIR_JAR_BIN, 'natives') }
+            outputs.dir { project.file(Constants.DIR_NATIVES) }
 
             doLast {
                 project.copy {
@@ -362,7 +336,7 @@ public class GMCP implements Plugin<Project>
                         from project.zipTree(it.file)
                     }
 
-                    into jarFile(Constants.DIR_JAR_BIN, 'natives')
+                    into project.file(Constants.DIR_NATIVES)
                 }
             }
         }
@@ -376,8 +350,8 @@ public class GMCP implements Plugin<Project>
             description = "Deobfuscates Minecraft, and applies the Exceptor"
             group = "minecraft"
             inputs.with {
-                file { jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK) }
-                file { jarFile(Constants.JAR_JAR_SERVER) }
+                file { cacheFile(Constants.FMED_JAR_MERGED) }
+                file { jarFile(Constants.FMED_JAR_SERVER_FRESH) }
                 file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
                 file { baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
@@ -386,7 +360,7 @@ public class GMCP implements Plugin<Project>
             }
 
             outputs.with {
-                file { jarVersionFile(Constants.JAR_JAR16_CLIENT) }
+                file { cacheFile(Constants.FMED_JAR_CLIENT_FRESH) }
                 file { baseFile(Constants.JAR_PROC) }
             }
 
@@ -395,11 +369,11 @@ public class GMCP implements Plugin<Project>
         // merge jars
         task << {
             def server = Util.file(temporaryDir, "server.jar")
-            def merged = jarVersionFile(Constants.JAR_JAR16_CLIENT)
+            def merged = cacheFile(Constants.FMED_JAR_CLIENT_FRESH)
             def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
-            Files.copy(jarVersionFile(Constants.JAR_JAR16_CLIENT_BAK), mergeTemp)
-            Files.copy(jarFile(Constants.JAR_JAR_SERVER), server)
+            Files.copy(cacheFile(Constants.FMED_JAR_MERGED), mergeTemp)
+            Files.copy(jarFile(Constants.FMED_JAR_SERVER_FRESH), server)
 
             logger.lifecycle "Merging jars"
 
@@ -433,7 +407,7 @@ public class GMCP implements Plugin<Project>
         }
         // deobfuscate---------------------------
         task << {
-            def merged = jarVersionFile(Constants.JAR_JAR16_CLIENT)
+            def merged = cacheFile(Constants.FMED_JAR_CLIENT_FRESH)
             def deobf = Util.file(temporaryDir, "deobf.jar")
 
             logger.lifecycle "DeObfuscating jar"

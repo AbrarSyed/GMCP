@@ -53,6 +53,19 @@ class Util
         }
     }
 
+    public static List<String> getClassPath()
+    {
+        return GMCP.class.getClassLoader().getURLs().collect {  it.getPath() };
+    }
+
+    /**
+     * DON'T FORGET TO CLOSE
+     */
+    public static OutputStream getNullStream()
+    {
+        return new BufferedOutputStream(new ByteArrayOutputStream());
+    }
+
     public static createOrCleanDir(File file)
     {
 
@@ -110,10 +123,10 @@ class Util
         return file(arguments as String[])
     }
 
-    def static File jarFile(String... args)
+    def static File buildFile(String... args)
     {
         def arguments = []
-        arguments += GMCP.project.minecraft.jarDir
+        arguments += GMCP.project.getBuildDir()
         arguments.addAll(args)
 
         return file(arguments as String[])
@@ -124,14 +137,13 @@ class Util
      * @param args
      * @return
      */
-    def static File jarVersionFile(String... args)
+    def static File cacheFile(String... args)
     {
         def arguments = []
-        arguments += 'versions'
-        arguments += GMCP.project.minecraft.minecraftVersion
+        arguments += GMCP.project.gradle.gradleUserHomeDir
         arguments.addAll(args)
 
-        return jarFile(arguments as String[])
+        return file(arguments as String[])
     }
 
     def static File srcFile(String... args)
