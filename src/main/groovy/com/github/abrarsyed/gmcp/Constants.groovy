@@ -18,11 +18,9 @@ public final class Constants
     public static final String  	DIR_MCP_PATCHES 	    = DIR_MAPPINGS + "/patches"
 
     // jars
-    public static final String  	JAR_PROC		    	= "Minecraft_processed.jar"
+    public static final String  	JAR_PROC		    	= "build/jars/processed.jar"
 
     public static final String      DIR_NATIVES             = "build/natives"
-
-    // stuff in the jars folder
 
     // stuff in the jars folder
     public static final String  	DIR_JAR_BIN 	        = "bin"
@@ -48,10 +46,11 @@ public final class Constants
     // download URLs
     public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
     public static final String  URL_JSON_FORGE2     = "http://files.minecraftforge.net/minecraftforge/json2"
-    public static final String  URL_MC_CLIENT = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.jar'
+    public static final String  URL_MC_CLIENT       = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.jar'
     public static final String  URL_MC_SERVER       = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar'
-    // private static final String URL = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s'
     public static final String  URL_ASSETS          = 'http://s3.amazonaws.com/Minecraft.Resources'
+    public static final String  URL_FERNFLOWER      = "https://github.com/AbrarSyed/FML/raw/working/mcplibs/fernflower.jar";
+    public static final String  URL_EXCEPTOR        = "https://github.com/AbrarSyed/FML/raw/working/mcplibs/mcinjector.jar";
 
     // cache file paths
     public static final String  CACHE_DIR_FORGE     = "caches/gmcp/forge"

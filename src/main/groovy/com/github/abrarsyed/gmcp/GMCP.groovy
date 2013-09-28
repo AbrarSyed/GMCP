@@ -3,27 +3,20 @@ package com.github.abrarsyed.gmcp
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
-import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
-
-import com.github.abrarsyed.gmcp.tasks.DownloadTask
-import com.github.abrarsyed.gmcp.tasks.MergeMappingsTask
+import com.github.abrarsyed.gmcp.tasks.*
 import com.github.abrarsyed.gmcp.tasks.obfuscate.ReobfTask
 import com.google.common.io.Files
-import cpw.mods.fml.common.asm.transformers.MCPMerger
 import groovy.xml.StreamingMarkupBuilder
 import groovy.xml.XmlUtil
-import net.md_5.specialsource.*
+import net.md_5.specialsource.Jar
+import net.md_5.specialsource.JarMapping
+import net.md_5.specialsource.JarRemapper
 import net.md_5.specialsource.provider.JarProvider
 import net.md_5.specialsource.provider.JointProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.Copy
-
-import java.lang.reflect.Method
-import java.util.zip.ZipEntry
-import java.util.zip.ZipFile
-import java.util.zip.ZipOutputStream
 
 import static com.github.abrarsyed.gmcp.Util.*
 
@@ -92,7 +85,7 @@ public class GMCP implements Plugin<Project>
 
         // replace normal jar task with mine.
         //project.tasks.jar << reobfJarClosure()
-        //project.tasks.jar.dependsOn('doJarPreProcess')
+        //project.tasks.jar.dependsOn('deobfuscateJar')
     }
 
     def doResolving()
@@ -242,6 +235,18 @@ public class GMCP implements Plugin<Project>
             url = { String.format(Constants.URL_MC_SERVER, project.minecraft.minecraftVersion) }
         }
 
+        // download the FernFlower
+        project.task('downloadFernFlower', type: DownloadTask, dependsOn: "extractForge") {
+            output = { Util.cacheFile(Constants.FERNFLOWER) }
+            url = Constants.URL_FERNFLOWER
+        }
+
+        // download the exceptor
+        project.task('downloadExceptor', type: DownloadTask, dependsOn: "extractForge") {
+            output = { Util.cacheFile(Constants.EXCEPTOR) }
+            url = Constants.URL_EXCEPTOR
+        }
+
         // TODO: assets
         project.task('getAssets', dependsOn: 'extractForge') {
             outputs.dir { Util.jarFile(Constants.DIR_JAR_ASSETS) }
@@ -288,6 +293,7 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // any other things I need to downlaod from github or otherwise...
+        // TODO: FIX misc extractions.
         task = project.task('extractMisc') {
             outputs.dir baseFile(Constants.DIR_MISC)
         }
@@ -325,152 +331,46 @@ public class GMCP implements Plugin<Project>
 
     def nativesUnpackTask()
     {
-        def task = project.task("unpackNatives", dependsOn: 'extractForge')
-                {
-                    inputs.files { project.configurations.gmcpNative }
-                    outputs.dir { project.file(Constants.DIR_NATIVES) }
+        def task = project.task("unpackNatives", dependsOn: 'extractForge') {
+            inputs.files { project.configurations.gmcpNative }
+            outputs.dir { project.file(Constants.DIR_NATIVES) }
 
-                    doLast {
-                        project.copy {
-                            project.configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
-                                from project.zipTree(it.file)
-                            }
-
-                            into project.file(Constants.DIR_NATIVES)
-                        }
+            doLast {
+                project.copy {
+                    project.configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
+                        from project.zipTree(it.file)
                     }
+
+                    into project.file(Constants.DIR_NATIVES)
                 }
+            }
+        }
     }
 
     def jarTasks()
     {
-        // ----------------------------------------------------------------------------
-        // deobfuscate and apply exceptor
-        def task = project.task("doJarPreProcess") {
-            description = "Deobfuscates Minecraft, and applies the Exceptor"
-            group = "minecraft"
-            inputs.with {
-                file { cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
-                file { cacheFile(String.format(Constants.FMED_JAR_SERVER_FRESH, project.minecraft.forgeVersion)) }
-                file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
-                file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
-                file { baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
-                file { baseFile(Constants.DIR_FORGE, "common/forge_at.cfg") }
-                files { project.minecraft.accessTransformers.collect { String str -> project.file str } }
-            }
+        project.task("mergeJars", type: MergeJarsTask) {
+            client = { Util.cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.minecraftVersion)) }
+            server = { Util.cacheFile(String.format(Constants.FMED_JAR_SERVER_FRESH, project.minecraft.minecraftVersion)) }
+            outJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
+            mergeCfg = Util.baseFile(Constants.DIR_FML, "mcp_merge.cfg")
 
-            outputs.with {
-                file { cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.forgeVersion)) }
-                file { baseFile(Constants.JAR_PROC) }
-            }
-
-            dependsOn "downloadClient", "downloadServer", "doFMLMappingPreProcess"
+            dependsOn "downloadClient", "downloadServer"
         }
-        // merge jars
-        task << {
-            def server = Util.file(temporaryDir, "server.jar")
-            def merged = cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.forgeVersion))
-            def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
-            Files.copy(cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)), mergeTemp)
-            Files.copy(cacheFile(String.format(Constants.FMED_JAR_SERVER_FRESH, project.minecraft.forgeVersion)), server)
-
-            logger.lifecycle "Merging jars"
-
-            //Constants.JAR_CLIENT, Constants.JAR_SERVER
-            def args = [
-                    baseFile(Constants.DIR_FML, "mcp_merge.cfg").getPath(),
-                    mergeTemp.getPath(),
-                    server.getPath()
-            ]
-            MCPMerger.main(args as String[])
-
-            // copy and strip METAINF
-            def ZipFile input = new ZipFile(mergeTemp)
-            def output = new ZipOutputStream(merged.newDataOutputStream())
-
-            input.entries().each { ZipEntry entry ->
-                if (entry.name.contains("META-INF"))
-                {
-                    return
-                }
-                else if (entry.size > 0)
-                {
-                    output.putNextEntry(entry)
-                    output.write(input.getInputStream(entry).bytes)
-                    output.closeEntry()
-                }
-            }
-
-            input.close()
-            output.close()
-        }
-        // deobfuscate---------------------------
-        task << {
-            def merged = cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.forgeVersion))
-            def deobf = Util.file(temporaryDir, "deobf.jar")
-
-            logger.lifecycle "DeObfuscating jar"
-
-            // load mapping
-            JarMapping mapping = new JarMapping()
-            mapping.loadMappings(baseFile(Constants.DIR_MAPPINGS, "packaged.srg"))
-
-            // load in AT
-            def accessMap = new AccessMap()
-            accessMap.loadAccessTransformer(baseFile(Constants.DIR_FML, "common/fml_at.cfg"))
-            accessMap.loadAccessTransformer(baseFile(Constants.DIR_FORGE, "common/forge_at.cfg"))
-            project.minecraft.accessTransformers.each {
-                def atFile = project.file(it)
-                project.logger.lifecycle "External AccessTransformer found : ${atFile.getName()}"
-                accessMap.loadAccessTransformer(atFile)
-            }
-            def processor = new RemapperPreprocessor(null, mapping, accessMap)
-
-            // make remapper
-            JarRemapper remapper = new JarRemapper(processor, mapping)
-
-            // load jar
-            Jar input = Jar.init(merged)
-
-            // ensure that inheritance provider is used
-            JointProvider inheritanceProviders = new JointProvider()
-            inheritanceProviders.add(new JarProvider(input))
-            mapping.setFallbackInheritanceProvider(inheritanceProviders)
-
-            // remap jar
-            remapper.remapJar(input, deobf)
-        }
-        // apply exceptor------------------------
-        task << {
-
-            logger.lifecycle "Applying Exceptor to jar"
-
-            baseFile(Constants.DIR_LOGS).mkdirs()
-            String[] args = new String[4]
-            args[0] = Util.file(temporaryDir, "deobf.jar").getPath()
-            args[1] = baseFile(Constants.JAR_PROC).getPath()
-            args[2] = baseFile(Constants.DIR_MAPPINGS, "packaged.exc")
-            args[3] = baseFile(Constants.DIR_LOGS, "MCInjector.log").getPath()
-
-            try
-            {
-                Class c = Class.forName("MCInjector", true, getClass().classLoader)
-                Method m = c.getMethod("main", String[].class)
-                m.invoke(null, [args] as Object[])
-            }
-            catch (Exception e)
-            {
-                logger.error "MCInjector has failed!"
-                e.printStackTrace()
-            }
+        project.task("deobfuscateJar", type: ProcessJarTask) {
+            inJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
+            outJar = Util.file(Constants.JAR_PROC);
+            exceptorJar = Util.cacheFile(Constants.EXCEPTOR);
+            srg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
+            exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
         }
     }
 
     def decompileTask()
     {
         def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
-            dependsOn 'extractMisc', 'doJarPreProcess', 'unpackNatives', 'getAssets'
+            dependsOn 'extractMisc', 'deobfuscateJar', 'unpackNatives', 'getAssets'
 
             inputs.with {
                 dir { baseFile(Constants.DIR_FML_PATCHES) }
