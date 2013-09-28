@@ -24,9 +24,9 @@ import java.util.List;
  */
 public abstract class CachedTask extends DefaultTask
 {
-    private final ArrayList<Annotated> cachedList = new ArrayList();
+    private final ArrayList<Annotated> cachedList = new ArrayList<Annotated>();
 
-    private final ArrayList<Annotated> inputList = new ArrayList();
+    private final ArrayList<Annotated> inputList = new ArrayList<Annotated>();
 
     public CachedTask()
     {

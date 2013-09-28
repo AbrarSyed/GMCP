@@ -4,7 +4,7 @@ import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
 import com.github.abrarsyed.gmcp.tasks.DecompileMinecraftTask
-import com.github.abrarsyed.gmcp.tasks.DownloadMinecraftTask
+
 import com.github.abrarsyed.gmcp.tasks.DownloadTask
 import com.github.abrarsyed.gmcp.tasks.obfuscate.ReobfTask
 import com.google.common.io.Files
@@ -17,6 +17,7 @@ import net.md_5.specialsource.provider.JointProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.tasks.Copy
 
 import java.lang.reflect.Method
 import java.util.zip.ZipEntry
@@ -58,20 +59,19 @@ public class GMCP implements Plugin<Project>
             json.parseJson()
 
             // do dependnecies
-            dependencies
-                    {
-                        for (dep in json.libs)
-                        {
-                            gmcp dep
-                        }
+            dependencies {
+                for (dep in json.libs)
+                {
+                    gmcp dep
+                }
 
-                        for (dep in json.nativeLibs)
-                        {
-                            gmcpNative dep
-                        }
+                for (dep in json.nativeLibs)
+                {
+                    gmcpNative dep
+                }
 
-                        gmcp files(Util.cacheFile(Constants.FMED_JAR_MERGED).getPath())
-                    }
+                gmcp files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
+            }
         }
 
         // manage dependency configurations
@@ -148,28 +148,25 @@ public class GMCP implements Plugin<Project>
 
     def configureSourceSet()
     {
-        project.sourceSets
-                {
-                    minecraft
-                            {
-                                java
-                                        {
-                                            srcDir { srcFile(Constants.DIR_SRC_MINECRAFT) }
-                                            srcDir { srcFile(Constants.DIR_SRC_FORGE) }
-                                            srcDir { srcFile(Constants.DIR_SRC_FML) }
-                                        }
-                                resources {
-                                    srcDir { srcFile(Constants.DIR_SRC_RESOURCES) }
-                                }
-                            }
-
-                    main {
-                        java {
-                            // TODO make conditional for using agaricus's lib
-                            compileClasspath += minecraft.output
-                        }
-                    }
+        project.sourceSets {
+            minecraft {
+                java {
+                    srcDir { srcFile(Constants.DIR_SRC_MINECRAFT) }
+                    srcDir { srcFile(Constants.DIR_SRC_FORGE) }
+                    srcDir { srcFile(Constants.DIR_SRC_FML) }
                 }
+                resources {
+                    srcDir { srcFile(Constants.DIR_SRC_RESOURCES) }
+                }
+            }
+
+            main {
+                java {
+                    // TODO make conditional for using agaricus's lib
+                    compileClasspath += minecraft.output
+                }
+            }
+        }
     }
 
     def configureCompilation()
@@ -191,16 +188,14 @@ public class GMCP implements Plugin<Project>
     def downloadTasks()
     {
         // download forge
-        def task = project.task('downloadForge', type: DownloadTask) {
-            output = { Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip') }
+        project.task('downloadForge', type: DownloadTask) {
+            output = { Util.cacheFile(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip') }
             url = { project.minecraft.forgeURL }
         }
 
-        // Get Forge task
-        task = project.task('getForge', type: DownloadTask, dependsOn: 'downloadForge') {
-            description = "Extract the correct version of Forge"
-            group = "minecraft"
-            from { project.zipTree(Util.gradleDir(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip')) }
+        // extract the forge zip
+        project.task('extractForge', type: Copy, dependsOn: 'downloadForge') {
+            from { project.zipTree(Util.cacheFile(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip')) }
             into { baseFile(Constants.DIR_FORGE) }
             outputs.upToDateWhen {
                 def file = baseFile("forge", "forgeversion.properties")
@@ -213,16 +208,41 @@ public class GMCP implements Plugin<Project>
                 def version = String.format("%s.%s.%s.%s", props.get("forge.major.number"), props.get("forge.minor.number"), props.get("forge.revision.number"), props.get("forge.build.number"))
                 return project.minecraft.forgeVersion == version
             }
+            doLast {
+                json = new Json16Reader("1.6")
+                json.parseJson()
+
+                // do dependencies
+                dependencies {
+                    for (dep in json.libs)
+                    {
+                        gmcp dep
+                    }
+
+                    for (dep in json.nativeLibs)
+                    {
+                        gmcpNative dep
+                    }
+
+                    gmcp files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
+                }
+            }
         }
 
-        // ----------------------------------------------------------------------------
-        // download necessary stuff.
-        task = project.task('getMinecraft', dependsOn: "getForge", type: DownloadMinecraftTask) {
-            description = "Downloads the correct version of Minecraft and lwJGL and its natives"
-            group = "minecraft"
+        // download the client
+        project.task('downloadClient', type: DownloadTask, dependsOn: "extractForge") {
+            output = { Util.cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.minecraftVersion)) }
+            url = { String.format(Constants.URL_MC_CLIENT, project.minecraft.minecraftVersion) }
         }
 
-        task = project.task('getAssets', dependsOn: 'getForge') {
+        // download the server
+        project.task('downloadServer', type: DownloadTask, dependsOn: "extractForge") {
+            output = { Util.cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.minecraftVersion)) }
+            url = { String.format(Constants.URL_MC_SERVER, project.minecraft.minecraftVersion) }
+        }
+
+        // TODO: assets
+        project.task('getAssets', dependsOn: 'extractForge') {
             outputs.dir { Util.jarFile(Constants.DIR_JAR_ASSETS) }
 
             doLast {
@@ -253,7 +273,7 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // to do the package changes
-        task = project.task('doFMLMappingPreProcess', dependsOn: "getForge") {
+        project.task('doFMLMappingPreProcess', dependsOn: "extractForge") {
             description = "Copies and updates the mappings and configs with the new package structure"
             group = "minecraft"
             inputs.dir { baseFile(Constants.DIR_FML, "conf") }
@@ -325,21 +345,21 @@ public class GMCP implements Plugin<Project>
 
     def nativesUnpackTask()
     {
-        def task = project.task("unpackNatives", dependsOn: 'getForge')
-        {
-            inputs.files { project.configurations.gmcpNative }
-            outputs.dir { project.file(Constants.DIR_NATIVES) }
+        def task = project.task("unpackNatives", dependsOn: 'extractForge')
+                {
+                    inputs.files { project.configurations.gmcpNative }
+                    outputs.dir { project.file(Constants.DIR_NATIVES) }
 
-            doLast {
-                project.copy {
-                    project.configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
-                        from project.zipTree(it.file)
+                    doLast {
+                        project.copy {
+                            project.configurations.gmcpNative.resolvedConfiguration.resolvedArtifacts.each {
+                                from project.zipTree(it.file)
+                            }
+
+                            into project.file(Constants.DIR_NATIVES)
+                        }
                     }
-
-                    into project.file(Constants.DIR_NATIVES)
                 }
-            }
-        }
     }
 
     def jarTasks()
@@ -350,8 +370,8 @@ public class GMCP implements Plugin<Project>
             description = "Deobfuscates Minecraft, and applies the Exceptor"
             group = "minecraft"
             inputs.with {
-                file { cacheFile(Constants.FMED_JAR_MERGED) }
-                file { jarFile(Constants.FMED_JAR_SERVER_FRESH) }
+                file { cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
+                file { cacheFile(String.format(Constants.FMED_JAR_SERVER_FRESH, project.minecraft.forgeVersion)) }
                 file { baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
                 file { baseFile(Constants.DIR_MAPPINGS, "packaged.srg") }
                 file { baseFile(Constants.DIR_FML, "common/fml_at.cfg") }
@@ -360,20 +380,20 @@ public class GMCP implements Plugin<Project>
             }
 
             outputs.with {
-                file { cacheFile(Constants.FMED_JAR_CLIENT_FRESH) }
+                file { cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.forgeVersion)) }
                 file { baseFile(Constants.JAR_PROC) }
             }
 
-            dependsOn "getMinecraft", "doFMLMappingPreProcess"
+            dependsOn "downloadClient", "downloadServer", "doFMLMappingPreProcess"
         }
         // merge jars
         task << {
             def server = Util.file(temporaryDir, "server.jar")
-            def merged = cacheFile(Constants.FMED_JAR_CLIENT_FRESH)
+            def merged = cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.forgeVersion))
             def mergeTemp = Util.file(temporaryDir, "merged.jar.tmp")
 
-            Files.copy(cacheFile(Constants.FMED_JAR_MERGED), mergeTemp)
-            Files.copy(jarFile(Constants.FMED_JAR_SERVER_FRESH), server)
+            Files.copy(cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)), mergeTemp)
+            Files.copy(cacheFile(String.format(Constants.FMED_JAR_SERVER_FRESH, project.minecraft.forgeVersion)), server)
 
             logger.lifecycle "Merging jars"
 
@@ -407,7 +427,7 @@ public class GMCP implements Plugin<Project>
         }
         // deobfuscate---------------------------
         task << {
-            def merged = cacheFile(Constants.FMED_JAR_CLIENT_FRESH)
+            def merged = cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.forgeVersion))
             def deobf = Util.file(temporaryDir, "deobf.jar")
 
             logger.lifecycle "DeObfuscating jar"
@@ -543,7 +563,7 @@ public class GMCP implements Plugin<Project>
             def rootNode = new XmlSlurper().parseText(file.text)
 
             // NATIVES PART  ---------------------------------------------------------------------
-            def nativesDir = jarFile(Constants.DIR_JAR_BIN, 'natives').getPath()
+            def nativesDir = project.file(Constants.DIR_NATIVES)
 
             // using the gradle plugin.
             def container = rootNode.children().find { it.@kind == 'con' && it.@path && it.@path == 'org.springsource.ide.eclipse.gradle.classpathcontainer' }

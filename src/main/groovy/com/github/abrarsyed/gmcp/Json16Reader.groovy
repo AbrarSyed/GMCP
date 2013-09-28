@@ -4,12 +4,6 @@ import groovy.json.JsonSlurper
 
 class Json16Reader
 {
-    private static final String URL = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s'
-//    private static final String JSON = '/%1$s.json'
-    private static final String CLIENT = '/%1$s.jar'
-    private static final String SERVER = '/minecraft_server.%1$s.jar'
-
-    public String version
     private JsonSlurper slurper
 
     // other stuff
@@ -19,7 +13,6 @@ class Json16Reader
 
     public Json16Reader(String version)
     {
-        this.version = version
         slurper = new JsonSlurper()
     }
 
@@ -56,15 +49,5 @@ class Json16Reader
                     libs += lib
             }
         }
-    }
-
-    def getClientURL()
-    {
-        return String.format(URL + CLIENT, version)
-    }
-
-    def getServerURL()
-    {
-        return String.format(URL + SERVER, version)
     }
 }

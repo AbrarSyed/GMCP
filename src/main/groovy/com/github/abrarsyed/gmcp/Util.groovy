@@ -89,16 +89,6 @@ class Util
         }
     }
 
-    def static File gradleDir(String... args)
-    {
-        def arguments = []
-        arguments += System.getProperty("user.home")
-        arguments += '.gradle'
-        arguments.addAll(args)
-
-        return file(arguments as String[])
-    }
-
     def static String getRelative(File root, File file)
     {
         return file.getAbsolutePath().substring(root.getAbsolutePath().length())
