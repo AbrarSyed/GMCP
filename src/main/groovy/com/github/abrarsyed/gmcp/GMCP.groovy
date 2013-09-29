@@ -290,43 +290,6 @@ public class GMCP implements Plugin<Project>
             outPatch = { cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftversion)) }
             outExc = { cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftversion)) }
         }
-
-        // ----------------------------------------------------------------------------
-        // any other things I need to downlaod from github or otherwise...
-        // TODO: FIX misc extractions.
-        task = project.task('extractMisc') {
-            outputs.dir baseFile(Constants.DIR_MISC)
-        }
-        task << {
-            baseFile(Constants.DIR_MISC).mkdirs()
-
-            InputStream stream = this.getClass().classLoader.getResourceAsStream(Constants.REC_FORMAT_CFG)
-            baseFile(Constants.CFG_FORMAT) << stream.getBytes()
-
-            stream = this.getClass().classLoader.getResourceAsStream(Constants.REC_PATCH_EXEC)
-            baseFile(Constants.EXEC_WIN_PATCH) << stream.getBytes()
-
-            // extract astyle
-            if (os != OperatingSystem.LINUX)
-            {
-                def astyleIn = String.format(Constants.REC_ASTYLE_EXEC, os.toString().toLowerCase())
-                def astyleOut = Constants.EXEC_ASTYLE
-                if (os == OperatingSystem.WINDOWS)
-                {
-                    astyleIn += ".exe"
-                    astyleOut += ".exe"
-                }
-
-                stream = this.getClass().classLoader.getResourceAsStream(astyleIn)
-                baseFile(astyleOut) << stream.getBytes()
-
-                // fix OSX permissions
-                if (os == OperatingSystem.OSX)
-                {
-                    ant.chmod(file: astyleOut, perm: "777", includes: "astyle")
-                }
-            }
-        }
     }
 
     def nativesUnpackTask()
@@ -370,22 +333,22 @@ public class GMCP implements Plugin<Project>
     def decompileTask()
     {
         def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
-            dependsOn 'extractMisc', 'deobfuscateJar', 'unpackNatives', 'getAssets'
+            dependsOn 'deobfuscateJar'
 
             inputs.with {
                 dir { baseFile(Constants.DIR_FML_PATCHES) }
                 dir { baseFile(Constants.DIR_FORGE_PATCHES) }
                 file { baseFile(Constants.DIR_MAPPINGS, "astyle.cfg") }
                 files { Constants.CSVS.collect { baseFile(Constants.DIR_MAPPINGS, it.getValue()) } }
-                file { baseFile(Constants.JAR_PROC) }
-                dir { baseFile(Constants.DIR_MCP_PATCHES) }
+                file { Util.file(Constants.JAR_PROC) }
+                file { Util.cacheFile(Constants.FERNFLOWER) }
+                file { cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftversion)) }
             }
 
             outputs.with {
                 outputs.dir { srcFile(Constants.DIR_SRC_MINECRAFT) }
                 outputs.dir { srcFile(Constants.DIR_SRC_RESOURCES) }
             }
-
         }
     }
 
@@ -495,7 +458,7 @@ public class GMCP implements Plugin<Project>
             Files.copy(file, inTemp)
             file.delete()
 
-            def deobfed = Util.baseFile(Constants.JAR_PROC)
+            def deobfed = Util.file(Constants.JAR_PROC)
 
             // load mapping
             JarMapping mapping = new JarMapping()
@@ -529,7 +492,7 @@ public class GMCP implements Plugin<Project>
             Files.copy(file, inTemp)
             file.delete()
 
-            def deobfed = Util.baseFile(Constants.JAR_PROC)
+            def deobfed = Util.file(Constants.JAR_PROC)
 
             // load mapping
             JarMapping mapping = new JarMapping()

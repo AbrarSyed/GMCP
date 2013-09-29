@@ -1,8 +1,10 @@
 package com.github.abrarsyed.gmcp.tasks
 
+import com.cloudbees.diff.ContextualPatch
 import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
+import com.google.common.io.Files
 import difflib.DiffUtils
 import difflib.Patch
 import groovy.io.FileType
@@ -11,6 +13,8 @@ import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
+
+import java.nio.charset.Charset
 
 class PatchTask extends DefaultTask
 {
@@ -44,7 +48,7 @@ class PatchTask extends DefaultTask
     public static patchStuff(File patchDir, File srcDir, File logFile, File tempPatch)
     {
         //binaryPatch(patchDir, srcDir, logFile, tempPatch);
-        libPatch(patchDir, srcDir, logFile)
+        libPatch(patchDir, srcDir, logFile, tempPatch.getParentFile())
     }
 
     private static binaryPatch(File patchDir, File srcDir, File logFile, File tempPatch)
@@ -53,9 +57,13 @@ class PatchTask extends DefaultTask
 
         // prepare command
         if (GMCP.os == Constants.OperatingSystem.WINDOWS)
+        {
             command = Util.baseFile(Constants.EXEC_WIN_PATCH).getPath()
+        }
         else
+        {
             command = "patch"
+        }
 
         arguments = [
                 "-p3",
@@ -69,7 +77,9 @@ class PatchTask extends DefaultTask
         if (log)
         {
             if (logFile.exists())
+            {
                 logFile.delete()
+            }
 
             // make it new, delete was to clear data.
             GMCP.project.file logFile
@@ -101,45 +111,46 @@ class PatchTask extends DefaultTask
                 }
     }
 
-    private static libPatch(File patchDir, File srcDir, File logFile)
+    private static libPatch(File patchDir, File srcDir, File logFile, temp)
     {
-        Map<File, Patch> patchMap = [:]
-        def newFile, patch
+        temp.mkdirs();
 
         def writer = logFile.newPrintWriter();
+        def loadedPatches = new ArrayList<ContextualPatch>();
 
-        // recurse through files
-        patchDir.eachFileRecurse(FileType.FILES) {
-            // if its a patch
-            if (it.isFile() && it.path.endsWith(".patch"))
+        patchDir.eachFile(FileType.FILES) {
+            writer.println "Fixing patch: " + it
+            String relative = it.getAbsolutePath().substring(patchDir.getAbsolutePath().length());
+            File outFile = new File(temp, relative);
+
+            String text = it.text
+
+            // newlines
+            text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE).replaceAll("(\\r\\n|\\r|\\n)", Constants.NEWLINE);
+
+            // fixing for the paths.
+            text = text.replaceAll("\\.\\./src-base/minecraft/(net/minecraft)", '$1');
+            outFile.getParentFile().mkdirs();
+            Files.touch(outFile);
+            Files.write(text, outFile, Charset.defaultCharset());
+
+            writer.println "Loading Patch: " + it
+            loadedPatches.add(ContextualPatch.create(outFile, srcDir));
+        }
+
+        // apply patches
+        loadedPatches.each {
+            it.patch(false);
+            List<ContextualPatch.PatchReport> errors = it.patch(false);
+            for (ContextualPatch.PatchReport report : errors)
             {
-                newFile = new File(srcDir, Util.getRelative(patchDir, it).replace(/.patch/, ""))
-                patch = DiffUtils.parseUnifiedDiff(it.text.readLines())
-                patchMap.put(newFile, patch)
+                if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
+                {
+                    writer.println "Patching failed: " + report.getFile(), report.getFailure()
+                }
             }
         }
 
-        def counter = 0, success = 0
-        patchMap.each
-                { file, delta ->
-                    try
-                    {
-                        def lines = file.text.readLines()
-                        lines = delta.applyTo(lines)
-                        file.write(lines.join("\n"))
-                        success++
-                    }
-                    catch (Exception e)
-                    {
-                        writer.println "error patching " + file + "   skipping."
-                        if (counter <= 1)
-                            e.printStackTrace(writer);
-                    }
-                    counter++
-                }
-
-        writer.println success + " out of " + counter + " succeeded"
-        writer.flush();
         writer.close();
     }
 }

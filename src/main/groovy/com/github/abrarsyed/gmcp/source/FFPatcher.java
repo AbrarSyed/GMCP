@@ -3,11 +3,8 @@ package com.github.abrarsyed.gmcp.source;
 import com.github.abrarsyed.gmcp.Constants;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.google.common.io.Files;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,25 +42,9 @@ public class FFPatcher
 
     public static final String ENUM_VALS = "(?m)^ +// \\$FF: synthetic field(\\r\\n|\\n|\\r) +private static final %s\\[\\] [$\\w]+ = new %s\\[\\]\\{.*?\\};(\\r\\n|\\n|\\r)";
 
-    public static void processDir(File dir) throws IOException
+    public static String processFile(String fileName, String text) throws IOException
     {
-        for (File file : dir.listFiles())
-        {
-            if (file.isDirectory())
-            {
-                processDir(file);
-            }
-            else if (file.getPath().endsWith(".java"))
-            {
-                processFile(file);
-            }
-        }
-    }
-
-    public static void processFile(File file) throws IOException
-    {
-        String classname = file.getName().split("\\.")[0];
-        String text = Files.toString(file, Charset.defaultCharset());
+        String classname = fileName.split("\\.")[0];
 
         text = text.replaceAll(TRAILING, "");
 
@@ -106,7 +87,7 @@ public class FFPatcher
         text = text.replaceAll("(\\r\\n|\\r|\\n)", Constants.NEWLINE);
         text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE);
 
-        Files.write(text, file, Charset.defaultCharset());
+        return text;
     }
 
     private static String processEnum(String classname, String classtype, List modifiers, List interfaces, String body, String end)

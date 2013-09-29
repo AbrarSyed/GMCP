@@ -1,24 +1,31 @@
 package com.github.abrarsyed.gmcp.tasks
 
+import com.cloudbees.diff.ContextualPatch
 import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
 import com.github.abrarsyed.gmcp.GMCP
+import com.github.abrarsyed.gmcp.Util
+import com.github.abrarsyed.gmcp.source.FFPatcher
 import com.github.abrarsyed.gmcp.source.FMLCleanup
+import com.github.abrarsyed.gmcp.source.GLConstantFixer
+import com.github.abrarsyed.gmcp.source.McpCleanup
 import com.github.abrarsyed.gmcp.source.SourceRemapper
+import com.github.abrarsyed.jastyle.ASFormatter
+import com.github.abrarsyed.jastyle.OptParser
 import com.google.common.io.Files
-import de.fernflower.main.decompiler.ConsoleDecompiler
 import groovy.io.FileType
 import org.gradle.api.DefaultTask
-import org.gradle.api.Project
 import org.gradle.api.tasks.TaskAction
+
+import java.nio.charset.Charset
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 import static com.github.abrarsyed.gmcp.Util.*
 
 class DecompileMinecraftTask extends DefaultTask
 {
-    private static Project project = GMCP.project
-    def private final File unzippedDir = file(temporaryDir, "unzipped")
-    def private final File decompiledDir = file(temporaryDir, "decompiled")
+    def private final File decompJar = file(temporaryDir, "decompiled.jar")
 
     def private log(Object obj)
     {
@@ -28,17 +35,13 @@ class DecompileMinecraftTask extends DefaultTask
     @TaskAction
     def doTask()
     {
-        log "Unpacking jar"
-        extractJar()
-
-        log "Decompiling classes"
+        log "Decompiling jar"
         decompile()
 
-        log "Copying classes"
+        log "Extracting and cleaning sources"
         copyClasses()
 
-        log "Applying post-decompile cleaning and fixes"
-        FFPatcher.processDir(srcFile(Constants.DIR_SRC_MINECRAFT))
+        log "Apply MCP patches and cleanup"
         doMCPPatches()
         doMCPCleanup()
 
@@ -56,112 +59,127 @@ class DecompileMinecraftTask extends DefaultTask
         applyForgeModifications()
     }
 
-    def void extractJar()
-    {
-        project.mkdir(unzippedDir)
-        def temp = unzippedDir
-        project.copy
-                {
-                    from project.zipTree(baseFile(Constants.JAR_PROC))
-                    into temp
-                    exclude "**/*/META-INF*"
-                    exclude "META-INF"
-                }
-    }
-
     def decompile()
     {
-        project.mkdir(decompiledDir)
+        def fernFlower = Util.cacheFile(Constants.FERNFLOWER)
 
-        String[] args = new String[7]
-        args[0] = "-din=0"
-        args[1] = "-rbr=0"
-        args[2] = "-dgs=1"
-        args[3] = "-asc=1"
-        args[4] = "-log=ERROR"
-        args[5] = unzippedDir.getPath()
-        args[6] = decompiledDir.getPath()
+        project.javaexec {
+            args(
+                    fernFlower.getAbsolutePath(),
+                    "-din=0",
+                    "-rbr=0",
+                    "-dgs=1",
+                    "-asc=1",
+                    "-log=ERROR",
+                    Util.file(Constants.JAR_PROC).getAbsolutePath(),
+                    decompJar.getAbsolutePath()
+            );
 
-        try
-        {
-            PrintStream stream = System.out
-            def log = baseFile(Constants.DIR_LOGS, "FF.log")
-            project.file log
-            System.setOut(new PrintStream(log))
+            setMain "-jar"
+            setWorkingDir fernFlower.getParentFile()
 
-            ConsoleDecompiler.main(args)
-            // -din=0 -rbr=0 -dgs=1 -asc=1 -log=WARN {indir} {outdir}
+            classpath Util.getClassPath()
 
-            System.setOut(stream)
-        }
-        catch (Exception e)
-        {
-            project.logger.error "Fernflower failed"
-            e.printStackTrace()
+            setStandardOutput Util.getNullStream()
         }
     }
 
     def copyClasses()
     {
-        def tree = project.fileTree(decompiledDir)
+        final ZipInputStream zin = new ZipInputStream(decompJar.newInputStream());
+        ZipEntry entry = null;
 
-        // copy classes
-        project.mkdir(srcFile(Constants.DIR_SRC_MINECRAFT))
-        project.copy {
-            exclude "META-INF"
-            from(tree) { include "net/minecraft/**/*.java" }
-            into srcFile(Constants.DIR_SRC_MINECRAFT)
+        def out;
+        def srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
+        def resDir = srcFile(Constants.DIR_SRC_RESOURCES)
+
+        while ((entry = zin.getNextEntry()) != null)
+        {
+            // no META or dirs. wel take care of dirs later.
+            if (entry.getName().contains("META-INF"))
+            {
+                continue;
+            }
+
+            // resources or directories.
+            if (entry.isDirectory() || !entry.getName().endsWith(".java"))
+            {
+                out = file(resDir, entry.getName())
+                out.getParentFile().mkdirs();
+                out.delete();
+                out.createNewFile();
+                out << zin;
+                zin.closeEntry();
+
+            }
+            else
+            {
+                // source!
+
+                // get the text
+                fileStr = zin.text
+                zin.closeEntry();
+
+                // fix
+                fileStr = FFPatcher.processFile(new File(entry.getName()).getName(), fileStr);
+
+                // write it.
+                out = file(srcDir, entry.getName())
+                out.getParentFile().mkdirs();
+                out.write(fileStr)
+            }
         }
 
-        // copy resources
-        project.mkdir(srcFile(Constants.DIR_SRC_RESOURCES))
-        project.copy {
-            exclude "*.java"
-            exclude "**/*.java"
-            exclude "*.class"
-            exclude "**/*.class"
-            exclude "META-INF"
-            from tree
-            into srcFile(Constants.DIR_SRC_RESOURCES)
-            includeEmptyDirs = false
-        }
+        zin.close();
+
+//        def tree = project.fileTree(decompiledDir)
+//
+//        // copy classes
+//        project.mkdir(srcFile(Constants.DIR_SRC_MINECRAFT))
+//        project.copy {
+//            exclude "META-INF"
+//            from(tree) { include "net/minecraft/**/*.java" }
+//            into srcFile(Constants.DIR_SRC_MINECRAFT)
+//        }
+//
+//        // copy resources
+//        project.mkdir(srcFile(Constants.DIR_SRC_RESOURCES))
+//        project.copy {
+//            exclude "*.java"
+//            exclude "**/*.java"
+//            exclude "*.class"
+//            exclude "**/*.class"
+//            exclude "META-INF"
+//            from tree
+//            into srcFile(Constants.DIR_SRC_RESOURCES)
+//            includeEmptyDirs = false
+//        }
     }
 
     def doMCPPatches()
     {
-        // copy patch, and fix lines
-        def text = baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch").text
-        text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE)
-        text = text.replaceAll(/(\r\n|\r|\n)/, Constants.NEWLINE)
-        def patch = file(temporaryDir, "patch")
-        patch.write(text)
+        // fix the patch first.
+        String text = cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftversion)).text
 
-        def result = project.exec {
-            if (GMCP.os == Constants.OperatingSystem.WINDOWS)
+        // fix newlines
+        text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE).replaceAll("(\\r\\n|\\r|\\n)", Constants.NEWLINE)
+
+        // fixing for the paths.
+        text = text.replaceAll("minecraft\\\\(net\\\\minecraft)", '$1')
+
+        def tempPatch = new File(getTemporaryDir(), "patch");
+        tempPatch.write(text)
+
+        // actually do the patches now.
+        ContextualPatch cPatch = ContextualPatch.create(tempPatch, srcFile(Constants.DIR_SRC_MINECRAFT));
+        List<ContextualPatch.PatchReport> reports = cPatch.patch(true);
+        for (ContextualPatch.PatchReport report : reports)
+        {
+            getLogger().info(report.getStatus() + "  -- " + report.getFile());
+            if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
             {
-                executable = baseFile(Constants.EXEC_WIN_PATCH).getPath()
+                getLogger().info("ERROR: ", report.getFailure());
             }
-            else
-            {
-                executable = "patch"
-            }
-
-            def log = baseFile(Constants.DIR_LOGS, "MCPPatches.log")
-            project.file log
-            def stream = log.newOutputStream()
-            standardOutput = stream
-            errorOutput = stream
-
-            ignoreExitValue = true
-
-            args = [
-                    "-p1",
-                    "-u",
-                    "-i",
-                    '"' + patch.getAbsolutePath() + '"',
-                    "-d",
-                    '"' + srcFile(Constants.DIR_SRC_MINECRAFT).getPath() + '"'
-            ]
         }
 
         // copy over start.java
@@ -172,44 +190,40 @@ class DecompileMinecraftTask extends DefaultTask
     {
         srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
 
-            def text = it.text
+            getLogger().debug("Processing file: " + it);
+            String text = it.text
 
-            // pre-formatting cleanup
-            text = MCPCleanup.cleanFile(text)
+            getLogger().debug("processing comments");
+            text = McpCleanup.stripComments(text);
 
-            // write text
+            getLogger().debug("fixing imports comments");
+            text = McpCleanup.fixImports(text);
+
+            getLogger().debug("various other cleanup");
+            text = McpCleanup.cleanup(text);
+
+            getLogger().debug("fixing OGL constants");
+            text = GLConstantFixer.fixOGL(text);
+
+            getLogger().debug("Writing file");
             it.write(text)
         }
     }
 
     def applyAstyle()
     {
-        // run astyle
-        project.exec {
-            def exec
-            switch (GMCP.os)
-            {
-                case OperatingSystem.LINUX:
-                    exec = "astyle"
-                    break
-                case OperatingSystem.OSX:
-                    exec = baseFile(Constants.EXEC_ASTYLE).getPath()
-                    break
-                case OperatingSystem.WINDOWS:
-                    exec = baseFile(Constants.EXEC_ASTYLE + ".exe").getPath()
+        def formatter = new ASFormatter();
+        OptParser parser = new OptParser(formatter);
 
-            }
+        def config = baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")
+        getLogger().info("Parsing astyle options file: " + config);
+        parser.parseOptionFile(config);
 
-            // %s --suffix=none --quiet --options={conffile} {classes}
-            commandLine = [
-                    exec,
-                    "--suffix=none",
-                    "--quiet",
-                    "--options=" + baseFile(Constants.DIR_MAPPINGS, "astyle.cfg").getPath(),
-                    "--recursive",
-                    srcFile(Constants.DIR_SRC_MINECRAFT).getPath() + File.separator + '*.java'
-            ]
+        srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
+            logger.debug("Formatting file: " + it);
+            formatter.formatFile(it);
         }
+
     }
 
     def applyFMLModifications()
