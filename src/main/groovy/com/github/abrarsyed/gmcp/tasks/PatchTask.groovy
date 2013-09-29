@@ -5,8 +5,6 @@ import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
 import com.google.common.io.Files
-import difflib.DiffUtils
-import difflib.Patch
 import groovy.io.FileType
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.InputDirectory

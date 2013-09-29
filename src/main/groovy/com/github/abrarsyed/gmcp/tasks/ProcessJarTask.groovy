@@ -46,6 +46,9 @@ public class ProcessJarTask extends CachedTask
     @TaskAction
     public void doTask() throws IOException
     {
+        // import from the extension
+        addTransformer project.minecraft.accessTransformers as Object[]
+
         // make stuff into files.
         File tempObfJar = new File(getTemporaryDir(), "obfed.jar"); // courtesy of gradle temp dir.
 

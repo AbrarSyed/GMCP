@@ -2,14 +2,8 @@ package com.github.abrarsyed.gmcp.tasks
 
 import com.cloudbees.diff.ContextualPatch
 import com.github.abrarsyed.gmcp.Constants
-import com.github.abrarsyed.gmcp.Constants.OperatingSystem
-import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
-import com.github.abrarsyed.gmcp.source.FFPatcher
-import com.github.abrarsyed.gmcp.source.FMLCleanup
-import com.github.abrarsyed.gmcp.source.GLConstantFixer
-import com.github.abrarsyed.gmcp.source.McpCleanup
-import com.github.abrarsyed.gmcp.source.SourceRemapper
+import com.github.abrarsyed.gmcp.source.*
 import com.github.abrarsyed.jastyle.ASFormatter
 import com.github.abrarsyed.jastyle.OptParser
 import com.google.common.io.Files
@@ -17,7 +11,6 @@ import groovy.io.FileType
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 
-import java.nio.charset.Charset
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
