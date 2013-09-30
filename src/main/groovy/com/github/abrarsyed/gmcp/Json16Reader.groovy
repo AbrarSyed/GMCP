@@ -32,14 +32,31 @@ class Json16Reader
         for (obj in json['libraries'])
         {
             String lib = obj['name']
-            
+
             if (lib.contains('debug') || lib.contains('_fixed'))
-                continue;
+            {
+                continue
+            }
             else if (obj['natives'] || obj['extract'])
             // native. will need extraction.
+            {
                 nativeLibs += lib + ':' + obj['natives'][GMCP.os.name().toLowerCase()]
+            }
             else
-                libs += lib
+            {
+                // force it to a good version.. of argo
+                if (lib.contains('argo') && lib.split(/\:/)[2].toFloat() <= 3.4)
+                {
+                    lib += 'net.sourceforge.argo:argo:3.4'
+                }
+
+                else
+                // standard download.
+                {
+                    libs += lib
+                }
+            }
+
         }
     }
 }

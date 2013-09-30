@@ -71,6 +71,22 @@ public class GMCP implements Plugin<Project>
             }
         }
 
+        // repos
+        // yay for maven central.
+        project.with {
+            repositories {
+                maven {
+                    name 'forge'
+                    url 'http:/files.minecraftforge.net/maven'
+                }
+                maven {
+                    name "minecraft"
+                    url "http://s3.amazonaws.com/Minecraft.Download/libraries"
+                }
+                mavenCentral()
+            }
+        }
+
         // start the tasks
         downloadTasks()
         nativesUnpackTask()
@@ -96,25 +112,9 @@ public class GMCP implements Plugin<Project>
 
     def doResolving()
     {
-        project.with {
-            afterEvaluate {
-
-                minecraft.resolveVersion(false)
-                minecraft.resolveSrcDir()
-
-                // yay for maven central.
-                repositories {
-                    maven {
-                        name 'forge'
-                        url 'http:/files.minecraftforge.net/maven'
-                    }
-                    maven {
-                        name "minecraft_" + minecraft.minecraftVersion
-                        url "http://s3.amazonaws.com/Minecraft.Download/libraries"
-                    }
-                    mavenCentral()
-                }
-            }
+        project.afterEvaluate {
+            project.minecraft.resolveVersion(false)
+            project.minecraft.resolveSrcDir()
         }
     }
 
@@ -371,6 +371,8 @@ public class GMCP implements Plugin<Project>
             outputs.with {
                 outputs.dir { Util.srcFile(Constants.DIR_SRC_MINECRAFT) }
                 outputs.dir { Util.srcFile(Constants.DIR_SRC_RESOURCES) }
+                outputs.dir { Util.srcFile(Constants.DIR_SRC_FML) }
+                outputs.dir { Util.srcFile(Constants.DIR_SRC_FORGE) }
             }
         }
     }

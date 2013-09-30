@@ -64,16 +64,6 @@ public class MergeMappingsTask extends CachedTask
     @Setter
     @Cached
     @OutputFile
-    Object outObfSRG;
-
-    @Setter
-    @Cached
-    @OutputFile
-    Object outMcpSRG;
-
-    @Setter
-    @Cached
-    @OutputFile
     Object outEXC;
 
     @TaskAction
