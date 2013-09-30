@@ -5,7 +5,7 @@ import com.github.abrarsyed.gmcp.Constants;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class McpCleanup
+public class MCPCleanup
 {
     public static final Pattern COMMENTS_COMMENTS = Pattern.compile("(?ms)\\/\\/.*?$|\\/\\*.*?\\*\\/|\\'(?:\\.|[^\\'])*'|\"(?:\\.|[^\\\"])*\"");
     public static final Pattern COMMENTS_TRAILING = Pattern.compile("(?m)[ \\t]+$");

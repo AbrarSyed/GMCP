@@ -187,13 +187,13 @@ class DecompileMinecraftTask extends DefaultTask
             String text = it.text
 
             getLogger().debug("processing comments");
-            text = McpCleanup.stripComments(text);
+            text = MCPCleanup.stripComments(text);
 
             getLogger().debug("fixing imports comments");
-            text = McpCleanup.fixImports(text);
+            text = MCPCleanup.fixImports(text);
 
             getLogger().debug("various other cleanup");
-            text = McpCleanup.cleanup(text);
+            text = MCPCleanup.cleanup(text);
 
             getLogger().debug("fixing OGL constants");
             text = GLConstantFixer.fixOGL(text);

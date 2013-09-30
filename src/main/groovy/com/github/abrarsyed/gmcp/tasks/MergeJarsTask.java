@@ -25,22 +25,18 @@ import static com.github.abrarsyed.gmcp.Util.baseFile;
 
 public class MergeJarsTask extends CachedTask
 {
-    @Getter
     @Setter
     @InputFile
     private Object mergeCfg;
 
-    @Getter
     @Setter
     @InputFile
     private Object client;
 
-    @Getter
     @Setter
     @InputFile
     private Object server;
 
-    @Getter
     @Setter
     @OutputFile
     @Cached
@@ -90,8 +86,6 @@ public class MergeJarsTask extends CachedTask
 
     private void compileMerger(final File inDir, final File outDir)
     {
-        //        // http://www.gradle.org/docs/current/dsl/org.gradle.api.tasks.Exec.html
-
         getProject().exec(new Closure(getProject())
         {
             @Override
@@ -114,7 +108,7 @@ public class MergeJarsTask extends CachedTask
                         outDir.getAbsolutePath(),
 
                         // target to be recompiled.
-                        new File("common/cpw/mods/fml/common/asm/transformers/MCPMerger.java")
+                        Util.baseFile(Constants.DIR_FML, "common/cpw/mods/fml/common/asm/transformers/MCPMerger.java")
                 );
 
                 exec.setExecutable("javac");
@@ -153,5 +147,49 @@ public class MergeJarsTask extends CachedTask
                 return exec;
             }
         });
+    }
+
+    public File getClient()
+    {
+        if (client instanceof File)
+            return (File)client;
+        else
+        {
+            client = getProject().file(client);
+            return (File)client;
+        }
+    }
+
+    public File getMergeCfg()
+    {
+        if (mergeCfg instanceof File)
+            return (File)mergeCfg;
+        else
+        {
+            mergeCfg = getProject().file(mergeCfg);
+            return (File)mergeCfg;
+        }
+    }
+
+    public File getServer()
+    {
+        if (server instanceof File)
+            return (File)server;
+        else
+        {
+            server = getProject().file(server);
+            return (File)server;
+        }
+    }
+
+    public File getOutJar()
+    {
+        if (outJar instanceof File)
+            return (File)outJar;
+        else
+        {
+            outJar = getProject().file(outJar);
+            return (File)outJar;
+        }
     }
 }

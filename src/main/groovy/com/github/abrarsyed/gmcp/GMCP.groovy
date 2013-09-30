@@ -173,7 +173,7 @@ public class GMCP implements Plugin<Project>
             sourceCompatibility = '1.6'
         }
 
-        def task = project.task('reobf', type: ReobfTask, dependsOn: 'doFMLMappingPreProcess') {
+        def task = project.task('reobf', type: ReobfTask, dependsOn: 'genReobfSrgs') {
             reobf project.tasks.jar
         }
 
@@ -233,7 +233,7 @@ public class GMCP implements Plugin<Project>
 
         // download the server
         project.task('downloadServer', type: DownloadTask, dependsOn: "extractForge") {
-            output = { Util.cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.minecraftVersion)) }
+            output = { Util.cacheFile(String.format(Constants.FMED_JAR_SERVER_FRESH, project.minecraft.minecraftVersion)) }
             url = { String.format(Constants.URL_MC_SERVER, project.minecraft.minecraftVersion) }
         }
 
@@ -292,6 +292,16 @@ public class GMCP implements Plugin<Project>
             outPatch = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)) }
             outEXC = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
         }
+
+        project.task('genReobfSrgs', type: GenReobfSrgTask, dependsOn: "extractForge") {
+            methodsCSV = { Util.baseFile(Constants.DIR_MAPPINGS, Constants.CSVS['methods']) }
+            fieldsCSV = { Util.baseFile(Constants.DIR_MAPPINGS, Constants.CSVS['fields']) }
+
+            inSrg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
+
+            outMcpSrg = { Util.cacheFile(String.format(Constants.FMED_OBF_MCP_SRG, project.minecraft.minecraftVersion)) }
+            outObfSrg = { Util.cacheFile(String.format(Constants.FMED_OBF_SRG_SRG, project.minecraft.minecraftVersion)) }
+        }
     }
 
     def nativesUnpackTask()
@@ -318,7 +328,7 @@ public class GMCP implements Plugin<Project>
             client = { Util.cacheFile(String.format(Constants.FMED_JAR_CLIENT_FRESH, project.minecraft.minecraftVersion)) }
             server = { Util.cacheFile(String.format(Constants.FMED_JAR_SERVER_FRESH, project.minecraft.minecraftVersion)) }
             outJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
-            mergeCfg = Util.baseFile(Constants.DIR_FML, "mcp_merge.cfg")
+            mergeCfg = { Util.baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
 
             dependsOn "downloadClient", "downloadServer"
         }

@@ -43,6 +43,7 @@ public abstract class CachedTask extends DefaultTask
             {
                 if (f.isAnnotationPresent(Cached.class))
                 {
+                    getLogger().debug("Cached output found: "+f.getName());
                     addCachedField(new Annotated(clazz, f.getName()));
                 }
 
@@ -111,9 +112,7 @@ public abstract class CachedTask extends DefaultTask
             {
                 Field f = field.taskClass.getDeclaredField(field.fieldName);
                 f.setAccessible(true);
-                File file = getProject().file(f.get(getDelegate()));
-                System.out.println(file);
-                return file;
+                return getProject().file(f.get(getDelegate()));
             }
         });
     }
