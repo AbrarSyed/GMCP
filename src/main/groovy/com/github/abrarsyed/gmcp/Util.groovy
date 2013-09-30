@@ -1,6 +1,7 @@
 package com.github.abrarsyed.gmcp
 
 import com.github.abrarsyed.gmcp.Constants.OperatingSystem
+import org.gradle.api.Project
 
 import java.security.MessageDigest
 
@@ -122,15 +123,19 @@ class Util
         return file(arguments as String[])
     }
 
-    /**
-     * Just like the jarFile method, except it uses the version in the path.
-     * @param args
-     * @return
-     */
     def static File cacheFile(String... args)
     {
         def arguments = []
         arguments += GMCP.project.gradle.gradleUserHomeDir
+        arguments.addAll(args)
+
+        return file(arguments as String[])
+    }
+
+    def static File cacheFile(Project project, String... args)
+    {
+        def arguments = []
+        arguments += project.gradle.gradleUserHomeDir
         arguments.addAll(args)
 
         return file(arguments as String[])

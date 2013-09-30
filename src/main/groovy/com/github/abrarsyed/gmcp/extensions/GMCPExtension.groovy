@@ -7,6 +7,8 @@ import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
 import com.github.abrarsyed.gmcp.exceptions.MalformedVersionException
+import org.gradle.api.Plugin
+import org.gradle.api.Project
 
 class GMCPExtension
 {
@@ -25,10 +27,15 @@ class GMCPExtension
 
     private less152 = null
 
-    public GMCPExtension(GMCP project)
+    public GMCPExtension(GMCP plugin)
     {
-        cacheFile = Util.cacheFile(Constants.CACHE_JSON_FORGE)
-        cacheFile2 = Util.cacheFile(Constants.CACHE_JSON_FORGE2)
+        this(plugin.project)
+    }
+
+    public GMCPExtension(Project project)
+    {
+        cacheFile = Util.cacheFile(project, Constants.CACHE_JSON_FORGE)
+        cacheFile2 = Util.cacheFile(project, Constants.CACHE_JSON_FORGE2)
 
         cacheFile.getParentFile().mkdirs()
     }

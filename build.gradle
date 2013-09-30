@@ -1,6 +1,5 @@
 import org.gradle.api.artifacts.maven.MavenDeployment
 
-apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'groovy'
@@ -39,10 +38,10 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from 'build/docs/javadoc'
 }
 
-task groovydocJar(type: Jar, dependsOn: groovydoc) {
-    classifier = 'groovydoc'
-    from 'build/docs/groovydoc'
-}
+//task groovydocJar(type: Jar, dependsOn: groovydoc) {
+//    classifier = 'groovydoc'
+//    from 'build/docs/groovydoc'
+//}
 
 configurations
 {
@@ -74,7 +73,7 @@ task sourcesJar(type: Jar) {
 artifacts {
     archives jar
     archives javadocJar
-    archives groovydocJar
+//    archives groovydocJar
     archives sourcesJar
 }
 
@@ -87,12 +86,12 @@ uploadArchives {
             signing.signPom(deployment)
         }
 
-        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-            authentication(userName: sonatypeUsername, password: sonatypePassword)
-        }
+//        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+//            authentication(userName: sonatypeUsername, password: sonatypePassword)
+//        }
 
-        // local testing only.
-//        snapshotRepository(url: 'file://'+project.projectDir.getPath()+"/../MavenRepo")
+//        local testing only.
+        snapshotRepository(url: 'file://'+project.projectDir.getPath()+"/../MavenRepo")
 
         repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
             authentication(userName: sonatypeUsername, password: sonatypePassword)

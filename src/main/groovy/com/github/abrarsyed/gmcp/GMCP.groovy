@@ -18,8 +18,6 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.Copy
 
-import static com.github.abrarsyed.gmcp.Util.*
-
 public class GMCP implements Plugin<Project>
 {
     //public GMCPExtension ext
@@ -46,6 +44,11 @@ public class GMCP implements Plugin<Project>
         // final resolving.   this closure is executed later...
         doResolving()
 
+        // manage dependency configurations
+        configureSourceSet()
+        doConfigurationStuff()
+        configureCompilation()
+
         // well why not?  read the json NOW
         if (Json16Reader.doesFileExist())
         {
@@ -53,25 +56,20 @@ public class GMCP implements Plugin<Project>
             json.parseJson()
 
             // do dependnecies
-            dependencies {
+            project.dependencies {
                 for (dep in json.libs)
                 {
-                    gmcp dep
+                    add 'gmcp', dep
                 }
 
                 for (dep in json.nativeLibs)
                 {
-                    gmcpNative dep
+                    add 'gmcpNative', dep
                 }
 
-                gmcp files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
+                add 'gmcp', project.files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
             }
         }
-
-        // manage dependency configurations
-        configureSourceSet()
-        doConfigurationStuff()
-        configureCompilation()
 
         // start the tasks
         downloadTasks()
@@ -98,12 +96,16 @@ public class GMCP implements Plugin<Project>
 
                 // yay for maven central.
                 repositories {
-                    mavenRepo name: 'forge', url: 'http:/files.minecraftforge.net/maven'
-                    mavenRepo name: "minecraft_" + minecraft.minecraftVersion, url: "http://s3.amazonaws.com/Minecraft.Download/libraries"
+                    maven {
+                        name 'forge'
+                        url 'http:/files.minecraftforge.net/maven'
+                    }
+                    maven {
+                        name "minecraft_" + minecraft.minecraftVersion
+                        url "http://s3.amazonaws.com/Minecraft.Download/libraries"
+                    }
                     mavenCentral()
                 }
-
-                json.version = minecraft.minecraftVersion;
             }
         }
     }
@@ -145,12 +147,12 @@ public class GMCP implements Plugin<Project>
         project.sourceSets {
             minecraft {
                 java {
-                    srcDir { srcFile(Constants.DIR_SRC_MINECRAFT) }
-                    srcDir { srcFile(Constants.DIR_SRC_FORGE) }
-                    srcDir { srcFile(Constants.DIR_SRC_FML) }
+                    srcDir { Util.srcFile(Constants.DIR_SRC_MINECRAFT) }
+                    srcDir { Util.srcFile(Constants.DIR_SRC_FORGE) }
+                    srcDir { Util.srcFile(Constants.DIR_SRC_FML) }
                 }
                 resources {
-                    srcDir { srcFile(Constants.DIR_SRC_RESOURCES) }
+                    srcDir { Util.srcFile(Constants.DIR_SRC_RESOURCES) }
                 }
             }
 
@@ -190,9 +192,9 @@ public class GMCP implements Plugin<Project>
         // extract the forge zip
         project.task('extractForge', type: Copy, dependsOn: 'downloadForge') {
             from { project.zipTree(Util.cacheFile(Constants.CACHE_DIR_FORGE, project.minecraft.forgeVersion + '.zip')) }
-            into { baseFile(Constants.DIR_FORGE) }
+            into { project.minecraft.baseDir }
             outputs.upToDateWhen {
-                def file = baseFile("forge", "forgeversion.properties")
+                def file = Util.baseFile("forge", "forgeversion.properties")
                 if (!file.exists())
                 {
                     return false
@@ -203,22 +205,22 @@ public class GMCP implements Plugin<Project>
                 return project.minecraft.forgeVersion == version
             }
             doLast {
-                json = new Json16Reader("1.6")
-                json.parseJson()
+                this.json = new Json16Reader("1.6")
+                this.json.parseJson()
 
-                // do dependencies
-                dependencies {
+                // do dependnecies
+                project.dependencies {
                     for (dep in json.libs)
                     {
-                        gmcp dep
+                        add 'gmcp', dep
                     }
 
                     for (dep in json.nativeLibs)
                     {
-                        gmcpNative dep
+                        add 'gmcpNative', dep
                     }
 
-                    gmcp files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
+                    add 'gmcp', project.files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
                 }
             }
         }
@@ -280,15 +282,15 @@ public class GMCP implements Plugin<Project>
         // ----------------------------------------------------------------------------
         // to do the package changes
         project.task('doFMLMappingPreProcess', type: MergeMappingsTask, dependsOn: "extractForge") {
-            inSrg = baseFile(Constants.DIR_MAPPINGS, "joined.srg")
-            inPatch = baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
-            inExc = baseFile(Constants.DIR_MAPPINGS, "joined.exc")
+            inSRG = Util.baseFile(Constants.DIR_MAPPINGS, "joined.srg")
+            inPatch = Util.baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
+            inEXC = Util.baseFile(Constants.DIR_MAPPINGS, "joined.exc")
 
-            packageCsv = baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"])
+            packageCSV = Util.baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"])
 
-            outSrg = { cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftversion)) }
-            outPatch = { cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftversion)) }
-            outExc = { cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftversion)) }
+            outSRG = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
+            outPatch = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)) }
+            outEXC = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
         }
     }
 
@@ -336,18 +338,18 @@ public class GMCP implements Plugin<Project>
             dependsOn 'deobfuscateJar'
 
             inputs.with {
-                dir { baseFile(Constants.DIR_FML_PATCHES) }
-                dir { baseFile(Constants.DIR_FORGE_PATCHES) }
-                file { baseFile(Constants.DIR_MAPPINGS, "astyle.cfg") }
-                files { Constants.CSVS.collect { baseFile(Constants.DIR_MAPPINGS, it.getValue()) } }
+                dir { Util.baseFile(Constants.DIR_FML_PATCHES) }
+                dir { Util.baseFile(Constants.DIR_FORGE_PATCHES) }
+                file { Util.baseFile(Constants.DIR_MAPPINGS, "astyle.cfg") }
+                files { Constants.CSVS.collect { Util.baseFile(Constants.DIR_MAPPINGS, it.getValue()) } }
                 file { Util.file(Constants.JAR_PROC) }
                 file { Util.cacheFile(Constants.FERNFLOWER) }
-                file { cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftversion)) }
+                file { Util.cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)) }
             }
 
             outputs.with {
-                outputs.dir { srcFile(Constants.DIR_SRC_MINECRAFT) }
-                outputs.dir { srcFile(Constants.DIR_SRC_RESOURCES) }
+                outputs.dir { Util.srcFile(Constants.DIR_SRC_MINECRAFT) }
+                outputs.dir { Util.srcFile(Constants.DIR_SRC_RESOURCES) }
             }
         }
     }

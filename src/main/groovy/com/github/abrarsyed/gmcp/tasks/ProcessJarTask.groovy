@@ -12,20 +12,20 @@ import org.gradle.api.tasks.TaskAction
 public class ProcessJarTask extends CachedTask
 {
     @InputFile
-    def File inJar;
+    def inJar;
 
     @InputFile
-    def File exceptorJar;
+    def exceptorJar;
 
     @InputFile
-    def File srg;
+    def srg;
 
     @InputFile
-    def File exceptorCfg;
+    def exceptorCfg;
 
     @OutputFile
     @CachedTask.Cached
-    def File outJar;
+    def outJar;
 
     @InputFiles
     private ArrayList<Object> ats = new ArrayList<Object>();
@@ -49,8 +49,13 @@ public class ProcessJarTask extends CachedTask
         // import from the extension
         addTransformer project.minecraft.accessTransformers as Object[]
 
-        // make stuff into files.
+        // resolve files
         File tempObfJar = new File(getTemporaryDir(), "obfed.jar"); // courtesy of gradle temp dir.
+        inJar = project.file(inJar)
+        exceptorJar = project.file(exceptorJar)
+        srg = project.file(srg)
+        exceptorCfg = project.file(exceptorCfg)
+        outJar = project.file(outJar)
 
         // make the ATs LIST
         ArrayList<File> ats = this.ats.collect { project.file(it) }

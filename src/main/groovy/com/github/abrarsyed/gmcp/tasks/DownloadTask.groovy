@@ -16,8 +16,6 @@ public class DownloadTask extends CachedTask
     @TaskAction
     public void doTask() throws IOException
     {
-        output = project.file(output)
-        output.getParentFile().mkdirs()
         output.createNewFile()
         getLogger().info("Downloading " + url + " to " + output);
 
@@ -44,5 +42,16 @@ public class DownloadTask extends CachedTask
         }
 
         getLogger().info("Download complete");
+    }
+
+    File getOutput()
+    {
+        if (output instanceof File)
+            return output;
+        else
+        {
+            output = project.file(output);
+            return output;
+        }
     }
 }

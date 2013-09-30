@@ -14,7 +14,7 @@ public final class Constants
     public static final String  	DIR_FML 			    = DIR_FORGE + "/fml"
     public static final String  	DIR_FORGE_PATCHES     	= DIR_FORGE + "/patches/minecraft"
     public static final String  	DIR_FML_PATCHES 	    = DIR_FML + "/patches/minecraft"
-    public static final String  	DIR_MAPPINGS 		    = "mappings"
+    public static final String  	DIR_MAPPINGS 		    = DIR_FML + "/conf"
     public static final String  	DIR_MCP_PATCHES 	    = DIR_MAPPINGS + "/patches"
 
     // jars

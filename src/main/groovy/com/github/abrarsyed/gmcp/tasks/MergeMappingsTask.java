@@ -51,27 +51,29 @@ public class MergeMappingsTask extends CachedTask
     @InputFile
     File inPatch;
 
-    @Getter
     @Setter
     @OutputFile
     @Cached
-    File outPatch;
+    Object outPatch;
 
-    @Getter
     @Setter
     @Cached
     @OutputFile
-    File outSRG;
+    Object outSRG;
 
-    @Getter
     @Setter
     @Cached
     @OutputFile
-    File outEXC;
+    Object outEXC;
 
     @TaskAction
     public void doTask() throws IOException
     {
+        // verify files
+        outPatch = getProject().file(outPatch);
+        outSRG = getProject().file(outSRG);
+        outEXC = getProject().file(outEXC);
+
         // read SRG.
         // using this lib because SpecialSource needs it anyways.
         CSVReader reader = new CSVReader(new FileReader(packageCSV), CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, 1, false);
@@ -81,13 +83,13 @@ public class MergeMappingsTask extends CachedTask
         }
 
         getLogger().info("Fixing the SRG");
-        fixSRG(inSRG, outSRG);
+        fixSRG(inSRG, (File) outSRG);
 
         getLogger().info("Fixing the EXC");
-        fixExceptor(inEXC, outEXC);
+        fixExceptor(inEXC, (File) outEXC);
 
         getLogger().info("Fixing MCP patches");
-        fixPatch(inPatch, outPatch);
+        fixPatch(inPatch, (File) outPatch);
     }
 
     private void fixSRG(File inSRG, File outSRG) throws IOException
@@ -281,6 +283,39 @@ public class MergeMappingsTask extends CachedTask
         String pieceOne = input.substring(0, index);
         String pieceTwo = input.substring(index + 1);
         return new String[]{pieceOne, pieceTwo};
+    }
+
+    public File getOutPatch()
+    {
+        if (outPatch instanceof File)
+            return (File)outPatch;
+        else
+        {
+            outPatch = getProject().file(outPatch);
+            return (File)outPatch;
+        }
+    }
+
+    public File getOutSRG()
+    {
+        if (outSRG instanceof File)
+            return (File)outSRG;
+        else
+        {
+            outSRG = getProject().file(outSRG);
+            return (File)outSRG;
+        }
+    }
+
+    public File getOutEXC()
+    {
+        if (outEXC instanceof File)
+            return (File)outEXC;
+        else
+        {
+            outEXC = getProject().file(outEXC);
+            return (File)outEXC;
+        }
     }
 
 }

@@ -15,7 +15,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -108,7 +111,9 @@ public abstract class CachedTask extends DefaultTask
             {
                 Field f = field.taskClass.getDeclaredField(field.fieldName);
                 f.setAccessible(true);
-                return getProject().file(f.get(getDelegate()));
+                File file = getProject().file(f.get(getDelegate()));
+                System.out.println(file);
+                return file;
             }
         });
     }
@@ -125,7 +130,7 @@ public abstract class CachedTask extends DefaultTask
             {
                 try
                 {
-                    File hashFile = getHashFile((File) annot.getValue(getDelegate()));
+                    File hashFile = getHashFile(getProject().file(annot.getValue(getDelegate())));
                     Files.write(getHashes(annot, inputList, getDelegate()), hashFile, Charset.defaultCharset());
                 }
                 // error? spit it and do the task.
@@ -150,11 +155,11 @@ public abstract class CachedTask extends DefaultTask
         return new File(file.getParentFile(), file.getName() + ".md5");
     }
 
-    private static String getHashes(Annotated output, List<Annotated> inputs, Object instance) throws NoSuchFieldException, IllegalAccessException
+    private String getHashes(Annotated output, List<Annotated> inputs, Object instance) throws NoSuchFieldException, IllegalAccessException, NoSuchAlgorithmException
     {
         ArrayList<String> hashes = new ArrayList<String>();
 
-        hashes.add(Util.hashFile((File) output.getValue(instance)));
+        hashes.add(Util.hashFile(getProject().file(output.getValue(instance))));
 
         for (Annotated input : inputs)
         {
@@ -162,11 +167,20 @@ public abstract class CachedTask extends DefaultTask
 
             if (f.isAnnotationPresent(InputFile.class))
             {
-                hashes.add(Util.hashFile((File) input.getValue(instance)));
+                hashes.add(Util.hashFile(getProject().file(input.getValue(instance))));
             }
             else
             {
-                hashes.add("" + input.getValue(instance).hashCode());
+                Object obj = input.getValue(instance);
+
+                if (obj instanceof Closure)
+                    obj = ((Closure)obj).call();
+
+                MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+                messageDigest.update(obj.toString().getBytes());
+
+                String hash = new BigInteger(1, messageDigest.digest()).toString(16);
+                hashes.add(hash);
             }
         }
 

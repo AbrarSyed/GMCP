@@ -152,7 +152,8 @@ class ReobfTask extends DefaultTask
      * Generates the signature files.
      */
     @TaskAction
-    void generate() {
+    void generate()
+    {
         if (srg == null) {
             throw new InvalidUserDataException("Cannot perform obfuscation task '${getPath()}' because it has no configured srg")
         }
