@@ -130,4 +130,60 @@ public class ProcessJarTask extends CachedTask
             setStandardOutput Util.getNullStream();
         }
     }
+    
+    public File getInJar()
+    {
+        if (inJar instanceof File)
+            return (File)inJar;
+        else
+        {
+            inJar = getProject().file(inJar);
+            return (File)inJar;
+        }
+    }
+
+    public File getOutJar()
+    {
+        if (outJar instanceof File)
+            return (File)outJar;
+        else
+        {
+            outJar = getProject().file(outJar);
+            return (File)outJar;
+        }
+    }
+
+
+    public File getExceptorJar()
+    {
+        if (exceptorJar instanceof File)
+            return (File)exceptorJar;
+        else
+        {
+            exceptorJar = getProject().file(exceptorJar);
+            return (File)exceptorJar;
+        }
+    }
+
+    public File getSrg()
+    {
+        if (srg instanceof File)
+            return (File)srg;
+        else
+        {
+            srg = getProject().file(srg);
+            return (File)srg;
+        }
+    }
+
+    public File getExceptorCfg()
+    {
+        if (exceptorCfg instanceof File)
+            return (File)exceptorCfg;
+        else
+        {
+            exceptorCfg = getProject().file(exceptorCfg);
+            return (File)exceptorCfg;
+        }
+    }
 }

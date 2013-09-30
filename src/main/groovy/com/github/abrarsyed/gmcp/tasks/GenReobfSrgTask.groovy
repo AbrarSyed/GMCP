@@ -2,8 +2,6 @@ package com.github.abrarsyed.gmcp.tasks
 
 import au.com.bytecode.opencsv.CSVParser
 import au.com.bytecode.opencsv.CSVReader
-import com.github.abrarsyed.gmcp.Constants
-import com.github.abrarsyed.gmcp.Util
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -196,29 +194,29 @@ class GenReobfSrgTask extends CachedTask
         }
     }
 
-    public File getOutObfSRG()
+    public File getOutObfSrg()
     {
-        if (outObfSRG instanceof File)
+        if (outObfSrg instanceof File)
         {
-            return (File) outObfSRG
+            return (File) outObfSrg
         }
         else
         {
-            outObfSRG = getProject().file(outObfSRG);
-            return (File) outObfSRG;
+            outObfSrg = getProject().file(outObfSrg);
+            return (File) outObfSrg;
         }
     }
 
-    public File getOutMcpSRG()
+    public File getOutMcpSrg()
     {
-        if (outMcpSRG instanceof File)
+        if (outMcpSrg instanceof File)
         {
-            return (File) outMcpSRG
+            return (File) outMcpSrg
         }
         else
         {
-            outMcpSRG = getProject().file(outMcpSRG);
-            return (File) outMcpSRG;
+            outMcpSrg = getProject().file(outMcpSrg);
+            return (File) outMcpSrg;
         }
     }
 }

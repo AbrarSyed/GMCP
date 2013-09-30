@@ -14,17 +14,9 @@ import org.gradle.api.internal.file.collections.SimpleFileCollection
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 
-/**
- * Created with IntelliJ IDEA.
- * User: AbrarSyed
- * Date: 7/30/13
- * Time: 6:30 PM
- * To change this template use File | Settings | File Templates.
- */
 class ReobfTask extends DefaultTask
 {
-    // srg...
-    def srg = Util.baseFile(Constants.DIR_MAPPINGS, 'reobf_srg.srg')
+    def srg = { Util.cacheFile(String.format(Constants.FMED_OBF_SRG_SRG, project.minecraft.minecraftVersion)) }
 
     final private DefaultDomainObjectSet<ObfArtifact> obfOutput = new DefaultDomainObjectSet<ObfArtifact>(ObfArtifact)
 

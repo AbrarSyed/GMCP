@@ -173,8 +173,9 @@ public class GMCP implements Plugin<Project>
             sourceCompatibility = '1.6'
         }
 
-        def task = project.task('reobf', type: ReobfTask, dependsOn: 'genReobfSrgs') {
+        def task = project.task('reobf', type: ReobfTask) {
             reobf project.tasks.jar
+            dependsOn 'deobfuscateJar', 'genReobfSrgs'
         }
 
         project.tasks.assemble.dependsOn 'reobf'
@@ -474,7 +475,7 @@ public class GMCP implements Plugin<Project>
 
             // load mapping
             JarMapping mapping = new JarMapping()
-            mapping.loadMappings(Util.baseFile(Constants.DIR_MAPPINGS, "reobf_srg.srg"))
+            mapping.loadMappings(Util.cacheFile(String.format(Constants.FMED_OBF_SRG_SRG, project.minecraft.minecraftVersion)))
 
             // make remapper
             JarRemapper remapper = new JarRemapper(null, mapping)
@@ -508,7 +509,7 @@ public class GMCP implements Plugin<Project>
 
             // load mapping
             JarMapping mapping = new JarMapping()
-            mapping.loadMappings(Util.baseFile(Constants.DIR_MAPPINGS, "reobf_mcp.srg"))
+            mapping.loadMappings(Util.cacheFile(String.format(Constants.FMED_OBF_MCP_SRG, project.minecraft.minecraftVersion)))
 
             // make remapper
             JarRemapper remapper = new JarRemapper(null, mapping)

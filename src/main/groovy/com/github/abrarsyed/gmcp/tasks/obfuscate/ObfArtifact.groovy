@@ -1,6 +1,7 @@
 package com.github.abrarsyed.gmcp.tasks.obfuscate
 
 import com.github.abrarsyed.gmcp.Constants
+import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
 import com.google.common.io.Files
 import net.md_5.specialsource.Jar
@@ -25,7 +26,7 @@ class ObfArtifact extends AbstractPublishArtifact
     Date date
     File file
 
-    File srg
+    def srg
 
     private final Closure toObfGenerator
     private final Task caller
@@ -78,7 +79,7 @@ class ObfArtifact extends AbstractPublishArtifact
         this.caller = task
         toObfGenerator = toObf
         this.outputSpec = outputSpec
-        this.srg = task.srg
+        this.srg = task.srg;
     }
 
     /**
@@ -231,7 +232,7 @@ class ObfArtifact extends AbstractPublishArtifact
             throw new InvalidUserDataException("Unable to obfuscate as the file to obfuscate has not been specified")
         }
 
-        def srg = this.srg
+        File srg = GMCP.project.file(this.srg)
         if (srg == null)
         {
             throw new InvalidUserDataException("Unable to obfuscate '$toObf' as no srg is available to remap to")
@@ -243,7 +244,7 @@ class ObfArtifact extends AbstractPublishArtifact
         def inTemp = Util.file(caller.temporaryDir , 'jarIn.jar')
         Files.copy(toObf, inTemp)
 
-        def deobfed = Util.baseFile(Constants.JAR_PROC)
+        def deobfed = Util.file(Constants.JAR_PROC)
 
         // load mapping
         JarMapping mapping = new JarMapping()
