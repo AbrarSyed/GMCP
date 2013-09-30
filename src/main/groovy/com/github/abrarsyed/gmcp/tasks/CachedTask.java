@@ -43,7 +43,6 @@ public abstract class CachedTask extends DefaultTask
             {
                 if (f.isAnnotationPresent(Cached.class))
                 {
-                    getLogger().debug("Cached output found: "+f.getName());
                     addCachedField(new Annotated(clazz, f.getName()));
                 }
 
@@ -158,7 +157,7 @@ public abstract class CachedTask extends DefaultTask
     {
         ArrayList<String> hashes = new ArrayList<String>();
 
-        hashes.add(Util.hashFile(getProject().file(output.getValue(instance))));
+        hashes.add(Util.hash(getProject().file(output.getValue(instance))));
 
         for (Annotated input : inputs)
         {
@@ -166,7 +165,7 @@ public abstract class CachedTask extends DefaultTask
 
             if (f.isAnnotationPresent(InputFile.class))
             {
-                hashes.add(Util.hashFile(getProject().file(input.getValue(instance))));
+                hashes.add(Util.hash(getProject().file(input.getValue(instance))));
             }
             else
             {
@@ -175,11 +174,7 @@ public abstract class CachedTask extends DefaultTask
                 if (obj instanceof Closure)
                     obj = ((Closure)obj).call();
 
-                MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-                messageDigest.update(obj.toString().getBytes());
-
-                String hash = new BigInteger(1, messageDigest.digest()).toString(16);
-                hashes.add(hash);
+                hashes.add(Util.hash((String)obj));
             }
         }
 

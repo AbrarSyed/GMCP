@@ -113,8 +113,10 @@ class PatchTask extends DefaultTask
     {
         temp.mkdirs();
 
-        def writer = logFile.newPrintWriter();
-        def loadedPatches = new ArrayList<ContextualPatch>();
+        logFile.getParentFile().mkdirs()
+        logFile.createNewFile()
+        def writer = logFile.newPrintWriter()
+        def loadedPatches = new ArrayList<ContextualPatch>()
 
         patchDir.eachFile(FileType.FILES) {
             writer.println "Fixing patch: " + it

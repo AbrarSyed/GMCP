@@ -6,11 +6,13 @@ import com.github.abrarsyed.gmcp.Util
 import com.github.abrarsyed.gmcp.source.*
 import com.github.abrarsyed.jastyle.ASFormatter
 import com.github.abrarsyed.jastyle.OptParser
+import com.google.common.io.ByteStreams
 import com.google.common.io.Files
 import groovy.io.FileType
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 
+import java.nio.charset.Charset
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -18,7 +20,7 @@ import static com.github.abrarsyed.gmcp.Util.*
 
 class DecompileMinecraftTask extends DefaultTask
 {
-    def private final File decompJar = file(temporaryDir, "decompiled.jar")
+    def private final File tempDecompJar = file(temporaryDir, "processed.jar")
 
     def private log(Object obj)
     {
@@ -56,6 +58,8 @@ class DecompileMinecraftTask extends DefaultTask
     {
         def fernFlower = Util.cacheFile(Constants.FERNFLOWER)
 
+        def proxy = tempDecompJar;
+
         project.javaexec {
             args(
                     fernFlower.getAbsolutePath(),
@@ -65,7 +69,7 @@ class DecompileMinecraftTask extends DefaultTask
                     "-asc=1",
                     "-log=ERROR",
                     Util.file(Constants.JAR_PROC).getAbsolutePath(),
-                    decompJar.getAbsolutePath()
+                    proxy.getParentFile().getAbsolutePath()
             );
 
             setMain "-jar"
@@ -79,8 +83,9 @@ class DecompileMinecraftTask extends DefaultTask
 
     def copyClasses()
     {
-        final ZipInputStream zin = new ZipInputStream(decompJar.newInputStream());
+        final ZipInputStream zin = new ZipInputStream(tempDecompJar.newInputStream());
         ZipEntry entry = null;
+        def fileStr
 
         def out;
         def srcDir = srcFile(Constants.DIR_SRC_MINECRAFT)
@@ -101,16 +106,15 @@ class DecompileMinecraftTask extends DefaultTask
                 out.getParentFile().mkdirs();
                 out.delete();
                 out.createNewFile();
-                out << zin;
+                ByteStreams.copy(zin, out.newDataOutputStream());
                 zin.closeEntry();
-
             }
             else
             {
                 // source!
 
                 // get the text
-                fileStr = zin.text
+                fileStr = new String(ByteStreams.toByteArray(zin), Charset.defaultCharset());
                 zin.closeEntry();
 
                 // fix
@@ -124,35 +128,12 @@ class DecompileMinecraftTask extends DefaultTask
         }
 
         zin.close();
-
-//        def tree = project.fileTree(decompiledDir)
-//
-//        // copy classes
-//        project.mkdir(srcFile(Constants.DIR_SRC_MINECRAFT))
-//        project.copy {
-//            exclude "META-INF"
-//            from(tree) { include "net/minecraft/**/*.java" }
-//            into srcFile(Constants.DIR_SRC_MINECRAFT)
-//        }
-//
-//        // copy resources
-//        project.mkdir(srcFile(Constants.DIR_SRC_RESOURCES))
-//        project.copy {
-//            exclude "*.java"
-//            exclude "**/*.java"
-//            exclude "*.class"
-//            exclude "**/*.class"
-//            exclude "META-INF"
-//            from tree
-//            into srcFile(Constants.DIR_SRC_RESOURCES)
-//            includeEmptyDirs = false
-//        }
     }
 
     def doMCPPatches()
     {
         // fix the patch first.
-        String text = cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftversion)).text
+        String text = cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)).text
 
         // fix newlines
         text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE).replaceAll("(\\r\\n|\\r|\\n)", Constants.NEWLINE)
@@ -168,7 +149,7 @@ class DecompileMinecraftTask extends DefaultTask
         List<ContextualPatch.PatchReport> reports = cPatch.patch(true);
         for (ContextualPatch.PatchReport report : reports)
         {
-            getLogger().info(report.getStatus() + "  -- " + report.getFile());
+            getLogger().info('' + report.getStatus() + "  -- " + report.getFile());
             if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
             {
                 getLogger().info("ERROR: ", report.getFailure());

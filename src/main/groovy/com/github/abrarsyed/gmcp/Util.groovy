@@ -150,9 +150,8 @@ class Util
         return file(arguments as String[])
     }
 
-    def static String hashFile(File file)
+    def static String hash(File file)
     {
-
         MessageDigest complete = MessageDigest.getInstance("MD5");
         byte[] hash = complete.digest(file.bytes);
 
@@ -161,6 +160,17 @@ class Util
         hash.each { builder.append Integer.toString((it & 0xff) + 0x100, 16).substring(1) }
 
         return builder.toString();
+    }
 
+    def static String hash(String str)
+    {
+        MessageDigest complete = MessageDigest.getInstance("MD5");
+        byte[] hash = complete.digest(str.getBytes());
+
+        def builder = new StringBuilder(40);
+
+        hash.each { builder.append Integer.toString((it & 0xff) + 0x100, 16).substring(1) }
+
+        return builder.toString();
     }
 }

@@ -55,7 +55,7 @@ public class GMCP implements Plugin<Project>
             json = new Json16Reader("1.6")
             json.parseJson()
 
-            // do dependnecies
+            // do dependencies
             project.dependencies {
                 for (dep in json.libs)
                 {
@@ -80,6 +80,14 @@ public class GMCP implements Plugin<Project>
         // IDE stuff
         configureEclipse()
         //configureIntelliJ()
+
+        // setup task
+        project.task('setupCIWorkspace') {
+            dependsOn 'deobfuscateJar', 'decompileMinecraft'
+        }
+        project.task('setupDevWorkspace') {
+            dependsOn 'setupCIWorkspace', 'getAssets', 'unpackNatives'
+        }
 
         // replace normal jar task with mine.
         //project.tasks.jar << reobfJarClosure()
@@ -331,7 +339,7 @@ public class GMCP implements Plugin<Project>
             outJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
             mergeCfg = { Util.baseFile(Constants.DIR_FML, "mcp_merge.cfg") }
 
-            dependsOn "downloadClient", "downloadServer"
+            dependsOn "downloadClient", "downloadServer", 'extractForge'
         }
 
         project.task("deobfuscateJar", type: ProcessJarTask) {
@@ -340,13 +348,15 @@ public class GMCP implements Plugin<Project>
             exceptorJar = Util.cacheFile(Constants.EXCEPTOR);
             srg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
             exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
+
+            dependsOn 'downloadExceptor', 'mergeJars', 'doFMLMappingPreProcess'
         }
     }
 
     def decompileTask()
     {
         def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
-            dependsOn 'deobfuscateJar'
+            dependsOn 'deobfuscateJar', 'downloadFernFlower'
 
             inputs.with {
                 dir { Util.baseFile(Constants.DIR_FML_PATCHES) }
