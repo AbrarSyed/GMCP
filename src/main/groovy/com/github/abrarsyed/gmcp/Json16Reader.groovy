@@ -44,17 +44,7 @@ class Json16Reader
             }
             else
             {
-                // force it to a good version.. of argo
-                if (lib.contains('argo') && lib.split(/\:/)[2].toFloat() <= 3.4)
-                {
-                    lib += 'net.sourceforge.argo:argo:3.4'
-                }
-
-                else
-                // standard download.
-                {
-                    libs += lib
-                }
+                libs += lib
             }
 
         }

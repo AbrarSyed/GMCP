@@ -1,0 +1,179 @@
+public class CleanupTest
+{
+    public static boolean func_1(int p_71932_0_)
+    {
+        Block var1 = field_71973_m[p_71932_0_];
+        return var1 == null ? false : var1.field_72018_cp.func_76218_k() && var1.func_71886_c() && !var1.func_71853_i();
+    }
+
+    public void func_2(World p_71871_1_, int p_71871_2_, int p_71871_3_, int p_71871_4_, AxisAlignedBB p_71871_5_, List p_71871_6_, Entity p_71871_7_)
+    {
+        AxisAlignedBB var8 = this.func_71872_e(p_71871_1_, p_71871_2_, p_71871_3_, p_71871_4_);
+
+        if (var8 != null && p_71871_5_.func_72326_a(var8))
+        {
+            p_71871_6_.add(var8);
+        }
+    }
+
+    public MovingObjectPosition func_3(World p_71878_1_, int p_71878_2_, int p_71878_3_, int p_71878_4_, Vec3 p_71878_5_, Vec3 p_71878_6_)
+    {
+        this.func_71902_a(p_71878_1_, p_71878_2_, p_71878_3_, p_71878_4_);
+        p_71878_5_ = p_71878_5_.func_72441_c((double)(-p_71878_2_), (double)(-p_71878_3_), (double)(-p_71878_4_));
+        p_71878_6_ = p_71878_6_.func_72441_c((double)(-p_71878_2_), (double)(-p_71878_3_), (double)(-p_71878_4_));
+        Vec3 var7 = p_71878_5_.func_72429_b(p_71878_6_, this.field_72026_ch);
+        Vec3 var8 = p_71878_5_.func_72429_b(p_71878_6_, this.field_72021_ck);
+        Vec3 var9 = p_71878_5_.func_72435_c(p_71878_6_, this.field_72023_ci);
+        Vec3 var10 = p_71878_5_.func_72435_c(p_71878_6_, this.field_72022_cl);
+        Vec3 var11 = p_71878_5_.func_72434_d(p_71878_6_, this.field_72024_cj);
+        Vec3 var12 = p_71878_5_.func_72434_d(p_71878_6_, this.field_72019_cm);
+
+        if (!this.func_71916_a(var7))
+        {
+            var7 = null;
+        }
+
+        if (!this.func_71916_a(var8))
+        {
+            var8 = null;
+        }
+
+        if (!this.func_71936_b(var9))
+        {
+            var9 = null;
+        }
+
+        if (!this.func_71936_b(var10))
+        {
+            var10 = null;
+        }
+
+        if (!this.func_71890_c(var11))
+        {
+            var11 = null;
+        }
+
+        if (!this.func_71890_c(var12))
+        {
+            var12 = null;
+        }
+
+        Vec3 var13 = null;
+
+        if (var7 != null && (var13 == null || p_71878_5_.func_72436_e(var7) < p_71878_5_.func_72436_e(var13)))
+        {
+            var13 = var7;
+        }
+
+        if (var8 != null && (var13 == null || p_71878_5_.func_72436_e(var8) < p_71878_5_.func_72436_e(var13)))
+        {
+            var13 = var8;
+        }
+
+        if (var9 != null && (var13 == null || p_71878_5_.func_72436_e(var9) < p_71878_5_.func_72436_e(var13)))
+        {
+            var13 = var9;
+        }
+
+        if (var10 != null && (var13 == null || p_71878_5_.func_72436_e(var10) < p_71878_5_.func_72436_e(var13)))
+        {
+            var13 = var10;
+        }
+
+        if (var11 != null && (var13 == null || p_71878_5_.func_72436_e(var11) < p_71878_5_.func_72436_e(var13)))
+        {
+            var13 = var11;
+        }
+
+        if (var12 != null && (var13 == null || p_71878_5_.func_72436_e(var12) < p_71878_5_.func_72436_e(var13)))
+        {
+            var13 = var12;
+        }
+
+        if (var13 == null)
+        {
+            return null;
+        }
+        else
+        {
+            byte var14 = -1;
+
+            if (var13 == var7)
+            {
+                var14 = 4;
+            }
+
+            if (var13 == var8)
+            {
+                var14 = 5;
+            }
+
+            if (var13 == var9)
+            {
+                var14 = 0;
+            }
+
+            if (var13 == var10)
+            {
+                var14 = 1;
+            }
+
+            if (var13 == var11)
+            {
+                var14 = 2;
+            }
+
+            if (var13 == var12)
+            {
+                var14 = 3;
+            }
+
+            return new MovingObjectPosition(p_71878_2_, p_71878_3_, p_71878_4_, var14, var13.func_72441_c((double)p_71878_2_, (double)p_71878_3_, (double)p_71878_4_));
+        }
+    }
+
+    protected float func_4(JsonElement p_110487_1_, String p_110487_2_, Float p_110487_3_, float p_110487_4_, float p_110487_5_)
+    {
+        p_110487_2_ = this.func_110483_a() + "->" + p_110487_2_;
+
+        if (p_110487_1_ == null)
+        {
+            if (p_110487_3_ == null)
+            {
+                throw new JsonParseException("Missing " + p_110487_2_ + ": expected float");
+            }
+            else
+            {
+                return p_110487_3_.floatValue();
+            }
+        }
+        else if (!p_110487_1_.isJsonPrimitive())
+        {
+            throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float, was " + p_110487_1_);
+        }
+        else
+        {
+            try
+            {
+                float var6 = p_110487_1_.getAsFloat();
+
+                if (var6 < p_110487_4_)
+                {
+                    throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float >= " + p_110487_4_ + ", was " + var6);
+                }
+                else if (var6 > p_110487_5_)
+                {
+                    throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float <= " + p_110487_5_ + ", was " + var6);
+                }
+                else
+                {
+                    return var6;
+                }
+            }
+            catch (NumberFormatException var7)
+            {
+                throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float, was " + p_110487_1_, var7);
+            }
+        }
+    }
+}

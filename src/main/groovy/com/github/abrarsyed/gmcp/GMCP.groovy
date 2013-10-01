@@ -77,7 +77,7 @@ public class GMCP implements Plugin<Project>
             repositories {
                 maven {
                     name 'forge'
-                    url 'http:/files.minecraftforge.net/maven'
+                    url 'http://files.minecraftforge.net/maven'
                 }
                 maven {
                     name "minecraft"

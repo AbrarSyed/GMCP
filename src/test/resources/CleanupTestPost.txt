@@ -1,0 +1,179 @@
+public class CleanupTest
+{
+    public static boolean func_1(int p_71932_0_)
+    {
+        Block block = field_71973_m[p_71932_0_];
+        return block == null ? false : block.field_72018_cp.func_76218_k() && block.func_71886_c() && !block.func_71853_i();
+    }
+
+    public void func_2(World p_71871_1_, int p_71871_2_, int p_71871_3_, int p_71871_4_, AxisAlignedBB p_71871_5_, List p_71871_6_, Entity p_71871_7_)
+    {
+        AxisAlignedBB axisalignedbb1 = this.func_71872_e(p_71871_1_, p_71871_2_, p_71871_3_, p_71871_4_);
+
+        if (axisalignedbb1 != null && p_71871_5_.func_72326_a(axisalignedbb1))
+        {
+            p_71871_6_.add(axisalignedbb1);
+        }
+    }
+
+    public MovingObjectPosition func_3(World p_71878_1_, int p_71878_2_, int p_71878_3_, int p_71878_4_, Vec3 p_71878_5_, Vec3 p_71878_6_)
+    {
+        this.func_71902_a(p_71878_1_, p_71878_2_, p_71878_3_, p_71878_4_);
+        p_71878_5_ = p_71878_5_.func_72441_c((double)(-p_71878_2_), (double)(-p_71878_3_), (double)(-p_71878_4_));
+        p_71878_6_ = p_71878_6_.func_72441_c((double)(-p_71878_2_), (double)(-p_71878_3_), (double)(-p_71878_4_));
+        Vec3 vec32 = p_71878_5_.func_72429_b(p_71878_6_, this.field_72026_ch);
+        Vec3 vec33 = p_71878_5_.func_72429_b(p_71878_6_, this.field_72021_ck);
+        Vec3 vec34 = p_71878_5_.func_72435_c(p_71878_6_, this.field_72023_ci);
+        Vec3 vec35 = p_71878_5_.func_72435_c(p_71878_6_, this.field_72022_cl);
+        Vec3 vec36 = p_71878_5_.func_72434_d(p_71878_6_, this.field_72024_cj);
+        Vec3 vec37 = p_71878_5_.func_72434_d(p_71878_6_, this.field_72019_cm);
+
+        if (!this.func_71916_a(vec32))
+        {
+            vec32 = null;
+        }
+
+        if (!this.func_71916_a(vec33))
+        {
+            vec33 = null;
+        }
+
+        if (!this.func_71936_b(vec34))
+        {
+            vec34 = null;
+        }
+
+        if (!this.func_71936_b(vec35))
+        {
+            vec35 = null;
+        }
+
+        if (!this.func_71890_c(vec36))
+        {
+            vec36 = null;
+        }
+
+        if (!this.func_71890_c(vec37))
+        {
+            vec37 = null;
+        }
+
+        Vec3 vec38 = null;
+
+        if (vec32 != null && (vec38 == null || p_71878_5_.func_72436_e(vec32) < p_71878_5_.func_72436_e(vec38)))
+        {
+            vec38 = vec32;
+        }
+
+        if (vec33 != null && (vec38 == null || p_71878_5_.func_72436_e(vec33) < p_71878_5_.func_72436_e(vec38)))
+        {
+            vec38 = vec33;
+        }
+
+        if (vec34 != null && (vec38 == null || p_71878_5_.func_72436_e(vec34) < p_71878_5_.func_72436_e(vec38)))
+        {
+            vec38 = vec34;
+        }
+
+        if (vec35 != null && (vec38 == null || p_71878_5_.func_72436_e(vec35) < p_71878_5_.func_72436_e(vec38)))
+        {
+            vec38 = vec35;
+        }
+
+        if (vec36 != null && (vec38 == null || p_71878_5_.func_72436_e(vec36) < p_71878_5_.func_72436_e(vec38)))
+        {
+            vec38 = vec36;
+        }
+
+        if (vec37 != null && (vec38 == null || p_71878_5_.func_72436_e(vec37) < p_71878_5_.func_72436_e(vec38)))
+        {
+            vec38 = vec37;
+        }
+
+        if (vec38 == null)
+        {
+            return null;
+        }
+        else
+        {
+            byte b0 = -1;
+
+            if (vec38 == vec32)
+            {
+                b0 = 4;
+            }
+
+            if (vec38 == vec33)
+            {
+                b0 = 5;
+            }
+
+            if (vec38 == vec34)
+            {
+                b0 = 0;
+            }
+
+            if (vec38 == vec35)
+            {
+                b0 = 1;
+            }
+
+            if (vec38 == vec36)
+            {
+                b0 = 2;
+            }
+
+            if (vec38 == vec37)
+            {
+                b0 = 3;
+            }
+
+            return new MovingObjectPosition(p_71878_2_, p_71878_3_, p_71878_4_, b0, vec38.func_72441_c((double)p_71878_2_, (double)p_71878_3_, (double)p_71878_4_));
+        }
+    }
+
+    protected float func_4(JsonElement p_110487_1_, String p_110487_2_, Float p_110487_3_, float p_110487_4_, float p_110487_5_)
+    {
+        p_110487_2_ = this.func_110483_a() + "->" + p_110487_2_;
+
+        if (p_110487_1_ == null)
+        {
+            if (p_110487_3_ == null)
+            {
+                throw new JsonParseException("Missing " + p_110487_2_ + ": expected float");
+            }
+            else
+            {
+                return p_110487_3_.floatValue();
+            }
+        }
+        else if (!p_110487_1_.isJsonPrimitive())
+        {
+            throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float, was " + p_110487_1_);
+        }
+        else
+        {
+            try
+            {
+                float f2 = p_110487_1_.getAsFloat();
+
+                if (f2 < p_110487_4_)
+                {
+                    throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float >= " + p_110487_4_ + ", was " + f2);
+                }
+                else if (f2 > p_110487_5_)
+                {
+                    throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float <= " + p_110487_5_ + ", was " + f2);
+                }
+                else
+                {
+                    return f2;
+                }
+            }
+            catch (NumberFormatException numberformatexception)
+            {
+                throw new JsonParseException("Invalid " + p_110487_2_ + ": expected float, was " + p_110487_1_, numberformatexception);
+            }
+        }
+    }
+}
