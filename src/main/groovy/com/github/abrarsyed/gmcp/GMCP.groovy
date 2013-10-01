@@ -290,7 +290,7 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // to do the package changes
-        project.task('doFMLMappingPreProcess', type: MergeMappingsTask, dependsOn: "extractForge") {
+        project.task('fixMappings', type: MergeMappingsTask, dependsOn: "extractForge") {
             inSRG = Util.baseFile(Constants.DIR_MAPPINGS, "joined.srg")
             inPatch = Util.baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
             inEXC = Util.baseFile(Constants.DIR_MAPPINGS, "joined.exc")
@@ -344,12 +344,14 @@ public class GMCP implements Plugin<Project>
 
         project.task("deobfuscateJar", type: ProcessJarTask) {
             inJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
-            outJar = Util.file(Constants.JAR_PROC);
             exceptorJar = Util.cacheFile(Constants.EXCEPTOR);
+            outJar = Util.file(Constants.JAR_SRG);
             srg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
-            exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
+            exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
+            addTransformer Util.file(Constants.DIR_FML, "common", "fml_at.cfg")
+            addTransformer Util.file(Constants.DIR_FORGE, "common", "forge_at.cfg")
 
-            dependsOn 'downloadExceptor', 'mergeJars', 'doFMLMappingPreProcess'
+            dependsOn 'downloadExceptor', 'mergeJars', 'fixMappings'
         }
     }
 
@@ -363,7 +365,7 @@ public class GMCP implements Plugin<Project>
                 dir { Util.baseFile(Constants.DIR_FORGE_PATCHES) }
                 file { Util.baseFile(Constants.DIR_MAPPINGS, "astyle.cfg") }
                 files { Constants.CSVS.collect { Util.baseFile(Constants.DIR_MAPPINGS, it.getValue()) } }
-                file { Util.file(Constants.JAR_PROC) }
+                file { Util.file(Constants.JAR_SRG) }
                 file { Util.cacheFile(Constants.FERNFLOWER) }
                 file { Util.cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)) }
             }
@@ -483,7 +485,7 @@ public class GMCP implements Plugin<Project>
             Files.copy(file, inTemp)
             file.delete()
 
-            def deobfed = Util.file(Constants.JAR_PROC)
+            def deobfed = Util.file(Constants.JAR_SRG)
 
             // load mapping
             JarMapping mapping = new JarMapping()
@@ -517,7 +519,7 @@ public class GMCP implements Plugin<Project>
             Files.copy(file, inTemp)
             file.delete()
 
-            def deobfed = Util.file(Constants.JAR_PROC)
+            def deobfed = Util.file(Constants.JAR_SRG)
 
             // load mapping
             JarMapping mapping = new JarMapping()

@@ -68,7 +68,7 @@ class DecompileMinecraftTask extends DefaultTask
                     "-dgs=1",
                     "-asc=1",
                     "-log=ERROR",
-                    Util.file(Constants.JAR_PROC).getAbsolutePath(),
+                    Util.file(Constants.JAR_SRG).getAbsolutePath(),
                     proxy.getParentFile().getAbsolutePath()
             );
 

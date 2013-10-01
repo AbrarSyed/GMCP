@@ -244,7 +244,7 @@ class ObfArtifact extends AbstractPublishArtifact
         def inTemp = Util.file(caller.temporaryDir , 'jarIn.jar')
         Files.copy(toObf, inTemp)
 
-        def deobfed = Util.file(Constants.JAR_PROC)
+        def deobfed = Util.file(Constants.JAR_SRG)
 
         // load mapping
         JarMapping mapping = new JarMapping()

@@ -47,15 +47,13 @@ public class MergeJarsTask extends CachedTask
     {
         // since it merges everything to the client Jar. need this to keep it the same.
         File tempJar = new File(getTemporaryDir(), "tempClient.jar");
-        File tempServerJar = new File(getTemporaryDir(), "tempServer.jar");
         Files.copy((File) client, tempJar);
-        Files.copy((File) server, tempServerJar);
 
         // compile merger
         compileMerger(baseFile(Constants.DIR_FML, "common"), this.getTemporaryDir());
 
         // call the merger.
-        executeMerger(this.getTemporaryDir(), tempJar, tempServerJar, (File) mergeCfg);
+        executeMerger(this.getTemporaryDir(), tempJar, (File) server, (File) mergeCfg);
 
         // copy and strip meta inf to the ACTUAL output.
         ZipInputStream in = new ZipInputStream(new FileInputStream(tempJar));
@@ -141,8 +139,8 @@ public class MergeJarsTask extends CachedTask
 
                 exec.setMain("cpw.mods.fml.common.asm.transformers.MCPMerger");
 
-                exec.classpath(Util.getClassPath());
                 exec.classpath(classDir);
+                exec.classpath(Util.getClassPath());
 
 //                exec.setStandardOutput(Util.getNullStream());
 

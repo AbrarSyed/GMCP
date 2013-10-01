@@ -50,7 +50,7 @@ public class ProcessJarTask extends CachedTask
         addTransformer project.minecraft.accessTransformers as Object[]
 
         // resolve files
-        File tempObfJar = new File(getTemporaryDir(), "obfed.jar"); // courtesy of gradle temp dir.
+        File tempObfJar = new File(getTemporaryDir(), "deobfed.jar"); // courtesy of gradle temp dir.
         inJar = project.file(inJar)
         exceptorJar = project.file(exceptorJar)
         srg = project.file(srg)
@@ -69,10 +69,10 @@ public class ProcessJarTask extends CachedTask
         applyExceptor(exceptorJar, tempObfJar, outJar, exceptorCfg, new File(getTemporaryDir(), "exceptorLog"));
     }
 
-    def void deobfJar(File inJar, File outJar, File srg, ArrayList<File> ats) throws IOException
+    def void deobfJar(File inJar, File outputJar, File srg, ArrayList<File> ats) throws IOException
     {
         logger.debug("INPUT: " + inJar);
-        logger.debug("OUTPUT: " + outJar);
+        logger.debug("OUTPUT: " + outputJar);
         // load mapping
         JarMapping mapping = new JarMapping();
         mapping.loadMappings(srg);
@@ -100,13 +100,13 @@ public class ProcessJarTask extends CachedTask
         mapping.setFallbackInheritanceProvider(inheritanceProviders);
 
         // remap jar
-        remapper.remapJar(input, outJar);
+        remapper.remapJar(input, outputJar);
     }
 
-    public void applyExceptor(final File injectorJar, final File inJar, final File outJar, final File config, final File log)
+    public void applyExceptor(final File injectorJar, final File inJar, final File outputJar, final File config, final File log)
     {
         logger.debug "INPUT: " + inJar
-        logger.debug "OUTPUT: " + outJar
+        logger.debug "OUTPUT: " + outputJar
         logger.debug "CONFIG: " + config
 
         // http://www.gradle.org/docs/current/dsl/org.gradle.api.tasks.JavaExec.html
@@ -114,7 +114,7 @@ public class ProcessJarTask extends CachedTask
             args(
                     injectorJar.getAbsolutePath(),
                     inJar.getAbsolutePath(),
-                    outJar.getAbsolutePath(),
+                    outputJar.getAbsolutePath(),
                     config.getAbsolutePath(),
                     log.getAbsolutePath()
             );

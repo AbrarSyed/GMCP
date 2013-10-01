@@ -18,7 +18,7 @@ public final class Constants
     public static final String  	DIR_MCP_PATCHES 	    = DIR_MAPPINGS + "/patches"
 
     // jars
-    public static final String  	JAR_PROC		    	= "build/jars/processed.jar"
+    public static final String  	JAR_SRG                 = "build/jars/processed.jar"
 
     public static final String      DIR_NATIVES             = "build/natives"
 
