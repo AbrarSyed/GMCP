@@ -161,6 +161,7 @@ public class GMCP implements Plugin<Project>
                 }
                 resources {
                     srcDir { Util.srcFile(Constants.DIR_SRC_RESOURCES) }
+                    srcDir { Util.cacheFile(Constants.CACHE_ASSETS) }
                 }
             }
 
@@ -258,34 +259,8 @@ public class GMCP implements Plugin<Project>
             url = Constants.URL_EXCEPTOR
         }
 
-        // TODO: assets
-        project.task('getAssets', dependsOn: 'extractForge') {
-            outputs.dir { Util.jarFile(Constants.DIR_JAR_ASSETS) }
-
-            doLast {
-
-                // make assets dir.
-                def assets = Util.jarFile(Constants.DIR_JAR_ASSETS)
-                assets.mkdirs()
-
-                // get resources
-                def rootNode = new XmlSlurper().parse(Constants.URL_ASSETS)
-
-                //ListBucketResult
-                def files = rootNode.Contents.collect { it.Size.text() != '0' ? it.Key.text() : null }
-
-                files.each {
-                    // skip empty entries.
-                    if (!it)
-                    {
-                        return
-                    }
-
-                    def file = Util.file(assets, it)
-                    def url = Constants.URL_ASSETS + '/' + it
-                    Util.download(url, file)
-                }
-            }
+        project.task('getAssets', type: SyncAssetsTask,  dependsOn: 'extractForge') {
+            assetsDir = Util.cacheFile(Constants.CACHE_ASSETS)
         }
 
         // ----------------------------------------------------------------------------
@@ -315,7 +290,7 @@ public class GMCP implements Plugin<Project>
 
     def nativesUnpackTask()
     {
-        def task = project.task("unpackNatives", dependsOn: 'extractForge') {
+        project.task("unpackNatives", dependsOn: 'extractForge') {
             inputs.files { project.configurations.gmcpNative }
             outputs.dir { project.file(Constants.DIR_NATIVES) }
 
@@ -348,8 +323,8 @@ public class GMCP implements Plugin<Project>
             outJar = Util.file(Constants.JAR_SRG);
             srg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
             exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
-            addTransformer Util.file(Constants.DIR_FML, "common", "fml_at.cfg")
-            addTransformer Util.file(Constants.DIR_FORGE, "common", "forge_at.cfg")
+            addTransformer Util.baseFile(Constants.DIR_FML, "common", "fml_at.cfg")
+            addTransformer Util.baseFile(Constants.DIR_FORGE, "common", "forge_at.cfg")
 
             dependsOn 'downloadExceptor', 'mergeJars', 'fixMappings'
         }
@@ -393,6 +368,7 @@ public class GMCP implements Plugin<Project>
                     Node rootNode = provider.asNode()
 
                     // NATIVES PART  ---------------------------------------------------------------------
+                    def nativesDir = project.file(Constants.DIR_NATIVES)
 
                     // If this is doing anything, assume no gradle plugin.
                     [
@@ -403,7 +379,7 @@ public class GMCP implements Plugin<Project>
                         def container = rootNode.children().find { it.@path && it.@path.endsWith(nativ) }
                         if (container)
                         {
-                            container.appendNode('attributes').appendNode('attribute', [name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: '$MC_JAR/bin/natives'])
+                            container.appendNode('attributes').appendNode('attribute', [name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir])
                         }
                     }
 

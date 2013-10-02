@@ -45,68 +45,7 @@ class PatchTask extends DefaultTask
 
     public static patchStuff(File patchDir, File srcDir, File logFile, File tempPatch)
     {
-        //binaryPatch(patchDir, srcDir, logFile, tempPatch);
         libPatch(patchDir, srcDir, logFile, tempPatch.getParentFile())
-    }
-
-    private static binaryPatch(File patchDir, File srcDir, File logFile, File tempPatch)
-    {
-        def command, arguments
-
-        // prepare command
-        if (GMCP.os == Constants.OperatingSystem.WINDOWS)
-        {
-            command = Util.baseFile(Constants.EXEC_WIN_PATCH).getPath()
-        }
-        else
-        {
-            command = "patch"
-        }
-
-        arguments = [
-                "-p3",
-                "-i",
-                "\"" + tempPatch.getAbsolutePath() + "\"",
-                "-d",
-                "\"" + srcDir.getAbsolutePath() + "\""
-        ]
-
-        def log = logFile
-        if (log)
-        {
-            if (logFile.exists())
-            {
-                logFile.delete()
-            }
-
-            // make it new, delete was to clear data.
-            GMCP.project.file logFile
-        }
-
-        patchDir.eachFileRecurse(FileType.FILES)
-                {
-                    fixPatch(it, tempPatch)
-
-                    def result = GMCP.project.exec {
-                        executable = command
-                        args = arguments
-
-                        if (log)
-                        {
-                            def stream = new FileOutputStream(logFile, true)
-                            standardOutput = stream
-                            errorOutput = stream
-                        }
-
-                        ignoreExitValue = true
-                    }
-
-                    //            if (result.getExitValue() != 0)
-                    //            {
-                    //                throw new RuntimeException("Gnu patch failed! See log file: "+logFile)
-                    //            }
-
-                }
     }
 
     private static libPatch(File patchDir, File srcDir, File logFile, temp)
