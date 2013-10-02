@@ -40,7 +40,7 @@ class DecompileMinecraftTask extends DefaultTask
         doMCPPatches()
         doMCPCleanup()
 
-        log "Formatting sources"
+        log "Cleaning and formatting sources"
         applyAstyle()
 
         // TODO: make conditional for fml stuff.
@@ -162,48 +162,41 @@ class DecompileMinecraftTask extends DefaultTask
 
     def doMCPCleanup()
     {
-        srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
-
-            getLogger().debug("Processing file: " + it);
-            String text = it.text
-
-            getLogger().debug("processing comments");
-            text = MCPCleanup.stripComments(text);
-
-            getLogger().debug("fixing imports comments");
-            text = MCPCleanup.fixImports(text);
-
-            getLogger().debug("various other cleanup");
-            text = MCPCleanup.cleanup(text);
-
-            getLogger().debug("fixing OGL constants");
-            text = GLConstantFixer.fixOGL(text);
-
-            getLogger().debug("Writing file");
-            it.write(text)
-        }
-    }
-
-    def applyAstyle()
-    {
+        // setup jastyle
         def formatter = new ASFormatter();
         OptParser parser = new OptParser(formatter);
 
         def config = baseFile(Constants.DIR_MAPPINGS, "astyle.cfg")
         getLogger().info("Parsing astyle options file: " + config);
         parser.parseOptionFile(config);
+        def reader, writer;
 
         srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
-            logger.debug("Formatting file: " + it);
-            formatter.formatFile(it);
-        }
 
-    }
+            // read file
+            logger.debug "Processing file: " + it
+            String text = it.text
 
-    def applyFMLModifications()
-    {
-        srcFile(Constants.DIR_SRC_MINECRAFT).eachFileRecurse(FileType.FILES) {
-            def text = it.text
+            logger.debug "processing comments"
+            text = MCPCleanup.stripComments(text);
+
+            logger.debug "fixing imports comments"
+            text = MCPCleanup.fixImports(text);
+
+            logger.debug "various other cleanup"
+            text = MCPCleanup.cleanup(text);
+
+            logger.debug "fixing OGL constants"
+            text = GLConstantFixer.fixOGL(text);
+
+            // jastyle
+            reader = new StringReader(text)
+            writer = new StringWriter()
+            formatter.format(reader, writer)
+            reader.close()
+            writer.flush()
+            writer.close()
+            text = writer.toString()
 
             // do FML fixes...
             text = FMLCleanup.updateFile(text)
@@ -212,10 +205,13 @@ class DecompileMinecraftTask extends DefaultTask
             text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)
             text = text.replaceAll(/(\r\n|\n|\r)/, Constants.NEWLINE)
 
-            // write text
+            getLogger().debug("Writing file")
             it.write(text)
         }
+    }
 
+    def applyFMLModifications()
+    {
         PatchTask.patchStuff(baseFile(Constants.DIR_FML_PATCHES),
                 srcFile(Constants.DIR_SRC_MINECRAFT),
                 baseFile(Constants.DIR_LOGS, "FMLPatches.log"),

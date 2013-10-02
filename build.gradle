@@ -57,12 +57,12 @@ dependencies
     // all of these marked as packed.
     packed fileTree(dir: 'lib', include: '*.jar')
 
-    compile 'net.sourceforge.argo:argo:3.4'
+    compile 'net.sourceforge.argo:argo:3.+'
     compile 'net.sf.opencsv:opencsv:2.3'
     compile 'com.github.tony19:named-regexp:0.1.9'
-    compile 'net.md-5:SpecialSource:1.5'
+    compile 'net.md-5:SpecialSource:1.+'
     compile 'com.cloudbees:diff4j:1.1' // for difing and patching
-    compile 'com.github.abrarsyed.jastyle:jAstyle:0.9' // formatting
+    compile 'com.github.abrarsyed.jastyle:jAstyle:1.1' // formatting
 }
 
 task sourcesJar(type: Jar) {
@@ -145,4 +145,4 @@ uploadArchives {
 }
 
 // wrapper
-task wrapper(type: Wrapper) { gradleVersion = '1.7' }
+task wrapper(type: Wrapper) { gradleVersion = '1.8' }

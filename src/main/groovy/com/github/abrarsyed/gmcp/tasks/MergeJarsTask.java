@@ -142,7 +142,7 @@ public class MergeJarsTask extends CachedTask
                 exec.classpath(classDir);
                 exec.classpath(Util.getClassPath());
 
-//                exec.setStandardOutput(Util.getNullStream());
+                exec.setStandardOutput(Util.getNullStream());
 
                 return exec;
             }

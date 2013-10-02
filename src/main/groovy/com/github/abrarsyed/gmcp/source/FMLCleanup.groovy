@@ -9,87 +9,8 @@ class FMLCleanup
     def static final before = /(?m)((case|default).+(?:\r\n|\r|\n))(?:\r\n|\r|\n)/ // Fixes newline after case before case body
     def static final after = /(?m)(?:\r\n|\r|\n)((?:\r\n|\r|\n)[ \t]+(case|default))/ // Fixes newline after case body before new case
 
-    private static final Pattern VAR_PLUS_PLUS = Pattern.compile("(\\w+) *\\+ \\+");
-    private static final Pattern PLUS_PLUS_VAR = Pattern.compile("([^\\+])\\+ \\+ *(\\w+)");
-    private static final Pattern VAR_MINUS_MINUS = Pattern.compile("(\\w+) *\\- \\-");
-    private static final Pattern MINUS_MINUS_VAR = Pattern.compile("([^\\-])\\- \\- *(\\w+)");
-
-    private static final Pattern GTHAN_GTHAN_GTHAN = Pattern.compile(" > > > "); //Need to happen first to avoid conflict with >>
-    private static final Pattern GTHAN_GTHAN_EQUALS = Pattern.compile(" > > = "); //Need to happen first to avoid conflict with >> and >=
-
-    private static final Pattern EQUALS_EQUALS = Pattern.compile(" = = ");
-    private static final Pattern PLUS_EQUALS = Pattern.compile(" \\+ = ");
-    private static final Pattern MINUS_EQUALS = Pattern.compile(" \\- = ");
-    private static final Pattern AND_EQUALS = Pattern.compile(" & = ");
-    private static final Pattern BANG_EQUALS = Pattern.compile(" ! = ");
-    private static final Pattern AND_AND = Pattern.compile(" & & ");
-    private static final Pattern OR_OR = Pattern.compile(" \\| \\| ");
-    private static final Pattern PLUS_PLUS = Pattern.compile(" \\+ \\+ ");
-    private static final Pattern MINUS_MINUS = Pattern.compile(" \\- \\- ");
-    private static final Pattern GTHAN_GTHAN = Pattern.compile(" > > ");
-    private static final Pattern LTHAN_LTHAN = Pattern.compile(" < < ");
-    private static final Pattern PERCENT_EQUALS = Pattern.compile(" % = ");
-    private static final Pattern GTHAN_EQUALS = Pattern.compile(" > = ");
-    private static final Pattern LTHAN_EQUALS = Pattern.compile(" < = ");
-    private static final Pattern SLACH_EQUALS = Pattern.compile(" / = ");
-    private static final Pattern TIMES_EQUALS = Pattern.compile(" \\* = ");
-    private static final Pattern POWER_EQUALS = Pattern.compile(" \\^ = ");
-    private static final Pattern OR_EQUALS = Pattern.compile(" \\| = ");
-
-    private static final Pattern TERRINARY_ONE = Pattern.compile(' *\\? *(?=(?:(?:(?:[^"\\\\]+|\\\\.)*+"){2})*+(?:[^\"\\\\]+|\\\\.)*+$)(?=\\S)');
-    private static final Pattern TERRINARY_TWO = Pattern.compile(' *: *(?=(?:(?:(?:[^"\\\\]+|\\\\.)*+"){2})*+(?:[^\"\\\\]+|\\\\.)*+$)(?=\\S)');
-    private static final Pattern WEIRDNESS = Pattern.compile("\\}\\) :");
-    private static final Pattern CHARARRAYFIX = Pattern.compile("' *([?:]) *'");
-
-    private static final Pattern SLACH_PARENTHESIS = Pattern.compile("/\\((?=(?:(?:[^\"]*+\"){2})*+[^\"]*+\\z)");
-    private static final Pattern TIMES_PARENTHESIS = Pattern.compile("\\*\\((?=(?:(?:[^\"]*+\"){2})*+[^\"]*+\\z)");
-    private static final Pattern POWER_PARENTHESIS = Pattern.compile("\\^\\((?=(?:(?:[^\"]*+\"){2})*+[^\"]*+\\z)");
-
-    private static final Pattern RETURN_NOSPACE = Pattern.compile('return([^\\s;])(?=(?:(?:(?:[^"\\\\]+|\\\\.)*+"){2})*+(?:[^"\\\\]+|\\\\.)*+$)');
-
-    private static final Pattern BEFORE = Pattern.compile("(?m)((case|default).+(?:\\r\\n|\\r|\\n))(?:\\r\\n|\\r|\\n)"); // Fixes newline after case before case body
-    private static final Pattern AFTER = Pattern.compile("(?m)(?:\\r\\n|\\r|\\n)((?:\\r\\n|\\r|\\n)[ \\t]+(case|default))"); // Fixes newline after case body before new case
-
     public static String updateFile(String text)
     {
-        text = VAR_PLUS_PLUS.matcher(text).replaceAll('$1++');
-        text = PLUS_PLUS_VAR.matcher(text).replaceAll('$1++$2');
-        text = VAR_MINUS_MINUS.matcher(text).replaceAll('$1--');
-        text = MINUS_MINUS_VAR.matcher(text).replaceAll('$1--$2');
-
-        text = GTHAN_GTHAN_GTHAN.matcher(text).replaceAll(" >>> ");
-        text = GTHAN_GTHAN_EQUALS.matcher(text).replaceAll(" >>= ");
-
-        text = EQUALS_EQUALS.matcher(text).replaceAll(" == ");
-        text = PLUS_EQUALS.matcher(text).replaceAll(" += ");
-        text = MINUS_EQUALS.matcher(text).replaceAll(" -= ");
-        text = AND_EQUALS.matcher(text).replaceAll(" &= ");
-        text = BANG_EQUALS.matcher(text).replaceAll(" != ");
-        text = AND_AND.matcher(text).replaceAll(" && ");
-        text = OR_OR.matcher(text).replaceAll(" || ");
-        text = PLUS_PLUS.matcher(text).replaceAll(" ++ ");
-        text = MINUS_MINUS.matcher(text).replaceAll(" -- ");
-        text = GTHAN_GTHAN.matcher(text).replaceAll(" >> ");
-        text = LTHAN_LTHAN.matcher(text).replaceAll(" << ");
-        text = PERCENT_EQUALS.matcher(text).replaceAll(" %= ");
-        text = GTHAN_EQUALS.matcher(text).replaceAll(" >= ");
-        text = LTHAN_EQUALS.matcher(text).replaceAll(" <= ");
-        text = SLACH_EQUALS.matcher(text).replaceAll(" /= ");
-        text = TIMES_EQUALS.matcher(text).replaceAll(" *= ");
-        text = POWER_EQUALS.matcher(text).replaceAll(" ^= ");
-        text = OR_EQUALS.matcher(text).replaceAll(" |= ");
-
-        text = SLACH_PARENTHESIS.matcher(text).replaceAll("/ (");
-        text = TIMES_PARENTHESIS.matcher(text).replaceAll("* (");
-        text = POWER_PARENTHESIS.matcher(text).replaceAll("^ (");
-
-        text = TERRINARY_ONE.matcher(text).replaceAll(" ? ");
-        text = TERRINARY_TWO.matcher(text).replaceAll(" : ");
-        text = CHARARRAYFIX.matcher(text).replaceAll('\'$1\'');
-        text = WEIRDNESS.matcher(text).replaceAll("}):");
-
-        text = RETURN_NOSPACE.matcher(text).replaceAll('return $1');
-
         text = text.replaceAll(before) { match, group, words->
             return group
         }
