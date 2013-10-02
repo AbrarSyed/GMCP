@@ -63,6 +63,9 @@ dependencies
     compile 'net.md-5:SpecialSource:1.+'
     compile 'com.cloudbees:diff4j:1.1' // for difing and patching
     compile 'com.github.abrarsyed.jastyle:jAstyle:1.1' // formatting
+
+    // lombok
+    compile 'org.projectlombok:lombok:0.11.+'
 }
 
 task sourcesJar(type: Jar) {
