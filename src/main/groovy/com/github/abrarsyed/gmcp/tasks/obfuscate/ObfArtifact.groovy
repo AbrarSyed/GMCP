@@ -4,6 +4,7 @@ import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
 import com.google.common.io.Files
+import net.md_5.specialsource.InheritanceMap
 import net.md_5.specialsource.Jar
 import net.md_5.specialsource.JarMapping
 import net.md_5.specialsource.JarRemapper
@@ -244,7 +245,7 @@ class ObfArtifact extends AbstractPublishArtifact
         def inTemp = Util.file(caller.temporaryDir , 'jarIn.jar')
         Files.copy(toObf, inTemp)
 
-        def deobfed = Util.file(Constants.JAR_SRG)
+        //def deobfed = Util.file(Constants.JAR_SRG)
 
         // load mapping
         JarMapping mapping = new JarMapping()
@@ -256,10 +257,15 @@ class ObfArtifact extends AbstractPublishArtifact
         // load jar
         def input = Jar.init(inTemp)
 
+        // construct inheritance map
+        def inhMap = new InheritanceMap();
+        inhMap.load(Util.cacheFile(String.format(Constants.FMED_INH_MAP, project.minecraft.minecraftVersion)).newReader(), null)
+
         // ensure that inheritance provider is used
         JointProvider inheritanceProviders = new JointProvider()
         inheritanceProviders.add(new JarProvider(input))
-        inheritanceProviders.add(new JarProvider(Jar.init(deobfed)))
+        //inheritanceProviders.add(inhMap)
+        //inheritanceProviders.add(new JarProvider(Jar.init(deobfed)))
         mapping.setFallbackInheritanceProvider(inheritanceProviders)
 
         // remap jar

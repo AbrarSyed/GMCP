@@ -26,6 +26,7 @@ public final class Constants
     public static final String FMED_JAR_SERVER_FRESH     = CACHE_DIR + '/net/minecraft/minecraft_server/%1$s/minecraft_server-%1$s.jar'
     public static final String FMED_JAR_MERGED           = CACHE_DIR + '/net/minecraft/minecraft_merged/%1$s/minecraft_merged-%1$s.jar'
     public static final String FMED_PACKAGED_SRG         = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/packaged-%1$s.srg'
+    public static final String FMED_INH_MAP              = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/inheritanceMap-%1$s.dat'
     public static final String FMED_OBF_MCP_SRG          = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/reobf-mcp-%1$s.srg'
     public static final String FMED_OBF_SRG_SRG          = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/reobf-srg-%1$s.srg'
     public static final String FMED_PACKAGED_EXC         = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/packaged-%1$s.exc'

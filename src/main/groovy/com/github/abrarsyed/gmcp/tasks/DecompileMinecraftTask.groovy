@@ -38,10 +38,9 @@ class DecompileMinecraftTask extends DefaultTask
 
         log "Apply MCP patches and cleanup"
         doMCPPatches()
-        doMCPCleanup()
 
         log "Cleaning and formatting sources"
-        applyAstyle()
+        doMCPCleanup()
 
         // TODO: make conditional for fml stuff.
         log "Applying FML tranformations"

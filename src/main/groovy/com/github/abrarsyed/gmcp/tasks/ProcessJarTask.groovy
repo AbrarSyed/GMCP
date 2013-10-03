@@ -27,6 +27,10 @@ public class ProcessJarTask extends CachedTask
     @CachedTask.Cached
     def outJar;
 
+    @OutputFile
+    @CachedTask.Cached
+    def outMap;
+
     @InputFiles
     private ArrayList<Object> ats = new ArrayList<Object>();
 
@@ -56,6 +60,7 @@ public class ProcessJarTask extends CachedTask
         srg = project.file(srg)
         exceptorCfg = project.file(exceptorCfg)
         outJar = project.file(outJar)
+        outMap = project.file(outMap)
 
         // make the ATs LIST
         ArrayList<File> ats = this.ats.collect { project.file(it) }
@@ -101,6 +106,10 @@ public class ProcessJarTask extends CachedTask
 
         // remap jar
         remapper.remapJar(input, outputJar);
+
+        // output inheritance map
+        mapping.inheritanceMap.save(new PrintWriter(outMap.newWriter()))
+
     }
 
     public void applyExceptor(final File injectorJar, final File inJar, final File outputJar, final File config, final File log)
@@ -150,6 +159,17 @@ public class ProcessJarTask extends CachedTask
         {
             outJar = getProject().file(outJar);
             return (File)outJar;
+        }
+    }
+
+    public File getOutMap()
+    {
+        if (outMap instanceof File)
+            return (File)outMap;
+        else
+        {
+            outMap = getProject().file(outMap);
+            return (File)outMap;
         }
     }
 

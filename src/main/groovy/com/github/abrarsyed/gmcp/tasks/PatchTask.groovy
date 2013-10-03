@@ -90,6 +90,7 @@ class PatchTask extends DefaultTask
             }
         }
 
+        writer.flush();
         writer.close();
     }
 }

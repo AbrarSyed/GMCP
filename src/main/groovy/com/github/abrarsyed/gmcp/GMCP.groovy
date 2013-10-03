@@ -321,6 +321,7 @@ public class GMCP implements Plugin<Project>
             inJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
             exceptorJar = Util.cacheFile(Constants.EXCEPTOR);
             outJar = Util.file(Constants.JAR_SRG);
+            outMap = { Util.cacheFile(String.format(Constants.FMED_INH_MAP, project.minecraft.minecraftVersion)) }
             srg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
             exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
             addTransformer Util.baseFile(Constants.DIR_FML, "common", "fml_at.cfg")
