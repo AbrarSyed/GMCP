@@ -107,7 +107,6 @@ class GMCPExtension
         else
             json2 = cacheFile2.text
 
-
         // load JSON
         JsonRootNode root1 = JDOM_PARSER.parse(json1)
         JsonRootNode root2 = JDOM_PARSER.parse(json2)

@@ -97,7 +97,7 @@ class Util
 
     def static File file(String... args)
     {
-        return new File(args.join('/'))
+        return file(GMCP.project.getProjectDir(), args)
     }
 
     def static File file(File file, String... args)
@@ -116,29 +116,17 @@ class Util
 
     def static File buildFile(String... args)
     {
-        def arguments = []
-        arguments += GMCP.project.getBuildDir()
-        arguments.addAll(args)
-
-        return file(arguments as String[])
+        return file(GMCP.project.getBuildDir(), args)
     }
 
     def static File cacheFile(String... args)
     {
-        def arguments = []
-        arguments += GMCP.project.gradle.gradleUserHomeDir
-        arguments.addAll(args)
-
-        return file(arguments as String[])
+        return file(GMCP.project.gradle.gradleUserHomeDir, args)
     }
 
     def static File cacheFile(Project project, String... args)
     {
-        def arguments = []
-        arguments += project.gradle.gradleUserHomeDir
-        arguments.addAll(args)
-
-        return file(arguments as String[])
+        return file(project.gradle.gradleUserHomeDir, args)
     }
 
     def static File srcFile(String... args)

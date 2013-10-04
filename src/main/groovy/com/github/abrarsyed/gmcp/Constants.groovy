@@ -17,6 +17,7 @@ public final class Constants
 
     // jars
     public static final String  	JAR_SRG                 = "build/jars/processed.jar"
+    public static final String  	JAR_DECOMP              = "build/jars/decomp.jar"
     public static final String      DIR_NATIVES             = "build/natives"
 
     // things in the cache dir.

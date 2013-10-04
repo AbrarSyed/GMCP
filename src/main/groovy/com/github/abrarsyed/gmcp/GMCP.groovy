@@ -99,7 +99,7 @@ public class GMCP implements Plugin<Project>
 
         // setup task
         project.task('setupCIWorkspace') {
-            dependsOn 'deobfuscateJar', 'decompileMinecraft'
+            dependsOn 'deobfuscateJar', 'processMCSource'
         }
         project.task('setupDevWorkspace') {
             dependsOn 'setupCIWorkspace', 'getAssets', 'unpackNatives'
@@ -182,13 +182,12 @@ public class GMCP implements Plugin<Project>
             sourceCompatibility = '1.6'
         }
 
-        def task = project.task('reobf', type: ReobfTask) {
+        project.task('reobf', type: ReobfTask) {
             reobf project.tasks.jar
-            dependsOn 'deobfuscateJar', 'genReobfSrgs'
+            dependsOn 'genReobfSrgs'
         }
 
         project.tasks.assemble.dependsOn 'reobf'
-        //project.tasks.dependencies.dependsOn 'resolveMinecraftStuff'
     }
 
     def downloadTasks()
@@ -333,16 +332,23 @@ public class GMCP implements Plugin<Project>
 
     def decompileTask()
     {
-        def task = project.task('decompileMinecraft', type: DecompileMinecraftTask) {
+        project.task('decompileMinecraft', type: ApplyFernflowerTask) {
             dependsOn 'deobfuscateJar', 'downloadFernFlower'
+            input = Util.file(Constants.JAR_SRG)
+            fernflower = Util.cacheFile(Constants.FERNFLOWER)
+            output = Util.file(Constants.JAR_DECOMP)
+        }
+        
+        project.task('processMCSource', type: ProcessSourceTask) {
+            dependsOn 'decompileMinecraft'
+
+            decompJar = Util.file(Constants.JAR_DECOMP)
 
             inputs.with {
                 dir { Util.baseFile(Constants.DIR_FML_PATCHES) }
                 dir { Util.baseFile(Constants.DIR_FORGE_PATCHES) }
                 file { Util.baseFile(Constants.DIR_MAPPINGS, "astyle.cfg") }
                 files { Constants.CSVS.collect { Util.baseFile(Constants.DIR_MAPPINGS, it.getValue()) } }
-                file { Util.file(Constants.JAR_SRG) }
-                file { Util.cacheFile(Constants.FERNFLOWER) }
                 file { Util.cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)) }
             }
 
@@ -451,73 +457,5 @@ public class GMCP implements Plugin<Project>
 
             file.write result
         }
-    }
-
-    @Deprecated
-    public static Closure reobfSRGJarClosure()
-    {
-        def c = { Task task ->
-            def file = task.archivePath
-            def inTemp = Util.file(task.temporaryDir, 'jarIn.jar')
-            Files.copy(file, inTemp)
-            file.delete()
-
-            def deobfed = Util.file(Constants.JAR_SRG)
-
-            // load mapping
-            JarMapping mapping = new JarMapping()
-            mapping.loadMappings(Util.cacheFile(String.format(Constants.FMED_OBF_SRG_SRG, project.minecraft.minecraftVersion)))
-
-            // make remapper
-            JarRemapper remapper = new JarRemapper(null, mapping)
-
-            // load jar
-            def input = Jar.init(inTemp)
-
-            // ensure that inheritance provider is used
-            JointProvider inheritanceProviders = new JointProvider()
-            inheritanceProviders.add(new JarProvider(input))
-            inheritanceProviders.add(new JarProvider(Jar.init(deobfed)))
-            mapping.setFallbackInheritanceProvider(inheritanceProviders)
-
-            // remap jar
-            remapper.remapJar(input, file)
-        }
-
-        return c
-    }
-
-    @Deprecated
-    public static Closure reobfJarClosure()
-    {
-        def c = { Task task ->
-            def file = task.archivePath
-            def inTemp = Util.file(task.temporaryDir, 'jarIn.jar')
-            Files.copy(file, inTemp)
-            file.delete()
-
-            def deobfed = Util.file(Constants.JAR_SRG)
-
-            // load mapping
-            JarMapping mapping = new JarMapping()
-            mapping.loadMappings(Util.cacheFile(String.format(Constants.FMED_OBF_MCP_SRG, project.minecraft.minecraftVersion)))
-
-            // make remapper
-            JarRemapper remapper = new JarRemapper(null, mapping)
-
-            // load jar
-            def input = Jar.init(inTemp)
-
-            // ensure that inheritance provider is used
-            JointProvider inheritanceProviders = new JointProvider()
-            inheritanceProviders.add(new JarProvider(input))
-            inheritanceProviders.add(new JarProvider(Jar.init(deobfed)))
-            mapping.setFallbackInheritanceProvider(inheritanceProviders)
-
-            // remap jar
-            remapper.remapJar(input, file)
-        }
-
-        return c
     }
 }

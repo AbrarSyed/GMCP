@@ -10,6 +10,7 @@ import com.google.common.io.ByteStreams
 import com.google.common.io.Files
 import groovy.io.FileType
 import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.TaskAction
 
 import java.nio.charset.Charset
@@ -18,9 +19,10 @@ import java.util.zip.ZipInputStream
 
 import static com.github.abrarsyed.gmcp.Util.*
 
-class DecompileMinecraftTask extends DefaultTask
+class ProcessSourceTask extends DefaultTask
 {
-    def private final File tempDecompJar = file(temporaryDir, "processed.jar")
+    @InputFile
+    def File decompJar
 
     def private log(Object obj)
     {
@@ -30,9 +32,6 @@ class DecompileMinecraftTask extends DefaultTask
     @TaskAction
     def doTask()
     {
-        log "Decompiling jar"
-        decompile()
-
         log "Extracting and cleaning sources"
         copyClasses()
 
@@ -53,36 +52,9 @@ class DecompileMinecraftTask extends DefaultTask
         applyForgeModifications()
     }
 
-    def decompile()
-    {
-        def fernFlower = Util.cacheFile(Constants.FERNFLOWER)
-
-        def proxy = tempDecompJar;
-
-        project.javaexec {
-            args(
-                    fernFlower.getAbsolutePath(),
-                    "-din=0",
-                    "-rbr=0",
-                    "-dgs=1",
-                    "-asc=1",
-                    "-log=ERROR",
-                    Util.file(Constants.JAR_SRG).getAbsolutePath(),
-                    proxy.getParentFile().getAbsolutePath()
-            );
-
-            setMain "-jar"
-            setWorkingDir fernFlower.getParentFile()
-
-            classpath Util.getClassPath()
-
-            setStandardOutput Util.getNullStream()
-        }
-    }
-
     def copyClasses()
     {
-        final ZipInputStream zin = new ZipInputStream(tempDecompJar.newInputStream());
+        final ZipInputStream zin = new ZipInputStream(decompJar.newInputStream());
         ZipEntry entry = null;
         def fileStr
 
