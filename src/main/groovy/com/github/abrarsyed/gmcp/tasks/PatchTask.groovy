@@ -7,6 +7,8 @@ import com.github.abrarsyed.gmcp.Util
 import com.google.common.io.Files
 import groovy.io.FileType
 import org.gradle.api.DefaultTask
+import org.gradle.api.logging.LogLevel
+import org.gradle.api.logging.Logger
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.SkipWhenEmpty
@@ -43,22 +45,19 @@ class PatchTask extends DefaultTask
         tempPatch.write(text)
     }
 
-    public static patchStuff(File patchDir, File srcDir, File logFile, File tempPatch)
+    public static patchStuff(File patchDir, File srcDir, Logger log, File tempPatch)
     {
-        libPatch(patchDir, srcDir, logFile, tempPatch.getParentFile())
+        libPatch(patchDir, srcDir, log, tempPatch.getParentFile())
     }
 
-    private static libPatch(File patchDir, File srcDir, File logFile, temp)
+    private static libPatch(File patchDir, File srcDir, Logger log, temp)
     {
         temp.mkdirs();
 
-        logFile.getParentFile().mkdirs()
-        logFile.createNewFile()
-        def writer = logFile.newPrintWriter()
         def loadedPatches = new ArrayList<ContextualPatch>()
 
-        patchDir.eachFile(FileType.FILES) {
-            writer.println "Fixing patch: " + it
+        patchDir.eachFileRecurse(FileType.FILES) {
+            log.debug "Fixing patch: " + it
             String relative = it.getAbsolutePath().substring(patchDir.getAbsolutePath().length());
             File outFile = new File(temp, relative);
 
@@ -68,29 +67,30 @@ class PatchTask extends DefaultTask
             text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE).replaceAll("(\\r\\n|\\r|\\n)", Constants.NEWLINE);
 
             // fixing for the paths.
-            text = text.replaceAll("\\.\\./src-base/minecraft/(net/minecraft)", '$1');
+            text = text.replaceAll("\\.\\./src[_-]base/minecraft/(net/minecraft)", '$1');
             outFile.getParentFile().mkdirs();
             Files.touch(outFile);
             Files.write(text, outFile, Charset.defaultCharset());
 
-            writer.println "Loading Patch: " + it
+            log.debug "Loading Patch: " + it
             loadedPatches.add(ContextualPatch.create(outFile, srcDir));
         }
 
         // apply patches
         loadedPatches.each {
-            it.patch(false);
             List<ContextualPatch.PatchReport> errors = it.patch(false);
             for (ContextualPatch.PatchReport report : errors)
             {
                 if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
                 {
-                    writer.println "Patching failed: " + report.getFile(), report.getFailure()
+                    log.log LogLevel.ERROR, "Patching failed: " + report.getFile(), report.getFailure()
+                    throw report.getFailure()
+                }
+                else
+                {
+                    log.info "Patch Succeeded: " + report.getFile()
                 }
             }
         }
-
-        writer.flush();
-        writer.close();
     }
 }

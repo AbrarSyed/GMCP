@@ -93,7 +93,7 @@ class DecompileMinecraftTask extends DefaultTask
         while ((entry = zin.getNextEntry()) != null)
         {
             // no META or dirs. wel take care of dirs later.
-            if (entry.getName().contains("META-INF"))
+            if (entry.getName().contains("META-INF") || entry.getName().contains("cpw"))
             {
                 continue;
             }
@@ -145,13 +145,14 @@ class DecompileMinecraftTask extends DefaultTask
 
         // actually do the patches now.
         ContextualPatch cPatch = ContextualPatch.create(tempPatch, srcFile(Constants.DIR_SRC_MINECRAFT));
-        List<ContextualPatch.PatchReport> reports = cPatch.patch(true);
+        List<ContextualPatch.PatchReport> reports = cPatch.patch(false);
         for (ContextualPatch.PatchReport report : reports)
         {
             getLogger().info('' + report.getStatus() + "  -- " + report.getFile());
             if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
             {
-                getLogger().info("ERROR: ", report.getFailure());
+                getLogger().error("ERROR: ", report.getFailure());
+                throw report.getFailure()
             }
         }
 
@@ -213,7 +214,7 @@ class DecompileMinecraftTask extends DefaultTask
     {
         PatchTask.patchStuff(baseFile(Constants.DIR_FML_PATCHES),
                 srcFile(Constants.DIR_SRC_MINECRAFT),
-                baseFile(Constants.DIR_LOGS, "FMLPatches.log"),
+                logger,
                 file(temporaryDir, 'temp.patch')
         )
 
@@ -262,7 +263,7 @@ class DecompileMinecraftTask extends DefaultTask
     {
         PatchTask.patchStuff(baseFile(Constants.DIR_FORGE_PATCHES),
                 srcFile(Constants.DIR_SRC_MINECRAFT),
-                baseFile(Constants.DIR_LOGS, "ForgePatches.log"),
+                logger,
                 file(temporaryDir, 'temp.patch')
         )
 

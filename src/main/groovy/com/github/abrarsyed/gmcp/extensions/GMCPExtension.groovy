@@ -81,7 +81,7 @@ class GMCPExtension
             def currentTime = System.currentTimeMillis() / 1000L
 
             // old.
-            if (cacheFile.lastModified() + 86400 <= currentTime || cacheFile2.lastModified() + 86400 <= currentTime)
+            if (cacheFile.lastModified() + 172800 <= currentTime || cacheFile2.lastModified() + 172800 <= currentTime)
                 refreshCache = true
             else if (cache)
                 refreshCache = true
