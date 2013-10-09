@@ -229,7 +229,7 @@ public class GMCP implements Plugin<Project>
                         add 'gmcpNative', dep
                     }
 
-                    add 'gmcp', project.files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
+                    add 'gmcp', project.files( {Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath()} )
                 }
             }
         }

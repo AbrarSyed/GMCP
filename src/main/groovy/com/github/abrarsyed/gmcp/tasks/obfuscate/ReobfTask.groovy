@@ -35,7 +35,7 @@ class ReobfTask extends DefaultTask
     {
         if (!(task instanceof AbstractArchiveTask))
         {
-            throw new InvalidUserDataException("You cannot sign tasks that are not 'archive' tasks, such as 'jar', 'zip' etc. (you tried to sign $task)")
+            throw new InvalidUserDataException("You cannot reobfuscate tasks that are not 'archive' tasks, such as 'jar', 'zip' etc. (you tried to sign $task)")
         }
 
         def spec = new ArtifactSpec(task)
@@ -54,7 +54,7 @@ class ReobfTask extends DefaultTask
         {
             if (!(task instanceof AbstractArchiveTask))
             {
-                throw new InvalidUserDataException("You cannot sign tasks that are not 'archive' tasks, such as 'jar', 'zip' etc. (you tried to sign $task)")
+                throw new InvalidUserDataException("You cannot reobfuscate tasks that are not 'archive' tasks, such as 'jar', 'zip' etc. (you tried to sign $task)")
             }
 
             dependsOn(task)

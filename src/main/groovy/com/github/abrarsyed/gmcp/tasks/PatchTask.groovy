@@ -68,6 +68,7 @@ class PatchTask extends DefaultTask
 
             // fixing for the paths.
             text = text.replaceAll("\\.\\./src[_-]base/minecraft/(net/minecraft)", '$1');
+            text = text.replaceAll("\\.\\./src[_-]work/minecraft/(net/minecraft)", '$1');
             outFile.getParentFile().mkdirs();
             Files.touch(outFile);
             Files.write(text, outFile, Charset.defaultCharset());
@@ -78,12 +79,13 @@ class PatchTask extends DefaultTask
 
         // apply patches
         loadedPatches.each {
+            log.debug "Applying Patch: " + it
             List<ContextualPatch.PatchReport> errors = it.patch(false);
             for (ContextualPatch.PatchReport report : errors)
             {
                 if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
                 {
-                    log.log LogLevel.ERROR, "Patching failed: " + report.getFile(), report.getFailure()
+                    log.log LogLevel.DEBUG, "Patching failed: " + report.getFile(), report.getFailure()
                     throw report.getFailure()
                 }
                 else

@@ -1,10 +1,8 @@
 package com.github.abrarsyed.gmcp.tasks.obfuscate
 
-import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
 import com.google.common.io.Files
-import net.md_5.specialsource.InheritanceMap
 import net.md_5.specialsource.Jar
 import net.md_5.specialsource.JarMapping
 import net.md_5.specialsource.JarRemapper
@@ -14,8 +12,10 @@ import net.md_5.specialsource.provider.JointProvider
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.Task
 import org.gradle.api.artifacts.PublishArtifact
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.artifacts.publish.AbstractPublishArtifact
-
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 
 class ObfArtifact extends AbstractPublishArtifact
 {
@@ -27,6 +27,7 @@ class ObfArtifact extends AbstractPublishArtifact
     String classifier
     Date date
     File file
+    FileCollection classpath
 
     def srg
 
@@ -34,6 +35,24 @@ class ObfArtifact extends AbstractPublishArtifact
     private final Task caller
 
     final ArtifactSpec outputSpec
+
+    /**
+     * Creates an obfuscated artifact for the given public artifact.
+     *
+     * <p>The file to obfuscate will be the file of the given artifact and the name of this obfuscated artifact
+     * will default to the name of the given artifact to obfuscate.</p>
+     * <p>
+     * The artifact to obfuscate may change after being used as the source.</p>
+     *
+     * @param toObf The artifact that is to be obfuscated
+     * @param artifactSpec The specification of how the obfuscated artifact is to be named
+     * @param task The task(s) that will invoke {@link #generate()} on this jar (optional)
+     */
+    ObfArtifact(AbstractArchiveTask toObf, ArtifactSpec artifactSpec, ReobfTask task)
+    {
+        this({ toObf.archivePath }, artifactSpec, task)
+        this.toObfArtifact = toObf
+    }
 
     /**
      * Creates an obfuscated artifact for the given public artifact.
@@ -118,6 +137,23 @@ class ObfArtifact extends AbstractPublishArtifact
             return outputSpec.baseName
         else
             return getFile()?.name
+    }
+
+    /**
+     * The name of the obfuscated artifact.
+     *
+     * <p>Defaults to the name of the obfuscated artifact {@link #getFile() file}.
+     *
+     * @return The name. May be {@code null} if unknown at this time.
+     */
+    FileCollection getClasspath()
+    {
+        if (classpath)
+            return classpath
+        else if (outputSpec.classpath)
+            return outputSpec.classpath
+        else
+            return null
     }
 
     /**
@@ -208,6 +244,7 @@ class ObfArtifact extends AbstractPublishArtifact
             this.name = outputSpec.archiveName
             this.classifier = outputSpec.classifier
             this.extension = outputSpec.extension
+            this.classpath = outputSpec.classpath
 
             if (outputSpec.srg)
                 this.srg = outputSpec.srg
@@ -256,14 +293,11 @@ class ObfArtifact extends AbstractPublishArtifact
         // load jar
         def input = Jar.init(inTemp)
 
-        // construct inheritance map
-        //def inhMap = new InheritanceMap();
-        //inhMap.load(Util.cacheFile(String.format(Constants.FMED_INH_MAP, GMCP.project.minecraft.minecraftVersion)).newReader(), null)
-
         // ensure that inheritance provider is used
         JointProvider inheritanceProviders = new JointProvider()
         inheritanceProviders.add(new JarProvider(input))
-        inheritanceProviders.add(new ClassLoaderProvider(new URLClassLoader(GMCP.project.sourceSets.main.compileClasspath.getFiles().collect { it.toURI().toURL() } as URL[])))
+        if (classpath)
+            inheritanceProviders.add(new ClassLoaderProvider(new URLClassLoader(classpath.getFiles().collect { it.toURI().toURL() } as URL[])))
         mapping.setFallbackInheritanceProvider(inheritanceProviders)
 
         // remap jar

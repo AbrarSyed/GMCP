@@ -65,12 +65,5 @@ class GMCPsolo extends GMCP
             targetCompatibility = '1.6'
             sourceCompatibility = '1.6'
         }
-
-        project.task('reobf', type: ReobfTask) {
-            reobf project.tasks.jar
-            dependsOn 'genReobfSrgs'
-        }
-
-        project.tasks.assemble.dependsOn 'reobf'
     }
 }

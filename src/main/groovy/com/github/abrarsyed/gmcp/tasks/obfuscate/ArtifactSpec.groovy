@@ -24,6 +24,7 @@ class ArtifactSpec
     def archiveName
 
     def srg
+    def classpath
 
     def private archiveSet = false
 
@@ -55,6 +56,7 @@ class ArtifactSpec
         version =  { task.version }
         classifier = { task.classifier }
         extension = { task.extension }
+        classpath = { task.source }
     }
 
     public void setArchiveName(archiveName)
@@ -79,6 +81,9 @@ class ArtifactSpec
         classifier = resolveField.call(classifier)
         extension = resolveField.call(extension)
 
+        // resolve classpath
+        if (classpath)
+            classpath = GMCP.project.files(classpath)
 
         // resolve srg
         if (!srg)
