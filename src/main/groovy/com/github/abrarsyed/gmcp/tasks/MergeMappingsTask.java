@@ -321,8 +321,10 @@ public class MergeMappingsTask extends CachedTask
         @Override
         public boolean processLine(String s) throws IOException
         {
-            if (s.startsWith("+++") || s.startsWith("---") || s.startsWith("diff") || s.startsWith("+++"))
+            if (s.startsWith("+++") || s.startsWith("---") || s.startsWith("diff"))
             {
+                GMCP.project.getLogger().info("OLD  "+s);
+
                 s = s.replaceAll("minecraft\\\\(net\\\\minecraft)", "$1");
 
                 Matcher match = PACK_PATTERN.matcher(s);
@@ -332,7 +334,10 @@ public class MergeMappingsTask extends CachedTask
                     clazz = repackageClass(match.group().replace("\\", "/")).replace("/", "\\");
                     s = s.replace(match.group(), clazz);
                 }
-                s = s.replace('\\', DELIM);
+
+                s = s.replaceAll("[\\\\]", "/");
+
+                GMCP.project.getLogger().info("NEW  "+s);
             }
 
             builder.append(s).append(Constants.NEWLINE);
