@@ -46,17 +46,24 @@ public class MergeJarsTask extends CachedTask
     public void doTask() throws IOException
     {
         // since it merges everything to the client Jar. need this to keep it the same.
-        File tempJar = new File(getTemporaryDir(), "tempClient.jar");
-        Files.copy((File) client, tempJar);
+        File tempClientJar = new File(getTemporaryDir(), "tempClient.jar");
+        File tempServerJar = new File(getTemporaryDir(), "tempServer.jar");
+        Files.copy((File) client, tempClientJar);
+        Files.copy((File) server, tempServerJar);
+
+        getLogger().lifecycle("-----------------------------------------------------------------------");
+        getLogger().info("TEMP client : "+tempClientJar);
+        getLogger().info("TEMP server : "+tempServerJar);
+        getLogger().lifecycle("-----------------------------------------------------------------------");
 
         // compile merger
         compileMerger(baseFile(Constants.DIR_FML, "common"), this.getTemporaryDir());
 
         // call the merger.
-        executeMerger(this.getTemporaryDir(), tempJar, (File) server, (File) mergeCfg);
+        executeMerger(this.getTemporaryDir(), tempClientJar, tempServerJar, (File) mergeCfg);
 
         // copy and strip meta inf to the ACTUAL output.
-        ZipInputStream in = new ZipInputStream(new FileInputStream(tempJar));
+        ZipInputStream in = new ZipInputStream(new FileInputStream(tempClientJar));
         ZipOutputStream out = new ZipOutputStream(new FileOutputStream((File) outJar));
 
         ZipEntry entry = in.getNextEntry();
