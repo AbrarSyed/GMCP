@@ -3,10 +3,12 @@ package com.github.abrarsyed.gmcp.tasks;
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 import com.github.abrarsyed.gmcp.Constants;
+import com.github.abrarsyed.gmcp.GMCP;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ObjectArrays;
 import com.google.common.io.Files;
+import com.google.common.io.LineProcessor;
 import lombok.Getter;
 import lombok.Setter;
 import org.gradle.api.tasks.InputFile;
@@ -198,20 +200,7 @@ public class MergeMappingsTask extends CachedTask
 
     private void fixPatch(File patch, File outPatch) throws IOException
     {
-        String text = Files.toString(patch, Charset.defaultCharset());
-
-        Matcher match = PACK_PATTERN.matcher(text);
-        String clazz;
-        while (match.find())
-        {
-            clazz = repackageClass(match.group().replace("\\", "/")).replace("/", "\\");
-            text = text.replace(match.group(), clazz);
-        }
-
-        // niormalize NEWLINES.
-        text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE);
-        text = text.replaceAll("(\\r\\n|\\n|\\r)", Constants.NEWLINE);
-
+        String text = Files.readLines(patch, Charset.defaultCharset(), new PatchLineProcessor());
         Files.touch(outPatch);
         Files.write(text, outPatch, Charset.defaultCharset());
     }
@@ -288,34 +277,74 @@ public class MergeMappingsTask extends CachedTask
     public File getOutPatch()
     {
         if (outPatch instanceof File)
-            return (File)outPatch;
+        {
+            return (File) outPatch;
+        }
         else
         {
             outPatch = getProject().file(outPatch);
-            return (File)outPatch;
+            return (File) outPatch;
         }
     }
 
     public File getOutSRG()
     {
         if (outSRG instanceof File)
-            return (File)outSRG;
+        {
+            return (File) outSRG;
+        }
         else
         {
             outSRG = getProject().file(outSRG);
-            return (File)outSRG;
+            return (File) outSRG;
         }
     }
 
     public File getOutEXC()
     {
         if (outEXC instanceof File)
-            return (File)outEXC;
+        {
+            return (File) outEXC;
+        }
         else
         {
             outEXC = getProject().file(outEXC);
-            return (File)outEXC;
+            return (File) outEXC;
         }
     }
 
+    private class PatchLineProcessor implements LineProcessor<String>
+    {
+        StringBuilder builder = new StringBuilder();
+        private final char DELIM = GMCP.os == Constants.OperatingSystem.WINDOWS ? '\\' : '/';
+
+        @Override
+        public boolean processLine(String s) throws IOException
+        {
+            if (s.startsWith("+++") || s.startsWith("---") || s.startsWith("diff") || s.startsWith("+++"))
+            {
+                s = s.replaceAll("minecraft\\\\(net\\\\minecraft)", "$1");
+
+                Matcher match = PACK_PATTERN.matcher(s);
+                String clazz;
+                if (match.find())
+                {
+                    clazz = repackageClass(match.group().replace("\\", "/")).replace("/", "\\");
+                    s = s.replace(match.group(), clazz);
+                }
+                s = s.replace('\\', DELIM);
+            }
+
+            builder.append(s).append(Constants.NEWLINE);
+
+            return true;
+        }
+
+        @Override
+        public String getResult()
+        {
+            // remove the last newline before making it a string
+            return builder.substring(0, builder.length() - Constants.NEWLINE.length()).toString();
+        }
+    }
 }

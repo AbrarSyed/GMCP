@@ -104,19 +104,10 @@ class ProcessSourceTask extends DefaultTask
     def doMCPPatches()
     {
         // fix the patch first.
-        String text = cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)).text
-
-        // fix newlines
-        text = text.replaceAll("(\r\n|\r|\n)", Constants.NEWLINE).replaceAll("(\\r\\n|\\r|\\n)", Constants.NEWLINE)
-
-        // fixing for the paths.
-        text = text.replaceAll("minecraft\\\\(net\\\\minecraft)", '$1')
-
-        def tempPatch = new File(getTemporaryDir(), "patch");
-        tempPatch.write(text)
+        def patch = cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion))
 
         // actually do the patches now.
-        ContextualPatch cPatch = ContextualPatch.create(tempPatch, srcFile(Constants.DIR_SRC_MINECRAFT));
+        ContextualPatch cPatch = ContextualPatch.create(patch, srcFile(Constants.DIR_SRC_MINECRAFT));
         List<ContextualPatch.PatchReport> reports = cPatch.patch(false);
         for (ContextualPatch.PatchReport report : reports)
         {
