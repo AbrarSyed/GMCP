@@ -1,18 +1,19 @@
-# Auto detect text files and perform LF normalization
+# text stuff
 * text=auto
+*.java text eol=lf
+*.groovy text eol=lf
+*.scala text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.md text
 
-# Standard to msysgit
-*.doc  diff=astextplain
-*.DOC  diff=astextplain
-*.docx diff=astextplain
-*.DOCX diff=astextplain
-*.dot  diff=astextplain
-*.DOT  diff=astextplain
-*.pdf  diff=astextplain
-*.PDF  diff=astextplain
-*.rtf  diff=astextplain
-*.RTF  diff=astextplain
-
-*.java text
+#binary
+*.dat binary
+*.bin binary
+*.png binary
+*.exe binary
+*.dll binary
+*.zip binary
 *.jar binary
-*.groovy text
+*.7z binary
+*.db binary
