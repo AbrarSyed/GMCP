@@ -1,9 +1,9 @@
 package com.github.abrarsyed.gmcp.tasks
 
-import com.cloudbees.diff.ContextualPatch
 import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
+import com.github.abrarsyed.gmcp.patching.ContextualPatch
 import com.google.common.io.Files
 import groovy.io.FileType
 import org.gradle.api.DefaultTask
@@ -79,18 +79,41 @@ class PatchTask extends DefaultTask
 
         // apply patches
         loadedPatches.each {
+
+            // fix access levels
+            it.setAccessC14N(true)
+
             log.debug "Applying Patch: " + it
             List<ContextualPatch.PatchReport> errors = it.patch(false);
             for (ContextualPatch.PatchReport report : errors)
             {
-                if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
+                if (!report.getStatus().success)
                 {
-                    log.log LogLevel.DEBUG, "Patching failed: " + report.getFile(), report.getFailure()
+                    log.log LogLevel.INFO, "Patching failed: " + report.getTarget(), report.getFailure()
+
+                    report.hunks.each { ContextualPatch.HunkReport hunk ->
+                        if (!hunk.status.success)
+                        {
+                            log.info "Hunk %d failed!", hunk.index
+                        }
+                    }
+
                     throw report.getFailure()
+                }
+                else if (report.getStatus() == ContextualPatch.PatchStatus.Fuzzed)
+                {
+                    log.info "Patch Fuzzed: " + report.target
+
+                    report.hunks.each { ContextualPatch.HunkReport hunk ->
+                        if (!hunk.status.success)
+                        {
+                            log.info "Hunk %d FUZZED %d!", hunk.index, hunk.fuzz
+                        }
+                    }
                 }
                 else
                 {
-                    log.info "Patch Succeeded: " + report.getFile()
+                    log.info "Patch Succeeded: " + report.target
                 }
             }
         }

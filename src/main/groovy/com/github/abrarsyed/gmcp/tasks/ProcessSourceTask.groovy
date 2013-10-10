@@ -1,8 +1,8 @@
 package com.github.abrarsyed.gmcp.tasks
 
-import com.cloudbees.diff.ContextualPatch
 import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.Util
+import com.github.abrarsyed.gmcp.patching.ContextualPatch
 import com.github.abrarsyed.gmcp.source.*
 import com.github.abrarsyed.jastyle.ASFormatter
 import com.github.abrarsyed.jastyle.OptParser
@@ -10,6 +10,7 @@ import com.google.common.io.ByteStreams
 import com.google.common.io.Files
 import groovy.io.FileType
 import org.gradle.api.DefaultTask
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.TaskAction
 
@@ -111,10 +112,10 @@ class ProcessSourceTask extends DefaultTask
         List<ContextualPatch.PatchReport> reports = cPatch.patch(false);
         for (ContextualPatch.PatchReport report : reports)
         {
-            getLogger().info('' + report.getStatus() + "  -- " + report.getFile());
+            getLogger().info('' + report.getStatus() + "  -- " + report.getTarget());
             if (report.getStatus() != ContextualPatch.PatchStatus.Patched)
             {
-                getLogger().error("ERROR: ", report.getFailure());
+                getLogger().log(LogLevel.ERROR, "ERROR: ", report.getFailure())
                 throw report.getFailure()
             }
         }
