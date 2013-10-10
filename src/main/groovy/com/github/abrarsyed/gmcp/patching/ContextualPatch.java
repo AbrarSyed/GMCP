@@ -75,6 +75,13 @@ public final class ContextualPatch
     private final File patchFile;
     private final File suggestedContext;
 
+    private String patchString;
+    private IContextProvider contextProvider;
+    private int maxFuzz = 0;
+    private boolean c14nWhitespace = false;
+    private boolean c14nAccess = false;
+
+
     private File context;
     private BufferedReader patchReader;
     private String patchLine;
@@ -86,10 +93,41 @@ public final class ContextualPatch
         return new ContextualPatch(patchFile, context);
     }
 
+    public static ContextualPatch create(String patchString, IContextProvider context)
+    {
+        return new ContextualPatch(patchString, context);
+    }
+
+    private ContextualPatch(String patchString, IContextProvider context)
+    {
+        this.patchString = patchString;
+        this.contextProvider = context;
+        patchFile = null;
+        suggestedContext = null;
+    }
+
     private ContextualPatch(File patchFile, File context)
     {
         this.patchFile = patchFile;
         this.suggestedContext = context;
+    }
+
+    public ContextualPatch setMaxFuzz(int maxFuzz)
+    {
+        this.maxFuzz = maxFuzz;
+        return this;
+    }
+
+    public ContextualPatch setWhitespaceC14N(boolean canonicalize)
+    {
+        this.c14nWhitespace = canonicalize;
+        return this;
+    }
+
+    public ContextualPatch setAccessC14N(boolean canonicalize)
+    {
+        this.c14nAccess = canonicalize;
+        return this;
     }
 
     /**
@@ -120,12 +158,12 @@ public final class ContextualPatch
             {
                 try
                 {
-                    applyPatch(patch, dryRun);
-                    report.add(new PatchReport(patch.targetFile, computeBackup(patch.targetFile), patch.binary, PatchStatus.Patched, null));
+                    report.add(applyPatch(patch, dryRun));
+                    //report.add(new PatchReport(patch.targetFile, computeBackup(patch.targetFile), patch.binary, PatchStatus.Patched, null));
                 }
                 catch (Exception e)
                 {
-                    report.add(new PatchReport(patch.targetFile, null, patch.binary, PatchStatus.Failure, e));
+                    report.add(new PatchReport(patch.targetPath, patch.binary, PatchStatus.Failure, e, new ArrayList<HunkReport>()));
                 }
             }
             return report;
@@ -147,6 +185,13 @@ public final class ContextualPatch
 
     private void init() throws IOException
     {
+        if (patchString != null)
+        {
+            //Just read the string as is, without trying to read the magic/encoding as the string shuldn't need encoding!
+            patchReader = new BufferedReader(new StringReader(patchString));
+            return;
+        }
+
         patchReader = new BufferedReader(new FileReader(patchFile));
         String encoding = "ISO-8859-1";
         String line = patchReader.readLine();
@@ -168,42 +213,115 @@ public final class ContextualPatch
         patchReader = new BufferedReader(new InputStreamReader(new FileInputStream(patchFile), encoding));
     }
 
-    private void applyPatch(SinglePatch patch, boolean dryRun) throws IOException, PatchException
+    private PatchReport applyPatch(SinglePatch patch, boolean dryRun) throws IOException, PatchException
     {
         lastPatchedLine = 1;
-        List<String> target;
-        patch.targetFile = computeTargetFile(patch);
-        if (patch.targetFile.exists() && !patch.binary)
+        List<HunkReport> ret = new ArrayList<HunkReport>();
+
+        if (this.contextProvider != null)
         {
-            target = readFile(patch.targetFile);
-            if (patchCreatesNewFileThatAlreadyExists(patch, target))
+            List<String> target = contextProvider.getData(patch.targetPath);
+
+            if (target != null && !patch.binary)
             {
-                return;
-            }
-        }
-        else
-        {
-            target = new ArrayList<String>();
-        }
-        if (patch.mode == Mode.DELETE)
-        {
-            target = new ArrayList<String>();
-        }
-        else
-        {
-            if (!patch.binary)
-            {
-                for (Hunk hunk : patch.hunks)
-                {
-                    applyHunk(target, hunk);
+                if (patchCreatesNewFileThatAlreadyExists(patch, target))
+                { //Check if the patch doesn't need to be applied...
+                    for (int x = 0; x < patch.hunks.length; x++)
+                    {
+                        ret.add(new HunkReport(PatchStatus.Skipped, null, 0, 0));
+                    }
+                    return new PatchReport(patch.targetPath, patch.binary, PatchStatus.Skipped, null, ret);
                 }
             }
+            else if (target == null)
+            {
+                target = new ArrayList<String>();
+            }
+
+            if (patch.mode == Mode.DELETE)
+            {
+                target = new ArrayList<String>();
+            }
+            else
+            {
+                if (!patch.binary)
+                {
+                    for (Hunk hunk : patch.hunks)
+                    {
+                        try
+                        {
+                            ret.add(applyHunk(target, hunk));
+                        }
+                        catch (Exception e)
+                        {
+                            ret.add(new HunkReport(PatchStatus.Failure, e, 0, 0));
+                        }
+                    }
+                }
+            }
+
+            if (!dryRun)
+            {
+                contextProvider.setData(patch.targetPath, target);
+            }
         }
-        if (!dryRun)
+        else
         {
-            backup(patch.targetFile);
-            writeFile(patch, target);
+            List<String> target;
+            patch.targetFile = computeTargetFile(patch);
+            if (patch.targetFile.exists() && !patch.binary)
+            {
+                target = readFile(patch.targetFile);
+                if (patchCreatesNewFileThatAlreadyExists(patch, target))
+                { //Check if the patch doesn't need to be applied...
+                    for (int x = 0; x < patch.hunks.length; x++)
+                    {
+                        ret.add(new HunkReport(PatchStatus.Skipped, null, 0, 0));
+                    }
+                    return new PatchReport(patch.targetPath, patch.binary, PatchStatus.Skipped, null, ret);
+                }
+            }
+            else
+            {
+                target = new ArrayList<String>();
+            }
+            if (patch.mode == Mode.DELETE)
+            {
+                target = new ArrayList<String>();
+            }
+            else
+            {
+                if (!patch.binary)
+                {
+                    for (Hunk hunk : patch.hunks)
+                    {
+                        try
+                        {
+                            ret.add(applyHunk(target, hunk));
+                        }
+                        catch (Exception e)
+                        {
+                            ret.add(new HunkReport(PatchStatus.Failure, e, 0, 0));
+                        }
+
+                    }
+                }
+            }
+            if (!dryRun)
+            {
+                backup(patch.targetFile);
+                writeFile(patch, target);
+            }
         }
+
+        for (HunkReport hunk : ret)
+        {
+            if (hunk.getStatus() == PatchStatus.Failure)
+            {
+                return new PatchReport(patch.targetPath, patch.binary, PatchStatus.Failure, hunk.getFailure(), ret);
+            }
+        }
+        return new PatchReport(patch.targetPath, patch.binary, PatchStatus.Patched, null, ret);
     }
 
     private boolean patchCreatesNewFileThatAlreadyExists(SinglePatch patch, List<String> originalFile) throws PatchException
@@ -295,20 +413,29 @@ public final class ContextualPatch
         }
     }
 
-    private void applyHunk(List<String> target, Hunk hunk) throws PatchException
+    private HunkReport applyHunk(List<String> target, Hunk hunk) throws PatchException
     {
-        int idx = findHunkIndex(target, hunk);
+        int idx = -1;
+        int fuzz = 0;
+        for (; idx == -1 && fuzz <= this.maxFuzz; fuzz++)
+        {
+            idx = findHunkIndex(target, hunk, fuzz);
+            if (idx != -1)
+            {
+                break;
+            }
+        }
         if (idx == -1)
         {
-            throw new PatchException("Cannot apply hunk @@ " + hunk.baseCount);
+            throw new PatchException("Cannot find hunk target");
         }
-        applyHunk(target, hunk, idx, false);
+        return applyHunk(target, hunk, idx, false, fuzz);
     }
 
-    private int findHunkIndex(List<String> target, Hunk hunk) throws PatchException
+    private int findHunkIndex(List<String> target, Hunk hunk, int fuzz) throws PatchException
     {
         int idx = hunk.modifiedStart;  // first guess from the hunk range specification
-        if (idx >= lastPatchedLine && applyHunk(target, hunk, idx, true))
+        if (idx >= lastPatchedLine && applyHunk(target, hunk, idx, true, fuzz).getStatus().isSuccess())
         {
             return idx;
         }
@@ -317,14 +444,14 @@ public final class ContextualPatch
             // try to search for the context
             for (int i = idx - 1; i >= lastPatchedLine; i--)
             {
-                if (applyHunk(target, hunk, i, true))
+                if (applyHunk(target, hunk, i, true, fuzz).getStatus().isSuccess())
                 {
                     return i;
                 }
             }
             for (int i = idx + 1; i < target.size(); i++)
             {
-                if (applyHunk(target, hunk, i, true))
+                if (applyHunk(target, hunk, i, true, fuzz).getStatus().isSuccess())
                 {
                     return i;
                 }
@@ -336,24 +463,42 @@ public final class ContextualPatch
     /**
      * @return true if the application succeeded
      */
-    private boolean applyHunk(List<String> target, Hunk hunk, int idx, boolean dryRun) throws PatchException
+    private HunkReport applyHunk(List<String> target, Hunk hunk, int idx, boolean dryRun, int fuzz) throws PatchException
     {
+        int startIdx = idx;
         idx--; // indices in the target list are 0-based
+        int hunkIdx = -1;
         for (String hunkLine : hunk.lines)
         {
+            hunkIdx++;
             boolean isAddition = isAdditionLine(hunkLine);
             if (!isAddition)
             {
-                String targetLine = target.get(idx).trim();
-                if (!targetLine.equals(hunkLine.substring(1).trim()))
-                { // be optimistic, compare trimmed context lines
+                if (idx >= target.size())
+                {
                     if (dryRun)
                     {
-                        return false;
+                        return new HunkReport(PatchStatus.Failure, null, idx, fuzz);
                     }
                     else
                     {
-                        throw new PatchException("Unapplicable hunk @@ " + hunk.baseStart);
+                        throw new PatchException("Unapplicable hunk @@ " + startIdx);
+                    }
+                }
+                boolean match = similar(target.get(idx), hunkLine.substring(1), hunkLine.charAt(0));
+                if (!match && fuzz != 0 && !isRemovalLine(hunkLine))
+                {
+                    match = (hunkIdx < fuzz || hunkIdx >= hunk.lines.size() - fuzz ? true : match);
+                }
+                if (!match)
+                {
+                    if (dryRun)
+                    {
+                        return new HunkReport(PatchStatus.Failure, null, idx, fuzz);
+                    }
+                    else
+                    {
+                        throw new PatchException("Unapplicable hunk @@ " + startIdx);
                     }
                 }
             }
@@ -380,7 +525,7 @@ public final class ContextualPatch
         }
         idx++; // indices in the target list are 0-based
         lastPatchedLine = idx;
-        return true;
+        return new HunkReport((fuzz != 0 ? PatchStatus.Fuzzed : PatchStatus.Patched), null, startIdx, fuzz);
     }
 
     private boolean isAdditionLine(String hunkLine)
@@ -974,35 +1119,46 @@ public final class ContextualPatch
 
     public static enum PatchStatus
     {
-        Patched, Missing, Failure
+        Patched(true),
+        Missing(false),
+        Failure(false),
+        Skipped(true),
+        Fuzzed(true);
+
+        private boolean success;
+
+        PatchStatus(boolean success)
+        {
+            this.success = success;
+        }
+
+        public boolean isSuccess()
+        {
+            return success;
+        }
     }
 
     public static final class PatchReport
     {
 
-        private File file;
-        private File originalBackupFile;
+        private String target;
         private boolean binary;
         private PatchStatus status;
         private Throwable failure;
+        private List<HunkReport> hunks;
 
-        PatchReport(File file, File originalBackupFile, boolean binary, PatchStatus status, Throwable failure)
+        PatchReport(String target, boolean binary, PatchStatus status, Throwable failure, List<HunkReport> hunks)
         {
-            this.file = file;
-            this.originalBackupFile = originalBackupFile;
+            this.target = target;
             this.binary = binary;
             this.status = status;
             this.failure = failure;
+            this.hunks = hunks;
         }
 
-        public File getFile()
+        public String getTarget()
         {
-            return file;
-        }
-
-        public File getOriginalBackupFile()
-        {
-            return originalBackupFile;
+            return target;
         }
 
         public boolean isBinary()
@@ -1019,5 +1175,101 @@ public final class ContextualPatch
         {
             return failure;
         }
+
+        public List<HunkReport> getHunks()
+        {
+            return hunks;
+        }
+    }
+
+    public static interface IContextProvider
+    {
+        public List<String> getData(String target);
+
+        public void setData(String target, List<String> data);
+    }
+
+    public static class HunkReport
+    {
+        private PatchStatus status;
+        private Throwable failure;
+        private int index;
+        private int fuzz;
+
+        public HunkReport(PatchStatus status, Throwable failure, int index, int fuzz)
+        {
+            this.status = status;
+            this.failure = failure;
+            this.index = index;
+            this.fuzz = fuzz;
+        }
+
+        public PatchStatus getStatus()
+        {
+            return status;
+        }
+
+        public Throwable getFailure()
+        {
+            return failure;
+        }
+
+        public int getIndex()
+        {
+            return index;
+        }
+
+        public int getFuzz()
+        {
+            return fuzz;
+        }
+    }
+
+    private boolean similar(String target, String hunk, char lineType)
+    {
+        if (c14nAccess)
+        {
+            if (c14nWhitespace)
+            {
+                target = target.replaceAll("[\t| ]+", " ");
+                hunk = hunk.replaceAll("[\t| ]+", " ");
+            }
+            String[] t = target.split(" ");
+            String[] h = hunk.split(" ");
+            if (t.length != h.length)
+            {
+                return false;
+            }
+            for (int x = 0; x < t.length; x++)
+            {
+                if (isAccess(t[x]) && isAccess(h[x]))
+                {
+                    continue;
+                }
+                else
+                {
+                    if (!t[x].equals(h[x]))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        if (c14nWhitespace)
+        {
+            return target.replaceAll("[\t| ]+", " ").equals(hunk.replaceAll("[\t| ]+", " "));
+        }
+        else
+        {
+            return target.equals(hunk);
+        }
+    }
+
+    private boolean isAccess(String data)
+    {
+        return data.equalsIgnoreCase("public") ||
+                data.equalsIgnoreCase("private") ||
+                data.equalsIgnoreCase("protected");
     }
 }
