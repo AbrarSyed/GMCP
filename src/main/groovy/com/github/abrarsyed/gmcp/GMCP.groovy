@@ -161,7 +161,6 @@ public class GMCP implements Plugin<Project>
                 }
                 resources {
                     srcDir { Util.srcFile(Constants.DIR_SRC_RESOURCES) }
-                    srcDir { Util.cacheFile(Constants.CACHE_ASSETS) }
                 }
             }
 
