@@ -5,17 +5,11 @@ import com.github.abrarsyed.gmcp.extensions.GMCPExtension
 import com.github.abrarsyed.gmcp.extensions.ModInfoExtension
 import com.github.abrarsyed.gmcp.tasks.*
 import com.github.abrarsyed.gmcp.tasks.obfuscate.ReobfTask
-import com.google.common.io.Files
 import groovy.xml.StreamingMarkupBuilder
 import groovy.xml.XmlUtil
-import net.md_5.specialsource.Jar
-import net.md_5.specialsource.JarMapping
-import net.md_5.specialsource.JarRemapper
-import net.md_5.specialsource.provider.JarProvider
-import net.md_5.specialsource.provider.JointProvider
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.tasks.Copy
 
 public class GMCP implements Plugin<Project>
@@ -182,7 +176,9 @@ public class GMCP implements Plugin<Project>
         }
 
         project.task('reobf', type: ReobfTask) {
-            reobf project.tasks.jar
+            reobf project.tasks.jar {
+                classpath = project.sourceSets.main.compileClasspath
+            }
             dependsOn 'genReobfSrgs'
         }
 
@@ -215,6 +211,9 @@ public class GMCP implements Plugin<Project>
             doLast {
                 this.json = new Json16Reader("1.6")
                 this.json.parseJson()
+
+                if (project.configurations.gmcp.state != Configuration.State.UNRESOLVED)
+                    return;
 
                 // do dependnecies
                 project.dependencies {

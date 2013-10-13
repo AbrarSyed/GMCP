@@ -7,26 +7,15 @@ apply plugin: 'signing'
 apply plugin: 'maven'
 
 group = 'com.github.abrarsyed.gmcp'
-version = '0.9-SNAPSHOT'
+version = '0.8.2-SNAPSHOT'
 archivesBaseName = 'GMCP'
-targetCompatibility = '1.7'
-sourceCompatibility = '1.7'
+targetCompatibility = '1.6'
+sourceCompatibility = '1.6'
 
 repositories {  mavenCentral() }
 
 jar
 {
-    // packs a bunch of stuff into my jar.
-    // everything marked as packed
-    from {
-        configurations.packed.collect {
-            it.isDirectory() ? it : zipTree(it).matching {
-                exclude "META-INF", "META-INF/**", "*META-INF*", "meta-inf"
-                exclude "**.jar", "**/*.jar", "*.jar"
-            }
-        }
-    }
-    
     manifest {
         attributes 'version':project.version, 'javaCompliance': project.targetCompatibility
         attributes 'group':project.group
