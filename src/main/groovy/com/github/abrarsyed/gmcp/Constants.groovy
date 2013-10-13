@@ -16,9 +16,9 @@ public final class Constants
     public static final String  	DIR_MCP_PATCHES 	    = DIR_MAPPINGS + "/patches"
 
     // jars
-    public static final String  	JAR_SRG                 = "build/jars/processed.jar"
-    public static final String  	JAR_DECOMP              = "build/jars/decomp.jar"
-    public static final String      DIR_NATIVES             = "build/natives"
+    public static final String  	JAR_SRG                 = "processed.jar"
+    public static final String  	JAR_DECOMP              = "decomp.jar"
+    public static final String      DIR_NATIVES             = "natives"
 
     // things in the cache dir.
     public static final String CACHE_DIR                 = "caches/minecraft";

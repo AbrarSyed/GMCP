@@ -11,6 +11,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Delete
 
 public class GMCP implements Plugin<Project>
 {
@@ -102,6 +103,13 @@ public class GMCP implements Plugin<Project>
         // replace normal jar task with mine.
         //project.tasks.jar << reobfJarClosure()
         //project.tasks.jar.dependsOn('deobfuscateJar')
+
+        // clean task.
+        project.task('cleanMinecraft', type: Delete) {
+            delete { project.minecraft.baseDir }
+            group = "Clean"
+            description = "Clean Minecraft related files"
+        }
     }
 
     def doResolving()
@@ -175,11 +183,13 @@ public class GMCP implements Plugin<Project>
             sourceCompatibility = '1.6'
         }
 
-        project.task('reobf', type: ReobfTask) {
-            reobf project.tasks.jar {
-                classpath = project.sourceSets.main.compileClasspath
+        // reobfuscation
+        project.task('reobf', type: ReobfTask, dependsOn: 'genReobfSrgs') {
+
+            reobf(project.tasks.jar) { spec ->
+                spec.classpath = project.sourceSets.main.compileClasspath
             }
-            dependsOn 'genReobfSrgs'
+
         }
 
         project.tasks.assemble.dependsOn 'reobf'
@@ -289,7 +299,7 @@ public class GMCP implements Plugin<Project>
     {
         project.task("unpackNatives", dependsOn: 'extractForge') {
             inputs.files { project.configurations.gmcpNative }
-            outputs.dir { project.file(Constants.DIR_NATIVES) }
+            outputs.dir { Util.baseFile(Constants.DIR_NATIVES) }
 
             doLast {
                 project.copy {
@@ -297,7 +307,7 @@ public class GMCP implements Plugin<Project>
                         from project.zipTree(it.file)
                     }
 
-                    into project.file(Constants.DIR_NATIVES)
+                    into { Util.baseFile(Constants.DIR_NATIVES) }
                 }
             }
         }
@@ -317,7 +327,7 @@ public class GMCP implements Plugin<Project>
         project.task("deobfuscateJar", type: ProcessJarTask) {
             inJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
             exceptorJar = Util.cacheFile(Constants.EXCEPTOR);
-            outJar = Util.file(Constants.JAR_SRG);
+            outJar =  { Util.baseFile(Constants.JAR_SRG) };
             outMap = { Util.cacheFile(String.format(Constants.FMED_INH_MAP, project.minecraft.minecraftVersion)) }
             srg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
             exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
@@ -332,15 +342,15 @@ public class GMCP implements Plugin<Project>
     {
         project.task('decompileMinecraft', type: ApplyFernflowerTask) {
             dependsOn 'deobfuscateJar', 'downloadFernFlower'
-            input = Util.file(Constants.JAR_SRG)
+            input =  { Util.baseFile(Constants.JAR_SRG) }
             fernflower = Util.cacheFile(Constants.FERNFLOWER)
-            output = Util.file(Constants.JAR_DECOMP)
+            output =  { Util.baseFile(Constants.JAR_DECOMP) }
         }
         
         project.task('processMCSource', type: ProcessSourceTask) {
             dependsOn 'decompileMinecraft'
 
-            decompJar = Util.file(Constants.JAR_DECOMP)
+            decompJar = { Util.baseFile(Constants.JAR_DECOMP) }
 
             inputs.with {
                 dir { Util.baseFile(Constants.DIR_FML_PATCHES) }
@@ -373,7 +383,7 @@ public class GMCP implements Plugin<Project>
                     Node rootNode = provider.asNode()
 
                     // NATIVES PART  ---------------------------------------------------------------------
-                    def nativesDir = project.file(Constants.DIR_NATIVES)
+                    def nativesDir = project.file(Util.baseFile(Constants.DIR_NATIVES))
 
                     // If this is doing anything, assume no gradle plugin.
                     [
@@ -414,7 +424,7 @@ public class GMCP implements Plugin<Project>
             def rootNode = new XmlSlurper().parseText(file.text)
 
             // NATIVES PART  ---------------------------------------------------------------------
-            def nativesDir = project.file(Constants.DIR_NATIVES)
+            def nativesDir = project.file(Util.baseFile(Constants.DIR_NATIVES))
 
             // using the gradle plugin.
             def container = rootNode.children().find { it.@kind == 'con' && it.@path && it.@path == 'org.springsource.ide.eclipse.gradle.classpathcontainer' }

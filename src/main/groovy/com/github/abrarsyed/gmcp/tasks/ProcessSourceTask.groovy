@@ -23,7 +23,12 @@ import static com.github.abrarsyed.gmcp.Util.*
 class ProcessSourceTask extends DefaultTask
 {
     @InputFile
-    def File decompJar
+    def decompJar
+
+    File getDecompJar()
+    {
+        return project.file(decompJar)
+    }
 
     def private log(Object obj)
     {
@@ -33,6 +38,8 @@ class ProcessSourceTask extends DefaultTask
     @TaskAction
     def doTask()
     {
+        decompJar = project.file(decompJar)
+
         log "Extracting and cleaning sources"
         copyClasses()
 

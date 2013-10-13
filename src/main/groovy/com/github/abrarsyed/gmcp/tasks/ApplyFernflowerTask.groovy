@@ -15,14 +15,17 @@ class ApplyFernflowerTask extends DefaultTask
     def File fernflower
 
     @InputFile
-    def File input
+    def input
 
     @OutputFile
-    def File output
+    def output
 
     @TaskAction
     void doTask()
     {
+        input = project.file(input)
+        output = project.file(output)
+
         def outJar = new File(output.getParentFile(), input.getName());
 
         project.javaexec {
@@ -47,5 +50,15 @@ class ApplyFernflowerTask extends DefaultTask
 
         // rename it to the correct file.
         Files.move(new File(temporaryDir, input.name), output)
+    }
+
+    File getInput()
+    {
+        return project.file(input);
+    }
+
+    File getOutput()
+    {
+        return project.file(output);
     }
 }
