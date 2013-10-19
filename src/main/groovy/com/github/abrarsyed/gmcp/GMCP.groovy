@@ -147,6 +147,7 @@ public class GMCP implements Plugin<Project>
 
             project.sourceSets.main.compileClasspath += gmcp
             project.sourceSets.test.compileClasspath += gmcp
+            project.sourceSets.api.compileClasspath += gmcp
             project.idea.module.scopes.COMPILE.plus += gmcp
             project.eclipse.classpath.plusConfigurations += gmcp
         }
@@ -166,11 +167,19 @@ public class GMCP implements Plugin<Project>
                 }
             }
 
-            main {
+            api {
                 java {
-                    // TODO make conditional for using agaricus's lib
-                    compileClasspath += minecraft.output
+                    srcDir 'src/main/api/java'
                 }
+                resources {
+                    srcDir 'src/main/api/resources'
+                }
+
+                compileClasspath += minecraft.output
+            }
+
+            main {
+                compileClasspath += minecraft.output + api.output
             }
         }
     }
@@ -181,6 +190,10 @@ public class GMCP implements Plugin<Project>
             options.warnings = false
             targetCompatibility = '1.6'
             sourceCompatibility = '1.6'
+        }
+
+        project.compileApiJava {
+            options.warnings = false
         }
 
         // reobfuscation
