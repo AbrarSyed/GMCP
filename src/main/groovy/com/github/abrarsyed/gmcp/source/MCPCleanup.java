@@ -1,12 +1,19 @@
 package com.github.abrarsyed.gmcp.source;
 
 import com.github.abrarsyed.gmcp.Constants;
-import com.google.code.regexp.Matcher;
-import com.google.code.regexp.Pattern;
+import java.util.regexp.Matcher;
+import java.util.regexp.Pattern;
 
 public class MCPCleanup
 {
-    public static final Pattern COMMENTS_COMMENTS = Pattern.compile("(?ms)\\/\\/.*?$|\\/\\*.*?\\*\\/|\\'(?:\\.|[^\\'])*'|\"(?:\\.|[^\\\"])*\"");
+    public static final Pattern COMMENTS_COMMENTS = Pattern.compile(
+        "//.*?$|" + //Single line 
+        "/\\*.*?\\*\\/|" + // Multi line
+        "'(?:\\.|[^\\'])*'|" + //Character literals?
+        "\"(?:\\\\\"|[^\\\"])*\"" //String literals, format changed to (\"|[^"]) from (.|[^\"]) to work around Javas recursion issues
+        ,
+        Pattern.DOTALL | Pattern.MULTILINE
+    );
     public static final Pattern COMMENTS_TRAILING = Pattern.compile("(?m)[ \\t]+$");
     public static final Pattern COMMENTS_NEWLINES = Pattern.compile("(?m)^(?:\\r\\n|\\r|\\n){2,}");
 
