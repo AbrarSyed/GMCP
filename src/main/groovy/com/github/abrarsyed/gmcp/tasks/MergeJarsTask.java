@@ -51,11 +51,6 @@ public class MergeJarsTask extends CachedTask
         Files.copy((File) client, tempClientJar);
         Files.copy((File) server, tempServerJar);
 
-        getLogger().lifecycle("-----------------------------------------------------------------------");
-        getLogger().info("TEMP client : "+tempClientJar);
-        getLogger().info("TEMP server : "+tempServerJar);
-        getLogger().lifecycle("-----------------------------------------------------------------------");
-
         // compile merger
         compileMerger(baseFile(Constants.DIR_FML, "common"), this.getTemporaryDir());
 
