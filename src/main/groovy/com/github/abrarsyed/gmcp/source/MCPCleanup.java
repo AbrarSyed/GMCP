@@ -1,9 +1,8 @@
 package com.github.abrarsyed.gmcp.source;
 
 import com.github.abrarsyed.gmcp.Constants;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
 
 public class MCPCleanup
 {
@@ -167,7 +166,7 @@ public class MCPCleanup
                 // work around the replace('\u00a7', '$') call in MinecraftServer and a couple of '\u0000'
                 if (val > 255)
                 {
-                    matcher.appendReplacement(buffer, Matcher.quoteReplacement("" + val));
+                    matcher.appendReplacement(buffer, java.util.regex.Matcher.quoteReplacement("" + val));
                 }
             }
             matcher.appendTail(buffer);

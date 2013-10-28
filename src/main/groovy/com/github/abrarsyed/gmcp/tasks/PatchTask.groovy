@@ -94,7 +94,7 @@ class PatchTask extends DefaultTask
                     report.hunks.each { ContextualPatch.HunkReport hunk ->
                         if (!hunk.status.success)
                         {
-                            log.info "Hunk %d failed!", hunk.index
+                            log.info "Hunk "+hunk.index+" failed!"
                         }
                     }
 
@@ -107,7 +107,7 @@ class PatchTask extends DefaultTask
                     report.hunks.each { ContextualPatch.HunkReport hunk ->
                         if (!hunk.status.success)
                         {
-                            log.info "Hunk %d FUZZED %d!", hunk.index, hunk.fuzz
+                            log.info "Hunk "+hunk.index+" FUZZED "+ hunk.fuzz + "!"
                         }
                     }
                 }

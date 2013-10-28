@@ -44,7 +44,7 @@ dependencies
     compile localGroovy()
 
     // all of these marked as packed.
-    packed fileTree(dir: 'lib', include: '*.jar')
+    //packed fileTree(dir: 'lib', include: '*.jar')
 
     compile 'net.sourceforge.argo:argo:3.+'
     compile 'net.sf.opencsv:opencsv:2.3'
@@ -78,12 +78,12 @@ uploadArchives {
             signing.signPom(deployment)
         }
 
-//        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-//            authentication(userName: sonatypeUsername, password: sonatypePassword)
-//        }
+        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+            authentication(userName: sonatypeUsername, password: sonatypePassword)
+        }
 
 //        local testing only.
-        snapshotRepository(url: 'file://'+project.projectDir.getPath()+"/../MavenRepo")
+        //snapshotRepository(url: 'file://'+project.projectDir.getPath()+"/../MavenRepo")
 
         repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
             authentication(userName: sonatypeUsername, password: sonatypePassword)
