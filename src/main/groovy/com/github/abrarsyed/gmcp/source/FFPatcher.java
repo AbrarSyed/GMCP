@@ -1,6 +1,8 @@
 package com.github.abrarsyed.gmcp.source;
 
 import com.github.abrarsyed.gmcp.Constants;
+import com.google.code.regexp.Matcher;
+import com.google.code.regexp.Pattern;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
@@ -8,8 +10,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class FFPatcher
 {
@@ -22,7 +22,7 @@ public class FFPatcher
     public static final String NEWLINES = "(?m)^(\\r\\n|\\r|\\n){2,}";
 
     public static final Pattern MODIFIERS_REG = Pattern.compile("(" + MODIFIERS + ")");
-    public static final String LIST = ", ";
+    public static final String  LIST          = ", ";
 
     // modifiers, type, name, implements, body, end
     public static final Pattern ENUM_CLASS = Pattern.compile("(?m)^(?<modifiers>(?:(?:" + MODIFIERS + ") )*)(?<type>enum) (?<name>[\\w$]+)(?: implements (?<implements>[\\w$.]+(?:, [\\w$.]+)*))? \\{(?:\\r\\n|\\r|\\n)(?<body>(?:.*(?:\\r\\n|\\n|\\r))*?)(?<end>\\})");

@@ -6,7 +6,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 
-public class SyncAssetsTask extends DefaultTask
+public class DownloadAssetsTask extends DefaultTask
 {
     @OutputDirectory
     def assetsDir
@@ -40,7 +40,7 @@ public class SyncAssetsTask extends DefaultTask
 
             if (file.exists())
                 // check hash if it already exists
-                download = it.hash == Util.hash(file)
+                download = it.hash != Util.hash(file)
 
             // if your gonna download, download it.
             if (download)

@@ -61,8 +61,6 @@ public class GMCP implements Plugin<Project>
                 {
                     add 'gmcpNative', dep
                 }
-
-                add 'gmcp', project.files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
             }
         }
 
@@ -117,6 +115,7 @@ public class GMCP implements Plugin<Project>
         project.afterEvaluate {
             project.minecraft.resolveVersion(false)
             project.minecraft.resolveSrcDir()
+            project.dependencies.add 'gmcp', project.files(Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath())
         }
     }
 
@@ -249,8 +248,6 @@ public class GMCP implements Plugin<Project>
                     {
                         add 'gmcpNative', dep
                     }
-
-                    add 'gmcp', project.files( {Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)).getPath()} )
                 }
             }
         }
@@ -279,7 +276,7 @@ public class GMCP implements Plugin<Project>
             url = Constants.URL_EXCEPTOR
         }
 
-        project.task('getAssets', type: SyncAssetsTask,  dependsOn: 'extractForge') {
+        project.task('getAssets', type: DownloadAssetsTask,  dependsOn: 'extractForge') {
             assetsDir = Util.cacheFile(Constants.CACHE_ASSETS)
         }
 
@@ -396,7 +393,7 @@ public class GMCP implements Plugin<Project>
                     Node rootNode = provider.asNode()
 
                     // NATIVES PART  ---------------------------------------------------------------------
-                    def nativesDir = project.file(Util.baseFile(Constants.DIR_NATIVES))
+                    def nativesDir = Util.baseFile(Constants.DIR_NATIVES)
 
                     // If this is doing anything, assume no gradle plugin.
                     [
@@ -437,7 +434,7 @@ public class GMCP implements Plugin<Project>
             def rootNode = new XmlSlurper().parseText(file.text)
 
             // NATIVES PART  ---------------------------------------------------------------------
-            def nativesDir = project.file(Util.baseFile(Constants.DIR_NATIVES))
+            def nativesDir = Util.baseFile(Constants.DIR_NATIVES)
 
             // using the gradle plugin.
             def container = rootNode.children().find { it.@kind == 'con' && it.@path && it.@path == 'org.springsource.ide.eclipse.gradle.classpathcontainer' }
