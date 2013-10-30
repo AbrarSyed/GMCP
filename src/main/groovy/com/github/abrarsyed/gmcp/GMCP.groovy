@@ -167,13 +167,6 @@ public class GMCP implements Plugin<Project>
             }
 
             api {
-                java {
-                    srcDir 'src/main/api/java'
-                }
-                resources {
-                    srcDir 'src/main/api/resources'
-                }
-
                 compileClasspath += minecraft.output
             }
 
@@ -404,17 +397,15 @@ public class GMCP implements Plugin<Project>
                         def container = rootNode.children().find { it.@path && it.@path.endsWith(nativ) }
                         if (container)
                         {
-                            container.appendNode('attributes').appendNode('attribute', [name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir])
+                            container.appendNode('attributes').appendNode('attribute', [name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir.getAbsolutePath()])
                         }
                     }
 
                     // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
-                    [
-                            Constants.DIR_SRC_MINECRAFT,
-                            Constants.DIR_SRC_FML,
-                            Constants.DIR_SRC_FORGE
-                    ].each { srcDir ->
-                        def container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.endsWith('/' + srcDir) }
+                    (
+                        project.sourceSets.api.allSource.getSrcDirs() + project.sourceSets.minecraft.allSource.getSrcDirs()
+                    ).each { srcDir ->
+                        def container = rootNode.children().find { it.@kind == 'src' && it.@path && srcDir.getPath().replace("\\", "/").endsWith(it.@path.toString()) }
                         if (container)
                         {
                             container.appendNode('attributes').appendNode('attribute', [name: "ignore_optional_problems", value: 'true'])
@@ -442,19 +433,18 @@ public class GMCP implements Plugin<Project>
             {
                 container.appendNode {
                     attributes {
-                        attribute(name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir)
+                        attribute(name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir.getAbsolutePath())
                     }
                 }
                 //container.appendNode('attributes').appendNode("org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", '$MC_JAR/bin/natives')
             }
 
             // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
-            [
-                    Constants.DIR_SRC_MINECRAFT,
-                    Constants.DIR_SRC_FML,
-                    Constants.DIR_SRC_FORGE
-            ].each { srcDir ->
-                container = rootNode.children().find { it.@kind == 'src' && it.@path && it.@path.toString().endsWith('/' + srcDir) }
+            (
+                project.sourceSets.api.allSource.getSrcDirs() + project.sourceSets.minecraft.allSource.getSrcDirs()
+            ).each { srcDir ->
+                println ""+srcDir + "  >>  " + srcDir.getPath().replace("\\", "/")
+                container = rootNode.children().find { it.@kind == 'src' && it.@path && srcDir.getPath().replace("\\", "/").endsWith(it.@path.toString()) }
                 if (container)
                 {
                     container.appendNode {
