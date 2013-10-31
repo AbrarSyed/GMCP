@@ -88,7 +88,7 @@ public class GMCP implements Plugin<Project>
 
         // IDE stuff
         configureEclipse()
-        //configureIntelliJ()
+        configureIntelliJ()
 
         // setup task
         project.task('setupCIWorkspace') {
@@ -464,6 +464,17 @@ public class GMCP implements Plugin<Project>
             println result
 
             file.write result
+        }
+    }
+
+    def configureIntelliJ()
+    {
+        project.idea {
+            module {
+                sourceDirs.addAll project.sourceSets.api.allSource.getSrcDirs()
+                sourceDirs.addAll project.sourceSets.minecraft.allSource.getSrcDirs()
+                sourceDirs.addAll project.sourceSets.main.allSource.getSrcDirs()
+            }
         }
     }
 }

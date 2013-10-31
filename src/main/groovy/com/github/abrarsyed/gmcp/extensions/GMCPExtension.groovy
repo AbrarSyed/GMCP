@@ -7,7 +7,6 @@ import com.github.abrarsyed.gmcp.Constants
 import com.github.abrarsyed.gmcp.GMCP
 import com.github.abrarsyed.gmcp.Util
 import com.github.abrarsyed.gmcp.exceptions.MalformedVersionException
-import org.gradle.api.Plugin
 import org.gradle.api.Project
 
 class GMCPExtension
