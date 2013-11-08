@@ -22,7 +22,7 @@ public final class Constants
 
     // things in the cache dir.
     public static final String CACHE_DIR                 = "caches/minecraft";
-    public static final String CACHE_ASSETS              = "assets"
+    public static final String CACHE_ASSETS              = "caches/minecraft/assets"
     public static final String FMED_JAR_CLIENT_FRESH     = CACHE_DIR + '/net/minecraft/minecraft/%1$s/minecraft-%1$s.jar'
     public static final String FMED_JAR_SERVER_FRESH     = CACHE_DIR + '/net/minecraft/minecraft_server/%1$s/minecraft_server-%1$s.jar'
     public static final String FMED_JAR_MERGED           = CACHE_DIR + '/net/minecraft/minecraft_merged/%1$s/minecraft_merged-%1$s.jar'
@@ -32,8 +32,8 @@ public final class Constants
     public static final String FMED_OBF_SRG_SRG          = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/reobf-srg-%1$s.srg'
     public static final String FMED_PACKAGED_EXC         = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/packaged-%1$s.exc'
     public static final String FMED_PACKAGED_PATCH       = CACHE_DIR + '/net/minecraft/minecraft_srg/%1$s/packaged-%1$s.patch'
-    public static final String FERNFLOWER                = "caches/fernflower.jar";
-    public static final String EXCEPTOR                  = "caches/exceptor.jar";
+    public static final String FERNFLOWER                = CACHE_DIR + '/fernflower.jar';
+    public static final String EXCEPTOR                  = CACHE_DIR + '/exceptor.jar';
 
     // download URLs
     public static final String	URL_JSON_FORGE 		= "http://files.minecraftforge.net/minecraftforge/json"
