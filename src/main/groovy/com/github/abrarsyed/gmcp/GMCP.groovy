@@ -12,6 +12,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.Sync
 
 public class GMCP implements Plugin<Project>
@@ -91,6 +92,9 @@ public class GMCP implements Plugin<Project>
         configureEclipse()
         configureIntelliJ()
         createIntellijTasks()
+
+        // running!
+        createExecutionTasks()
 
         // setup task
         project.task('setupCIWorkspace') {
@@ -596,6 +600,31 @@ public class GMCP implements Plugin<Project>
 
         project.task("fixIntellijProject") {
             dependsOn "injectIntellijSrcDirs", "injectIntellijRunConigs"
+        }
+    }
+
+    def createExecutionTasks()
+    {
+        project.task("runClient", type: JavaExec, dependsOn: "compileJava") {
+
+            classpath = project.sourceSets.main.compileClasspath + project.sourceSets.main.output
+
+            args "--version 1.6", "--tweakClass", "cpw.mods.fml.common.launcher.FMLTweaker"
+
+            workingDir { Util.baseFile(Constants.DIR_RUN) }
+
+            main = "net.minecraft.launchwrapper.Launch"
+        }
+
+        project.afterEvaluate { project.tasks.runClient.jvmArgs '-Djava.library.path="'+Util.baseFile(Constants.DIR_NATIVES)+'"' }
+
+        project.task("runServer", type: JavaExec, dependsOn: "compileJava") {
+
+            classpath = project.sourceSets.main.compileClasspath + project.sourceSets.main.output
+
+            workingDir { Util.baseFile(Constants.DIR_RUN) }
+
+            main = "cpw.mods.fml.relauncher.ServerLaunchWrapper"
         }
     }
 }
