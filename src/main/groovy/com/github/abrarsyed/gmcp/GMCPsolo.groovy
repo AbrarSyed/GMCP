@@ -168,8 +168,6 @@ class GMCPsolo extends GMCP
         project.idea {
             module {
                 sourceDirs.addAll project.sourceSets.main.allSource.getSrcDirs()
-
-                // TODO: run configs
             }
         }
     }

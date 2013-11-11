@@ -12,6 +12,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.Sync
 
 public class GMCP implements Plugin<Project>
 {
@@ -96,7 +97,7 @@ public class GMCP implements Plugin<Project>
             dependsOn 'deobfuscateJar', 'processMCSource'
         }
         project.task('setupDevWorkspace') {
-            dependsOn 'setupCIWorkspace', 'getAssets', 'unpackNatives'
+            dependsOn 'setupCIWorkspace', 'copyAssets', 'unpackNatives'
         }
 
         // replace normal jar task with mine.
@@ -270,6 +271,12 @@ public class GMCP implements Plugin<Project>
             assetsDir = Util.cacheFile(Constants.CACHE_ASSETS)
         }
 
+        project.afterEvaluate {
+            project.task('copyAssets', type: Sync, dependsOn: 'getAssets') {
+                from Util.cacheFile(Constants.CACHE_ASSETS)
+                destinationDir = Util.baseFile(Constants.DIR_RUN)
+            }
+        }
 
         // ----------------------------------------------------------------------------
         // to do the package changes
@@ -482,6 +489,8 @@ public class GMCP implements Plugin<Project>
 
     def createIntellijTasks()
     {
+        def module = project.getProjectDir().getAbsolutePath();
+
         project.task("injectIntellijRunConigs") {
             doLast {
                 def file = project.file('.idea/workspace.xml')
@@ -499,9 +508,9 @@ public class GMCP implements Plugin<Project>
 
                             extension(name:'coverage', enabled:'false', merge:'false', sample_coverage:'true', runner:'idea')
                             option(name:'MAIN_CLASS_NAME', value:'net.minecraft.launchwrapper.Launch')
-                            option(name:'VM_PARAMETERS', value:'-Xincgc -Xmx1024M -Xms1024M -Djava.library.path=\"$PROJECT_DIR$/minecraft/natives\"')
+                            option(name:'VM_PARAMETERS', value:'-Xincgc -Xmx1024M -Xms1024M -Djava.library.path="'+Util.baseFile(Constants.DIR_NATIVES).replace(module, '$PROJECT_DIR$')+'"')
                             option(name:'PROGRAM_PARAMETERS', value:'--version 1.6 --tweakClass cpw.mods.fml.common.launcher.FMLTweaker --username=Player1234')
-                            option(name:'WORKING_DIRECTORY', value:'file://$PROJECT_DIR$/minecraft/run')
+                            option(name:'WORKING_DIRECTORY', value:'file://'+Util.baseFile(Constants.DIR_RUN).replace(module, '$PROJECT_DIR$'))
                             option(name:'ALTERNATIVE_JRE_PATH_ENABLED', value:'false')
                             option(name:'ALTERNATIVE_JRE_PATH', value:'')
                             option(name:'ENABLE_SWING_INSPECTOR', value:'false')
@@ -520,7 +529,7 @@ public class GMCP implements Plugin<Project>
                             option(name:'MAIN_CLASS_NAME', value:'cpw.mods.fml.relauncher.ServerLaunchWrapper')
                             option(name:'VM_PARAMETERS', value:'XX:-UseSplitVerifier')
                             option(name:'PROGRAM_PARAMETERS', value:'')
-                            option(name:'WORKING_DIRECTORY', value:'file://$PROJECT_DIR$/minecraft/run')
+                            option(name:'WORKING_DIRECTORY', value:'file://'+Util.baseFile(Constants.DIR_RUN).replace(module, '$PROJECT_DIR$'))
                             option(name:'ALTERNATIVE_JRE_PATH_ENABLED', value:'false')
                             option(name:'ALTERNATIVE_JRE_PATH', value:'')
                             option(name:'ENABLE_SWING_INSPECTOR', value:'false')
@@ -559,8 +568,6 @@ public class GMCP implements Plugin<Project>
                 if (container)
                 {
                     container.appendNode {
-
-                        def module = project.getProjectDir().getAbsolutePath();
                         // srcSet stuff
                         project.sourceSets.each { srcSet ->
                             if (srcSet.is(project.sourceSets.main) || srcSet.is(project.sourceSets.test))
