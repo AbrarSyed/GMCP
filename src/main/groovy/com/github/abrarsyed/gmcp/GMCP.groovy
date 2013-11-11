@@ -89,6 +89,7 @@ public class GMCP implements Plugin<Project>
         // IDE stuff
         configureEclipse()
         configureIntelliJ()
+        createIntellijTasks()
 
         // setup task
         project.task('setupCIWorkspace') {
@@ -475,6 +476,118 @@ public class GMCP implements Plugin<Project>
                 sourceDirs.addAll project.sourceSets.minecraft.allSource.getSrcDirs()
                 sourceDirs.addAll project.sourceSets.main.allSource.getSrcDirs()
             }
+        }
+    }
+
+    def createIntellijTasks()
+    {
+        project.task("injectIntellijRunConigs") {
+            doLast {
+                def file = project.file('.idea/workspace.xml')
+
+                // open up the file and make edits
+                def rootNode = new XmlSlurper().parseText(file.text)
+
+                // find the configuration section.
+                def runManager = rootNode.component.find { it.@name == 'RunManager'}
+                if (runManager)
+                {
+                    runManager.appendNode {
+                        //default="false" name="Client" type="Application" factoryName="Application"
+                        configuration(['default': 'false', 'name': 'Minecraft Client', 'type': 'Application', 'factoryName':'Application']) {
+
+                            extension(name:'coverage', enabled:'false', merge:'false', sample_coverage:'true', runner:'idea')
+                            option(name:'MAIN_CLASS_NAME', value:'net.minecraft.launchwrapper.Launch')
+                            option(name:'VM_PARAMETERS', value:'-Xincgc -Xmx1024M -Xms1024M -Djava.library.path=\"$PROJECT_DIR$/minecraft/natives\"')
+                            option(name:'PROGRAM_PARAMETERS', value:'--version 1.6 --tweakClass cpw.mods.fml.common.launcher.FMLTweaker --username=Player1234')
+                            option(name:'WORKING_DIRECTORY', value:'file://$PROJECT_DIR$/minecraft/run')
+                            option(name:'ALTERNATIVE_JRE_PATH_ENABLED', value:'false')
+                            option(name:'ALTERNATIVE_JRE_PATH', value:'')
+                            option(name:'ENABLE_SWING_INSPECTOR', value:'false')
+                            option(name:'ENV_VARIABLES')
+                            option(name:'PASS_PARENT_ENVS', value:'true')
+                            module(name:project.idea.module.name)
+                            envs()
+                            RunnerSettings(RunnerId:'Run')
+                            ConfigurationWrapper(RunnerId:'Run')
+                            method()
+                        }
+
+                        configuration(['default': 'false', 'name': 'Minecraft Server', 'type': 'Application', 'factoryName':'Application']) {
+
+                            extension(name:'coverage', enabled:'false', merge:'false', sample_coverage:'true', runner:'idea')
+                            option(name:'MAIN_CLASS_NAME', value:'cpw.mods.fml.relauncher.ServerLaunchWrapper')
+                            option(name:'VM_PARAMETERS', value:'XX:-UseSplitVerifier')
+                            option(name:'PROGRAM_PARAMETERS', value:'')
+                            option(name:'WORKING_DIRECTORY', value:'file://$PROJECT_DIR$/minecraft/run')
+                            option(name:'ALTERNATIVE_JRE_PATH_ENABLED', value:'false')
+                            option(name:'ALTERNATIVE_JRE_PATH', value:'')
+                            option(name:'ENABLE_SWING_INSPECTOR', value:'false')
+                            option(name:'ENV_VARIABLES')
+                            option(name:'PASS_PARENT_ENVS', value:'true')
+                            module(name:project.idea.module.name)
+                            envs()
+                            RunnerSettings(RunnerId:'Run')
+                            ConfigurationWrapper(RunnerId:'Run')
+                            method()
+                        }
+                    }
+                }
+
+                // write XML
+                // check the whole document using XmlUnit
+                def builder = new StreamingMarkupBuilder()
+                def result = builder.bind({ mkp.yield rootNode })
+                result = XmlUtil.serialize(result)
+
+                println result
+
+                file.write result
+            }
+        }
+
+        project.task("injectIntellijSrcDirs") {
+            doLast {
+                def file = project.file(project.idea.module.name + '.iml')
+
+                // open up the file and make edits
+                def rootNode = new XmlSlurper().parseText(file.text)
+
+                // find the configuration section.
+                def container = rootNode.component.content
+                if (container)
+                {
+                    container.appendNode {
+
+                        def module = project.getProjectDir().getAbsolutePath();
+                        // srcSet stuff
+                        project.sourceSets.each { srcSet ->
+                            if (srcSet.is(project.sourceSets.main) || srcSet.is(project.sourceSets.test))
+                            {
+                                return
+                            }
+
+                            srcSet.getAllSource().getSrcDirs().each { srcDir ->
+                                sourceFolder('url':srcDir.getAbsolutePath().replace(module, 'file://$MODULE_DIR$'), 'isTestSource':'false')
+                            }
+                        }
+                    }
+                }
+
+                // write XML
+                // check the whole document using XmlUnit
+                def builder = new StreamingMarkupBuilder()
+                def result = builder.bind({ mkp.yield rootNode })
+                result = XmlUtil.serialize(result)
+
+                println result
+
+                file.write result
+            }
+        }
+
+        project.task("fixIntellijProject") {
+            dependsOn "injectIntellijSrcDirs", "injectIntellijRunConigs"
         }
     }
 }
