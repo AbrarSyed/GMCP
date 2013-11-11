@@ -270,6 +270,7 @@ public class GMCP implements Plugin<Project>
             assetsDir = Util.cacheFile(Constants.CACHE_ASSETS)
         }
 
+
         // ----------------------------------------------------------------------------
         // to do the package changes
         project.task('fixMappings', type: MergeMappingsTask, dependsOn: "extractForge") {
