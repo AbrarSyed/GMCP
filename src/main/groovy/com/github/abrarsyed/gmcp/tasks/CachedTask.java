@@ -66,6 +66,7 @@ public abstract class CachedTask extends DefaultTask
                     try
                     {
                         File file = getFile(field);
+                        File hashFile = getHashFile(file);
 
                         // not there? do the task.
                         if (!file.exists())
@@ -73,7 +74,14 @@ public abstract class CachedTask extends DefaultTask
                             return true;
                         }
 
-                        String foundMD5 = Files.toString(getHashFile(file), Charset.defaultCharset());
+                        if (!hashFile.exists())
+                        {
+                            getProject().getLogger().error("Corrupted Cache!");
+                            file.delete();
+                            return true;
+                        }
+
+                        String foundMD5 = Files.toString(hashFile, Charset.defaultCharset());
                         String calcMD5 = getHashes(field, inputList, getDelegate());
 
                         getProject().getLogger().info("Cached file found: " + file);
@@ -84,7 +92,7 @@ public abstract class CachedTask extends DefaultTask
                         {
                             getProject().getLogger().error("Corrupted Cache!");
                             file.delete();
-                            getHashFile(file).delete();
+                            hashFile.delete();
                             return true;
                         }
 
