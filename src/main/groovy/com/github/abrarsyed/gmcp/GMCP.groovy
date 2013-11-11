@@ -385,15 +385,15 @@ public class GMCP implements Plugin<Project>
                     def nativesDir = Util.baseFile(Constants.DIR_NATIVES)
 
                     // If this is doing anything, assume no gradle plugin.
-                    [
-                            'jinput.jar',
-                            'lwjg.jar',
-                            'lwjgl_util.jar'
-                    ].each { nativ ->
-                        def container = rootNode.children().find { it.@path && it.@path.endsWith(nativ) }
+                    [ 'jinput', 'lwjg'].each { nativ ->
+                        def container = rootNode.children().find { it.@path && it.@path.contains(nativ) }
                         if (container)
                         {
-                            container.appendNode('attributes').appendNode('attribute', [name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir.getAbsolutePath()])
+                            container.appendNode{
+                                attributes {
+                                    attribute(name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir.getAbsolutePath())
+                                }
+                            }
                         }
                     }
 
@@ -404,7 +404,11 @@ public class GMCP implements Plugin<Project>
                         def container = rootNode.children().find { it.@kind == 'src' && it.@path && srcDir.getPath().replace("\\", "/").endsWith(it.@path.toString()) }
                         if (container)
                         {
-                            container.appendNode('attributes').appendNode('attribute', [name: "ignore_optional_problems", value: 'true'])
+                            container.appendNode{
+                                attributes {
+                                    attribute(name: "ignore_optional_problems", value: 'true')
+                                }
+                            }
                         }
                     }
                 }
