@@ -41,8 +41,7 @@ public final class Constants
     public static final String  URL_MC_CLIENT       = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.jar'
     public static final String  URL_MC_SERVER       = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar'
     public static final String  URL_ASSETS          = 'http://s3.amazonaws.com/Minecraft.Resources'
-    public static final String  URL_FERNFLOWER      = "https://github.com/AbrarSyed/FML/blob/469cc26954ed4eb35188ded161bcadba967a8959/mcplibs/fernflower.jar?raw=true";
-    public static final String  URL_EXCEPTOR        = "https://github.com/AbrarSyed/FML/blob/469cc26954ed4eb35188ded161bcadba967a8959/mcplibs/mcinjector.jar?raw=true";
+    public static final String  URL_MCP_JARS        = "http://mcp.ocean-labs.de/files/archive/mcp804.zip";
 
     // cache file paths
     public static final String  CACHE_DIR_FORGE     = "caches/gmcp/forge"

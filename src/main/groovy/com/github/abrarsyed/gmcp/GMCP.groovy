@@ -228,7 +228,9 @@ public class GMCP implements Plugin<Project>
                 this.json.parseJson()
 
                 if (project.configurations.gmcp.state != Configuration.State.UNRESOLVED)
-                    return;
+                {
+                    return
+                }
 
                 // do dependnecies
                 project.dependencies {
@@ -257,19 +259,13 @@ public class GMCP implements Plugin<Project>
             url = { String.format(Constants.URL_MC_SERVER, project.minecraft.minecraftVersion) }
         }
 
-        // download the FernFlower
-        project.task('downloadFernFlower', type: DownloadTask, dependsOn: "extractForge") {
-            output = { Util.cacheFile(Constants.FERNFLOWER) }
-            url = Constants.URL_FERNFLOWER
-        }
+        project.task('obtainMcpJars', type: ObtainMcpJarsTask) {
+            mcpUrl = Constants.URL_MCP_JARS
+            ffJar = { Util.cacheFile(Constants.FERNFLOWER) }
+            injectorJar = { Util.cacheFile(Constants.EXCEPTOR) }
+        };
 
-        // download the exceptor
-        project.task('downloadExceptor', type: DownloadTask, dependsOn: "extractForge") {
-            output = { Util.cacheFile(Constants.EXCEPTOR) }
-            url = Constants.URL_EXCEPTOR
-        }
-
-        project.task('getAssets', type: DownloadAssetsTask,  dependsOn: 'extractForge') {
+        project.task('getAssets', type: DownloadAssetsTask, dependsOn: 'extractForge') {
             assetsDir = Util.cacheFile(Constants.CACHE_ASSETS)
         }
 
@@ -330,26 +326,26 @@ public class GMCP implements Plugin<Project>
         project.task("deobfuscateJar", type: ProcessJarTask) {
             inJar = { Util.cacheFile(String.format(Constants.FMED_JAR_MERGED, project.minecraft.minecraftVersion)) }
             exceptorJar = Util.cacheFile(Constants.EXCEPTOR);
-            outJar =  { Util.baseFile(Constants.JAR_SRG) };
+            outJar = { Util.baseFile(Constants.JAR_SRG) };
             outMap = { Util.cacheFile(String.format(Constants.FMED_INH_MAP, project.minecraft.minecraftVersion)) }
             srg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
             exceptorCfg = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
             addTransformer Util.baseFile(Constants.DIR_FML, "common", "fml_at.cfg")
             addTransformer Util.baseFile(Constants.DIR_FORGE, "common", "forge_at.cfg")
 
-            dependsOn 'downloadExceptor', 'mergeJars', 'fixMappings'
+            dependsOn 'obtainMcpJars', 'mergeJars', 'fixMappings'
         }
     }
 
     def decompileTask()
     {
         project.task('decompileMinecraft', type: ApplyFernflowerTask) {
-            dependsOn 'deobfuscateJar', 'downloadFernFlower'
-            input =  { Util.baseFile(Constants.JAR_SRG) }
+            dependsOn 'deobfuscateJar', 'obtainMcpJars'
+            input = { Util.baseFile(Constants.JAR_SRG) }
             fernflower = Util.cacheFile(Constants.FERNFLOWER)
-            output =  { Util.baseFile(Constants.JAR_DECOMP) }
+            output = { Util.baseFile(Constants.JAR_DECOMP) }
         }
-        
+
         project.task('processMCSource', type: ProcessSourceTask) {
             dependsOn 'decompileMinecraft'
 
@@ -403,7 +399,7 @@ public class GMCP implements Plugin<Project>
 
                     // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
                     (
-                        project.sourceSets.api.allSource.getSrcDirs() + project.sourceSets.minecraft.allSource.getSrcDirs()
+                    project.sourceSets.api.allSource.getSrcDirs() + project.sourceSets.minecraft.allSource.getSrcDirs()
                     ).each { srcDir ->
                         def container = rootNode.children().find { it.@kind == 'src' && it.@path && srcDir.getPath().replace("\\", "/").endsWith(it.@path.toString()) }
                         if (container)
@@ -441,9 +437,9 @@ public class GMCP implements Plugin<Project>
 
             // IGNORE WARNINGS SRC  ---------------------------------------------------------------------
             (
-                project.sourceSets.api.allSource.getSrcDirs() + project.sourceSets.minecraft.allSource.getSrcDirs()
+            project.sourceSets.api.allSource.getSrcDirs() + project.sourceSets.minecraft.allSource.getSrcDirs()
             ).each { srcDir ->
-                println ""+srcDir + "  >>  " + srcDir.getPath().replace("\\", "/")
+                println "" + srcDir + "  >>  " + srcDir.getPath().replace("\\", "/")
                 container = rootNode.children().find { it.@kind == 'src' && it.@path && srcDir.getPath().replace("\\", "/").endsWith(it.@path.toString()) }
                 if (container)
                 {
