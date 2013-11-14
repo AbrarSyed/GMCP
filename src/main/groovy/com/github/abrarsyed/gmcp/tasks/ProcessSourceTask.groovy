@@ -49,7 +49,6 @@ class ProcessSourceTask extends DefaultTask
         log "Cleaning and formatting sources"
         doMCPCleanup()
 
-        // TODO: make conditional for fml stuff.
         log "Applying FML tranformations"
         applyFMLModifications()
 
@@ -73,13 +72,13 @@ class ProcessSourceTask extends DefaultTask
         while ((entry = zin.getNextEntry()) != null)
         {
             // no META or dirs. wel take care of dirs later.
-            if (entry.getName().contains("META-INF") || entry.getName().contains("cpw"))
+            if (entry.isDirectory() || entry.getName().contains("META-INF") || entry.getName().contains("cpw"))
             {
                 continue;
             }
 
             // resources or directories.
-            if (entry.isDirectory() || !entry.getName().endsWith(".java"))
+            if (!entry.getName().endsWith(".java"))
             {
                 out = file(resDir, entry.getName())
                 out.getParentFile().mkdirs();
@@ -170,7 +169,7 @@ class ProcessSourceTask extends DefaultTask
             text = writer.toString()
 
             // do FML fixes...
-            text = FMLCleanup.updateFile(text)
+            text = FMLCleanup.renameClass(text)
 
             // ensure line endings
             text = text.replaceAll("(\r\n|\n|\r)", Constants.NEWLINE)

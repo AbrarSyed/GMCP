@@ -284,16 +284,18 @@ public class GMCP implements Plugin<Project>
 
         // ----------------------------------------------------------------------------
         // to do the package changes
-        project.task('fixMappings', type: MergeMappingsTask, dependsOn: "extractForge") {
-            inSRG = Util.baseFile(Constants.DIR_MAPPINGS, "joined.srg")
-            inPatch = Util.baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
-            inEXC = Util.baseFile(Constants.DIR_MAPPINGS, "joined.exc")
+        project.afterEvaluate {
+            project.task('fixMappings', type: MergeMappingsTask, dependsOn: "extractForge") {
+                inSRG = Util.baseFile(Constants.DIR_MAPPINGS, "joined.srg")
+                inPatch = Util.baseFile(Constants.DIR_MCP_PATCHES, "minecraft_ff.patch")
+                inEXC = Util.baseFile(Constants.DIR_MAPPINGS, "joined.exc")
 
-            packageCSV = Util.baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"])
+                packageCSV = Util.baseFile(Constants.DIR_MAPPINGS, Constants.CSVS["packages"])
 
-            outSRG = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
-            outPatch = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)) }
-            outEXC = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
+                outSRG = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_SRG, project.minecraft.minecraftVersion)) }
+                outPatch = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_PATCH, project.minecraft.minecraftVersion)) }
+                outEXC = { Util.cacheFile(String.format(Constants.FMED_PACKAGED_EXC, project.minecraft.minecraftVersion)) }
+            }
         }
 
         project.task('genReobfSrgs', type: GenReobfSrgTask, dependsOn: "extractForge") {
@@ -398,11 +400,11 @@ public class GMCP implements Plugin<Project>
                     def nativesDir = Util.baseFile(Constants.DIR_NATIVES)
 
                     // If this is doing anything, assume no gradle plugin.
-                    [ 'jinput', 'lwjg'].each { nativ ->
+                    ['jinput', 'lwjg'].each { nativ ->
                         def container = rootNode.children().find { it.@path && it.@path.contains(nativ) }
                         if (container)
                         {
-                            container.appendNode{
+                            container.appendNode {
                                 attributes {
                                     attribute(name: "org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY", value: nativesDir.getAbsolutePath())
                                 }
@@ -417,7 +419,7 @@ public class GMCP implements Plugin<Project>
                         def container = rootNode.children().find { it.@kind == 'src' && it.@path && srcDir.getPath().replace("\\", "/").endsWith(it.@path.toString()) }
                         if (container)
                         {
-                            container.appendNode{
+                            container.appendNode {
                                 attributes {
                                     attribute(name: "ignore_optional_problems", value: 'true')
                                 }
@@ -503,46 +505,46 @@ public class GMCP implements Plugin<Project>
                 def rootNode = new XmlSlurper().parseText(file.text)
 
                 // find the configuration section.
-                def runManager = rootNode.component.find { it.@name == 'RunManager'}
+                def runManager = rootNode.component.find { it.@name == 'RunManager' }
                 if (runManager)
                 {
                     runManager.appendNode {
                         //default="false" name="Client" type="Application" factoryName="Application"
-                        configuration(['default': 'false', 'name': 'Minecraft Client', 'type': 'Application', 'factoryName':'Application']) {
+                        configuration(['default': 'false', 'name': 'Minecraft Client', 'type': 'Application', 'factoryName': 'Application']) {
 
-                            extension(name:'coverage', enabled:'false', merge:'false', sample_coverage:'true', runner:'idea')
-                            option(name:'MAIN_CLASS_NAME', value:'net.minecraft.launchwrapper.Launch')
-                            option(name:'VM_PARAMETERS', value:'-Xincgc -Xmx1024M -Xms1024M -Djava.library.path="'+Util.baseFile(Constants.DIR_NATIVES).getAbsolutePath().replace(module, '$PROJECT_DIR$')+'"')
-                            option(name:'PROGRAM_PARAMETERS', value:'--version 1.6 --tweakClass cpw.mods.fml.common.launcher.FMLTweaker --username=Player1234')
-                            option(name:'WORKING_DIRECTORY', value:'file://'+Util.baseFile(Constants.DIR_RUN).getAbsolutePath().replace(module, '$PROJECT_DIR$'))
-                            option(name:'ALTERNATIVE_JRE_PATH_ENABLED', value:'false')
-                            option(name:'ALTERNATIVE_JRE_PATH', value:'')
-                            option(name:'ENABLE_SWING_INSPECTOR', value:'false')
-                            option(name:'ENV_VARIABLES')
-                            option(name:'PASS_PARENT_ENVS', value:'true')
-                            module(name:project.idea.module.name)
+                            extension(name: 'coverage', enabled: 'false', merge: 'false', sample_coverage: 'true', runner: 'idea')
+                            option(name: 'MAIN_CLASS_NAME', value: 'net.minecraft.launchwrapper.Launch')
+                            option(name: 'VM_PARAMETERS', value: '-Xincgc -Xmx1024M -Xms1024M -Djava.library.path="' + Util.baseFile(Constants.DIR_NATIVES).getAbsolutePath().replace(module, '$PROJECT_DIR$') + '"')
+                            option(name: 'PROGRAM_PARAMETERS', value: '--version 1.6 --tweakClass cpw.mods.fml.common.launcher.FMLTweaker --username=Player1234')
+                            option(name: 'WORKING_DIRECTORY', value: 'file://' + Util.baseFile(Constants.DIR_RUN).getAbsolutePath().replace(module, '$PROJECT_DIR$'))
+                            option(name: 'ALTERNATIVE_JRE_PATH_ENABLED', value: 'false')
+                            option(name: 'ALTERNATIVE_JRE_PATH', value: '')
+                            option(name: 'ENABLE_SWING_INSPECTOR', value: 'false')
+                            option(name: 'ENV_VARIABLES')
+                            option(name: 'PASS_PARENT_ENVS', value: 'true')
+                            module(name: project.idea.module.name)
                             envs()
-                            RunnerSettings(RunnerId:'Run')
-                            ConfigurationWrapper(RunnerId:'Run')
+                            RunnerSettings(RunnerId: 'Run')
+                            ConfigurationWrapper(RunnerId: 'Run')
                             method()
                         }
 
-                        configuration(['default': 'false', 'name': 'Minecraft Server', 'type': 'Application', 'factoryName':'Application']) {
+                        configuration(['default': 'false', 'name': 'Minecraft Server', 'type': 'Application', 'factoryName': 'Application']) {
 
-                            extension(name:'coverage', enabled:'false', merge:'false', sample_coverage:'true', runner:'idea')
-                            option(name:'MAIN_CLASS_NAME', value:'cpw.mods.fml.relauncher.ServerLaunchWrapper')
-                            option(name:'VM_PARAMETERS', value:'XX:-UseSplitVerifier')
-                            option(name:'PROGRAM_PARAMETERS', value:'')
-                            option(name:'WORKING_DIRECTORY', value:'file://'+Util.baseFile(Constants.DIR_RUN).getAbsolutePath().replace(module, '$PROJECT_DIR$'))
-                            option(name:'ALTERNATIVE_JRE_PATH_ENABLED', value:'false')
-                            option(name:'ALTERNATIVE_JRE_PATH', value:'')
-                            option(name:'ENABLE_SWING_INSPECTOR', value:'false')
-                            option(name:'ENV_VARIABLES')
-                            option(name:'PASS_PARENT_ENVS', value:'true')
-                            module(name:project.idea.module.name)
+                            extension(name: 'coverage', enabled: 'false', merge: 'false', sample_coverage: 'true', runner: 'idea')
+                            option(name: 'MAIN_CLASS_NAME', value: 'cpw.mods.fml.relauncher.ServerLaunchWrapper')
+                            option(name: 'VM_PARAMETERS', value: 'XX:-UseSplitVerifier')
+                            option(name: 'PROGRAM_PARAMETERS', value: '')
+                            option(name: 'WORKING_DIRECTORY', value: 'file://' + Util.baseFile(Constants.DIR_RUN).getAbsolutePath().replace(module, '$PROJECT_DIR$'))
+                            option(name: 'ALTERNATIVE_JRE_PATH_ENABLED', value: 'false')
+                            option(name: 'ALTERNATIVE_JRE_PATH', value: '')
+                            option(name: 'ENABLE_SWING_INSPECTOR', value: 'false')
+                            option(name: 'ENV_VARIABLES')
+                            option(name: 'PASS_PARENT_ENVS', value: 'true')
+                            module(name: project.idea.module.name)
                             envs()
-                            RunnerSettings(RunnerId:'Run')
-                            ConfigurationWrapper(RunnerId:'Run')
+                            RunnerSettings(RunnerId: 'Run')
+                            ConfigurationWrapper(RunnerId: 'Run')
                             method()
                         }
                     }
@@ -580,7 +582,7 @@ public class GMCP implements Plugin<Project>
                             }
 
                             srcSet.getAllSource().getSrcDirs().each { srcDir ->
-                                sourceFolder('url':srcDir.getAbsolutePath().replace(module, 'file://$MODULE_DIR$'), 'isTestSource':'false')
+                                sourceFolder('url': srcDir.getAbsolutePath().replace(module, 'file://$MODULE_DIR$'), 'isTestSource': 'false')
                             }
                         }
                     }
@@ -616,7 +618,7 @@ public class GMCP implements Plugin<Project>
             main = "net.minecraft.launchwrapper.Launch"
         }
 
-        project.afterEvaluate { project.tasks.runClient.jvmArgs '-Djava.library.path="'+Util.baseFile(Constants.DIR_NATIVES)+'"' }
+        project.afterEvaluate { project.tasks.runClient.jvmArgs '-Djava.library.path="' + Util.baseFile(Constants.DIR_NATIVES) + '"' }
 
         project.task("runServer", type: JavaExec, dependsOn: "compileJava") {
 

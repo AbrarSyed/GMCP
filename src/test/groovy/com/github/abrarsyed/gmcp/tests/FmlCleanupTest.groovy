@@ -21,7 +21,7 @@ class FmlCleanupTest
     @Test
     def void test()
     {
-        initial = FMLCleanup.updateFile(initial)
+        initial = FMLCleanup.renameClass(initial)
 
         def inLines = initial.readLines()
         def outLines = expected.readLines()

@@ -16,6 +16,7 @@ public class DownloadTask extends CachedTask
     @TaskAction
     public void doTask() throws IOException
     {
+        output = getOutput()
         output.createNewFile()
         getLogger().info("Downloading " + url + " to " + output);
 

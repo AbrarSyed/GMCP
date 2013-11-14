@@ -82,6 +82,7 @@ class PatchTask extends DefaultTask
 
             // fix access levels
             it.setAccessC14N(true)
+            it.setWhitespaceC14N(true)
 
             log.debug "Applying Patch: " + it
             List<ContextualPatch.PatchReport> errors = it.patch(false);
