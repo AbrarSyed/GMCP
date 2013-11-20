@@ -41,7 +41,7 @@ public final class Constants
     public static final String URL_JSON_FORGE2 = "http://files.minecraftforge.net/minecraftforge/json2"
     public static final String URL_MC_CLIENT = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/%1$s.jar'
     public static final String URL_MC_SERVER = 'http://s3.amazonaws.com/Minecraft.Download/versions/%1$s/minecraft_server.%1$s.jar'
-    public static final String URL_ASSETS = 'http://s3.amazonaws.com/Minecraft.Resources'
+    public static final String URL_ASSETS = 'http://resources.download.minecraft.net'
     public static final String URL_MCP_JARS = "http://mcp.ocean-labs.de/files/archive/mcp804.zip";
 
     // cache file paths
